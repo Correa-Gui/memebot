@@ -14,7 +14,7 @@ import { Recorder } from '@memebot/recorder';
 import { parseBotArgs } from './args.ts';
 import { BoundedQueue } from './bounded-queue.ts';
 import { describeEvent } from './format.ts';
-import { configHash, gitCommit, idlHash, newRunId } from './run-info.ts';
+import { configHash, gitCommit, idlHash, newRunId, runQuality } from './run-info.ts';
 
 function requireUrls(cfg: AppConfig): { rpcUrl: string; wsUrl: string } {
   if (!cfg.RPC_URL || !cfg.RPC_WS_URL) throw new Error('RPC_URL e RPC_WS_URL são obrigatórios (ver .env.example)');
@@ -61,9 +61,11 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
     logger: log,
   });
   await recorder.start();
-  const run = { mode: 'record' as const, configHash: configHash(cfg), gitCommit: gitCommit(), idlHash: idlHash() };
+  const quality = runQuality(rpcUrl);
+  const run = { mode: 'record' as const, configHash: configHash(cfg), gitCommit: gitCommit(), idlHash: idlHash(), quality };
   await recorder.recordRun(run);
   log.info({ runId, ...run }, 'run iniciado');
+  if (quality === 'provisional') log.warn({ runId }, 'RPC público detectado: run marcada como provisional (sanity/backtest excluem por padrão)');
 
   // configuração de taxas/curva on-chain: na partida e periodicamente (CLAUDE.md §7)
   const snapshotProtocol = async (): Promise<void> => {

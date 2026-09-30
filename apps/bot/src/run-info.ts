@@ -40,3 +40,15 @@ export function gitCommit(): string {
 export function newRunId(mode: string, nowMs: number): string {
   return `${mode}-${new Date(nowMs).toISOString().replace(/[:.]/g, '-')}-${sha256(String(Math.random())).slice(0, 6)}`;
 }
+
+/** Endpoints públicos conhecidos por não terem SLA e limitarem forte (429 frequente). */
+const KNOWN_PUBLIC_RPC = /api\.mainnet-beta\.solana\.com|api\.devnet\.solana\.com|api\.testnet\.solana\.com/;
+
+/**
+ * Classifica a qualidade de uma run pelo RPC usado. Heurística simples (nome do host), documentada
+ * em ARCHITECTURE §6: qualquer coisa que não seja reconhecidamente pública é tratada como produção —
+ * então um RPC pago mal configurado não é pego por isto; é o operador quem garante isso ao contratar.
+ */
+export function runQuality(rpcUrl: string): 'provisional' | 'production' {
+  return KNOWN_PUBLIC_RPC.test(rpcUrl) ? 'provisional' : 'production';
+}

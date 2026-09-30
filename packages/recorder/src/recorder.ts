@@ -102,10 +102,17 @@ export class Recorder {
     });
   }
 
-  async recordRun(r: { mode: 'record' | 'paper' | 'live' | 'replay'; configHash: string; gitCommit: string; idlHash: string }): Promise<void> {
+  async recordRun(r: {
+    mode: 'record' | 'paper' | 'live' | 'replay';
+    configHash: string;
+    gitCommit: string;
+    idlHash: string;
+    /** 'provisional' = RPC público ou não confiável; sanity/backtest excluem por padrão. */
+    quality: 'provisional' | 'production';
+  }): Promise<void> {
     await this.client.insert({
       table: 'runs',
-      values: [{ run_id: this.runId, started_at: chTime(this.now()), mode: r.mode, config_hash: r.configHash, git_commit: r.gitCommit, idl_hash: r.idlHash }],
+      values: [{ run_id: this.runId, started_at: chTime(this.now()), mode: r.mode, config_hash: r.configHash, git_commit: r.gitCommit, idl_hash: r.idlHash, quality: r.quality }],
       format: 'JSONEachRow',
     });
   }

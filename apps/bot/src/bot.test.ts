@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseBotArgs } from './args.ts';
 import { BoundedQueue } from './bounded-queue.ts';
 import { formatLamports } from './format.ts';
-import { configHash, publicConfig } from './run-info.ts';
+import { configHash, publicConfig, runQuality } from './run-info.ts';
 
 describe('parseBotArgs', () => {
   it('padrões e debug', () => {
@@ -65,5 +65,12 @@ describe('BoundedQueue', () => {
     }
     await q.onIdle();
     expect(q.size).toBe(0);
+  });
+});
+
+describe('runQuality', () => {
+  it('RPC público conhecido é provisional; qualquer outro é production', () => {
+    expect(runQuality('https://api.mainnet-beta.solana.com')).toBe('provisional');
+    expect(runQuality('https://meu-provedor-pago.example/rpc?api-key=x')).toBe('production');
   });
 });
