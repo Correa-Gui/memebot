@@ -73,4 +73,29 @@ describe('IngestService (ponta a ponta com socket falso e fixtures reais)', () =
     expect(gaps).toEqual([]);
     expect(svc.stats).toMatchObject({ notifications: 3, failedTxSkipped: 0 });
   });
+
+  it('pool não resolvida: conta em unresolvedPools (não em gaps); falha real de RPC vira pool_resolve_failed', async () => {
+    const f = socketFactory();
+    const events: (PumpEvent | SocialEvent)[] = [];
+    const gaps: IngestGap[] = [];
+    const svc = new IngestService({
+      wsUrl: 'wss://example.invalid',
+      resolvePool: () => Promise.reject(new Error('HTTP 429')),
+      onGap: (g) => gaps.push(g),
+      logger: silent,
+      now: () => 5_000,
+      createSocket: f.create,
+    });
+    await svc.start((e) => events.push(e));
+    f.sockets[0]?.onopen?.();
+    deliver(f.sockets[0], 'amm-buy');
+    await svc.stop();
+    for (let i = 0; i < 10; i++) await Promise.resolve(); // resolução em segundo plano
+
+    const trade = events.find((e) => e.kind === 'trade');
+    expect(trade).toMatchObject({ mint: '', poolUnresolved: true });
+    expect(svc.stats.unresolvedPools).toBe(1);
+    expect(gaps.map((g) => g.kind)).toEqual(['pool_resolve_failed']);
+    expect(svc.poolCacheStats()).toEqual({ cacheSize: 0, pending: 0, notPool: 0 });
+  });
 });

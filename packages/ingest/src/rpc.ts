@@ -22,6 +22,13 @@ const Envelope = z.object({
   error: z.object({ code: z.number(), message: z.string() }).optional(),
 });
 
+export interface RpcClientStats {
+  /** Chamadas lógicas (`.call()`), não tentativas individuais. */
+  calls: number;
+  /** Respostas HTTP 429 recebidas, contando cada tentativa (para dimensionar o plano de RPC). */
+  rateLimited: number;
+}
+
 /** Cliente JSON-RPC HTTP mínimo: timeout, retry com backoff limitado e validação zod da resposta. */
 export class RpcClient {
   private readonly url: string;
@@ -30,6 +37,7 @@ export class RpcClient {
   private readonly baseBackoffMs: number;
   private readonly fetchFn: typeof fetch;
   private readonly sleep: (ms: number) => Promise<void>;
+  readonly stats: RpcClientStats = { calls: 0, rateLimited: 0 };
 
   constructor(url: string, opts: RpcClientOptions = {}) {
     this.url = url;
@@ -41,6 +49,7 @@ export class RpcClient {
   }
 
   async call<T>(method: string, params: unknown[], schema: z.ZodType<T>): Promise<T> {
+    this.stats.calls++;
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) await this.sleep(this.baseBackoffMs * 2 ** (attempt - 1));
@@ -52,6 +61,7 @@ export class RpcClient {
           signal: AbortSignal.timeout(this.timeoutMs),
         });
         if (res.status === 429 || res.status >= 500) {
+          if (res.status === 429) this.stats.rateLimited++;
           lastError = new RpcError(`${method}: HTTP ${String(res.status)}`, res.status);
           continue;
         }

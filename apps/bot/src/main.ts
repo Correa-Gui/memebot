@@ -99,7 +99,7 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
     return info;
   };
   const knownPools = (await recorder.loadPools()).map((p) => [p.pool, { baseMint: p.baseMint, quoteMint: p.quoteMint }] as [string, { baseMint: string; quoteMint: string }]);
-  log.info({ pools: knownPools.length }, 'pools pré-carregadas');
+  log.info({ pools: knownPools.length }, 'pools pré-carregadas (nenhuma será reconsultada por RPC)');
 
   const metadataQueue = new BoundedQueue(cfg.METADATA_CONCURRENCY, 5_000);
   const onEvent = (e: PumpEvent): void => {
@@ -120,6 +120,7 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
     wsUrl,
     resolvePool,
     knownPools,
+    poolResolveConcurrency: cfg.POOL_RESOLVE_CONCURRENCY,
     sampler,
     onGap: (g) => {
       recorder.recordGap(g);
@@ -131,13 +132,29 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
   });
 
   let last = { ...ingest.stats };
+  let lastRpc = { ...rpc.stats };
   const statsTimer = setInterval(() => {
     const s = ingest.stats;
+    const pools = ingest.poolCacheStats();
+    const mem = process.memoryUsage();
     log.info(
-      { eventsPerMin: s.events - last.events, notificationsPerMin: s.notifications - last.notifications, gapsPerMin: s.gaps - last.gaps, writer: recorder.stats, metadataQueue: metadataQueue.size },
+      {
+        eventsPerMin: s.events - last.events,
+        notificationsPerMin: s.notifications - last.notifications,
+        gapsPerMin: s.gaps - last.gaps,
+        unresolvedPoolsPerMin: s.unresolvedPools - last.unresolvedPools,
+        rpcCallsPerMin: rpc.stats.calls - lastRpc.calls,
+        rpc429PerMin: rpc.stats.rateLimited - lastRpc.rateLimited,
+        poolCache: pools,
+        writer: recorder.stats,
+        metadataQueue: metadataQueue.size,
+        heapMb: Math.round(mem.heapUsed / 1_048_576),
+      },
       'ingest',
     );
     last = { ...s };
+    lastRpc = { ...rpc.stats };
+    ingest.retryPendingPools();
   }, 60_000);
 
   await new Promise<void>((resolve) => {

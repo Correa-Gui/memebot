@@ -1,5 +1,5 @@
 import { address, getAddressEncoder, getProgramDerivedAddress } from '@solana/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PUMP_FUN_PROGRAM_ID, PUMP_SWAP_PROGRAM_ID, WSOL_MINT } from '../../../config/protocol.ts';
 import { parseLogs } from '../src/log-parser.ts';
 import { Normalizer, poolRetryDelayMs, type PoolResolver } from '../src/normalize.ts';
@@ -7,10 +7,16 @@ import { lamportDelta, loadFixture, notificationOf } from './fixtures.ts';
 
 const noResolver: PoolResolver = () => Promise.resolve('not_pool');
 
+/** A resolução de pool roda em segundo plano (não bloqueia normalize()); espera os microtasks assentarem. */
+async function flushPoolResolution(): Promise<void> {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+}
+
 async function normalizeFixture(name: string, resolver: PoolResolver = noResolver) {
   const fx = loadFixture(name);
   const parsed = parseLogs(notificationOf(fx));
   const result = await new Normalizer(resolver).normalize(parsed, 1_000, 7);
+  await flushPoolResolution();
   return { fx, parsed, ...result };
 }
 
@@ -63,19 +69,30 @@ describe('fixtures reais da mainnet', () => {
     expect(pool.quoteMint).toBe(WSOL_MINT);
   });
 
-  it('trade no PumpSwap usa base/quote da pool resolvida', async () => {
+  it('trade no PumpSwap: 1º trade vem com poolUnresolved (não bloqueia); 2º já vem resolvido do cache', async () => {
     const resolved: string[] = [];
     const resolver = (pool: string) => {
       resolved.push(pool);
       return Promise.resolve({ baseMint: 'BaseMint1111111111111111111111111111111111', quoteMint: WSOL_MINT });
     };
-    const { events, gaps } = await normalizeFixture('amm-buy', resolver);
-    const trade = events.find((e) => e.kind === 'trade');
-    if (trade?.kind !== 'trade' || trade.venue !== 'pumpswap') throw new Error('trade pumpswap ausente');
-    expect(resolved).toEqual([trade.pool]);
-    expect(trade.mint).toBe('BaseMint1111111111111111111111111111111111');
-    expect(trade.side).toBe('buy');
-    expect(gaps).toEqual([]);
+    const fx = loadFixture('amm-buy');
+    const parsed = parseLogs(notificationOf(fx));
+    const normalizer = new Normalizer(resolver);
+
+    const first = (await normalizer.normalize(parsed, 1_000, 7)).events.find((e) => e.kind === 'trade');
+    if (first?.kind !== 'trade' || first.venue !== 'pumpswap') throw new Error('trade pumpswap ausente');
+    expect(first.mint).toBe('');
+    expect(first.poolUnresolved).toBe(true);
+
+    await flushPoolResolution();
+    expect(resolved).toEqual([first.pool]);
+    expect(normalizer.poolCacheStats()).toEqual({ cacheSize: 1, pending: 0, notPool: 0 });
+
+    const second = (await normalizer.normalize(parsed, 2_000, 8)).events.find((e) => e.kind === 'trade');
+    if (second?.kind !== 'trade' || second.venue !== 'pumpswap') throw new Error('trade pumpswap ausente');
+    expect(second.mint).toBe('BaseMint1111111111111111111111111111111111');
+    expect(second.poolUnresolved).toBe(false);
+    expect(resolved).toEqual([first.pool]); // não reconsultou: veio do cache
   });
 
   it('pool criada (CreatePoolEvent) fica em cache: trade seguinte nessa pool não chama o resolver', async () => {
@@ -98,22 +115,37 @@ describe('fixtures reais da mainnet', () => {
     expect(calls).toBe(0);
   });
 
-  it('falha transitória: não repete o RPC antes do backoff e grava um gap por tentativa (não por trade)', async () => {
+  it('falha transitória: não repete o RPC antes do backoff e chama onResolveFailure uma vez por tentativa', async () => {
     let calls = 0;
-    const normalizer = new Normalizer(() => {
-      calls++;
-      return Promise.reject(new Error('HTTP 429'));
-    });
+    const failures: string[] = [];
+    const now = vi.fn(() => 0);
+    const normalizer = new Normalizer(
+      () => {
+        calls++;
+        return Promise.reject(new Error('HTTP 429'));
+      },
+      undefined,
+      { now },
+    );
+    normalizer.setOnResolveFailure((_pool, detail) => failures.push(detail));
     const buy = parseLogs(notificationOf(loadFixture('amm-buy')));
-    const at = async (ms: number) => (await normalizer.normalize(buy, ms, 0)).gaps.length;
 
-    expect(await at(0)).toBe(1); // 1ª tentativa falha → espera 1 s
-    expect(await at(500)).toBe(0); // dentro da janela: nem RPC nem gap
+    await normalizer.normalize(buy, 0, 0);
+    await flushPoolResolution();
+    expect(calls).toBe(1); // 1ª tentativa falha → espera 1 s
+    expect(failures).toHaveLength(1);
+
+    now.mockReturnValue(500);
+    await normalizer.normalize(buy, 0, 0); // dentro da janela de backoff: não reconsulta
+    await flushPoolResolution();
     expect(calls).toBe(1);
-    expect(await at(1_000)).toBe(1); // 2ª tentativa → espera 2 s
-    expect(await at(2_500)).toBe(0);
-    expect(await at(3_000)).toBe(1);
-    expect(calls).toBe(3);
+
+    now.mockReturnValue(1_000);
+    await normalizer.normalize(buy, 0, 0); // 2ª tentativa → espera 2 s
+    await flushPoolResolution();
+    expect(calls).toBe(2);
+    expect(failures).toHaveLength(2);
+
     expect(poolRetryDelayMs(1)).toBe(1_000);
     expect(poolRetryDelayMs(20)).toBe(300_000);
   });
@@ -126,12 +158,13 @@ describe('fixtures reais da mainnet', () => {
     });
     const buy = parseLogs(notificationOf(loadFixture('amm-buy')));
     await normalizer.normalize(buy, 0, 0);
+    await flushPoolResolution();
     const again = await normalizer.normalize(buy, 10_000_000, 1);
     expect(calls).toBe(1);
-    expect(again.gaps).toEqual([]);
+    expect(again.events.find((e) => e.kind === 'trade' && e.venue === 'pumpswap')).toMatchObject({ mint: '', poolUnresolved: true });
   });
 
-  it('trades concorrentes na mesma pool compartilham uma única chamada', async () => {
+  it('trades concorrentes na mesma pool compartilham uma única chamada em andamento', async () => {
     let calls = 0;
     let release: (v: 'not_pool') => void = () => undefined;
     const normalizer = new Normalizer(() => {
@@ -139,29 +172,67 @@ describe('fixtures reais da mainnet', () => {
       return new Promise((r) => (release = r));
     });
     const buy = parseLogs(notificationOf(loadFixture('amm-buy')));
-    const a = normalizer.normalize(buy, 0, 0);
-    const b = normalizer.normalize(buy, 0, 1);
+    await normalizer.normalize(buy, 0, 0);
+    await normalizer.normalize(buy, 0, 1);
+    expect(calls).toBe(1); // 2º trade viu a resolução em andamento e não reconsultou
     release('not_pool');
-    const gaps = [...(await a).gaps, ...(await b).gaps];
-    expect(calls).toBe(1);
-    expect(gaps).toHaveLength(1);
+    await flushPoolResolution();
   });
 
-  it('falha de rede no resolver não perde o trade', async () => {
+  it('falha de rede no resolver não perde o trade nem gera IngestGap (fica pendente, sem bloquear)', async () => {
     const failing: PoolResolver = () => Promise.reject(new Error('fetch failed'));
     const { events, gaps } = await normalizeFixture('amm-buy', failing);
     expect(events.filter((e) => e.kind === 'trade')).toHaveLength(1);
-    expect(gaps.map((g) => g.kind)).toEqual(['pool_unresolved']);
+    expect(gaps).toEqual([]); // falha de resolução não é IngestGap; ver setOnResolveFailure
   });
 
-  it('pool não resolvida grava o trade com mint vazio e registra gap', async () => {
+  it('pool não resolvida grava o trade na hora com mint vazio e a flag poolUnresolved', async () => {
     const { events, gaps } = await normalizeFixture('amm-sell');
     const trade = events.find((e) => e.kind === 'trade');
     if (trade?.kind !== 'trade' || trade.venue !== 'pumpswap') throw new Error('trade pumpswap ausente');
     expect(trade.mint).toBe('');
+    expect(trade.poolUnresolved).toBe(true);
     expect(trade.side).toBe('sell');
     expect(trade.ixName).toBeNull();
-    expect(gaps.map((g) => g.kind)).toEqual(['pool_unresolved']);
+    expect(gaps).toEqual([]);
+  });
+});
+
+describe('limite de concorrência da resolução de pool', () => {
+  it('no máximo N resoluções em andamento ao mesmo tempo; o resto espera na fila', async () => {
+    const releases: (() => void)[] = [];
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const resolver: PoolResolver = () => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      return new Promise((r) => {
+        releases.push(() => {
+          inFlight--;
+          r('not_pool');
+        });
+      });
+    };
+    const normalizer = new Normalizer(resolver, undefined, { concurrency: 2 });
+    const buy = parseLogs(notificationOf(loadFixture('amm-buy')));
+    // 5 pools distintas (mesmo evento, pool diferente) disputando a fila
+    for (let i = 0; i < 5; i++) {
+      const withPool = { ...buy, events: buy.events.map((e) => ({ ...e, data: { ...e.data, pool: `Pool${String(i)}` } })) };
+      await normalizer.normalize(withPool, 0, i);
+    }
+    await flushPoolResolution();
+    expect(maxInFlight).toBe(2);
+    expect(normalizer.poolCacheStats().pending).toBe(5); // 2 rodando + 3 na fila esperando espaço
+
+    // libera em rodadas: cada release abre espaço para a próxima da fila entrar
+    for (let round = 0; round < 3; round++) {
+      releases.splice(0).forEach((r) => {
+        r();
+      });
+      await flushPoolResolution();
+    }
+    expect(maxInFlight).toBe(2); // nunca passou do limite, mesmo com 5 pools disputando
+    expect(normalizer.poolCacheStats()).toEqual({ cacheSize: 0, pending: 0, notPool: 5 });
   });
 });
 

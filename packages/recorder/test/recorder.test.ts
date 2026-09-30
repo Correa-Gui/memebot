@@ -1,4 +1,4 @@
-import { createLogger, type CurveTradeEvent } from '@memebot/core';
+import { createLogger, type CurveTradeEvent, type PumpSwapTradeEvent } from '@memebot/core';
 import { Writable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BatchWriter } from '../src/batch-writer.ts';
@@ -37,6 +37,33 @@ const trade: CurveTradeEvent = {
   ixName: 'buy',
 };
 
+const pumpswapTrade: PumpSwapTradeEvent = {
+  kind: 'trade',
+  venue: 'pumpswap',
+  slot: 400_000_000n,
+  ts: 1_790_730_054_000,
+  sig: 'sig2',
+  eventIndex: 0,
+  receivedAtMs: 1_790_730_054_321,
+  recvSeq: 6,
+  rawB64: 'AAAA',
+  pool: 'Pool1',
+  mint: '',
+  quoteMint: '',
+  poolUnresolved: true,
+  trader: 'Trader',
+  side: 'buy',
+  tokenAmount: 1n,
+  quoteAmount: 2n,
+  userQuoteAmount: 2n,
+  poolBaseReserves: 3n,
+  poolQuoteReserves: 4n,
+  lpFee: 5n,
+  protocolFee: 6n,
+  creatorFee: 7n,
+  ixName: 'buy',
+};
+
 describe('eventToRow', () => {
   it('u64 vira string sem perda e tempo vira DateTime64 UTC', () => {
     const { table, row } = eventToRow(trade, 0);
@@ -46,6 +73,20 @@ describe('eventToRow', () => {
     expect(row['received_at']).toBe(chTime(trade.receivedAtMs));
     expect(row['pool']).toBe('');
     expect(row['lp_fee']).toBeNull();
+    expect(row['pool_unresolved']).toBe(0); // curva não tem pool a resolver
+  });
+
+  it('trade do PumpSwap com pool não resolvida grava a flag pool_unresolved = 1', () => {
+    const { row } = eventToRow(pumpswapTrade, 0);
+    expect(row['pool']).toBe('Pool1');
+    expect(row['mint']).toBe('');
+    expect(row['pool_unresolved']).toBe(1);
+  });
+
+  it('trade do PumpSwap com pool resolvida grava a flag pool_unresolved = 0', () => {
+    const { row } = eventToRow({ ...pumpswapTrade, mint: 'Base1', quoteMint: 'Quote1', poolUnresolved: false }, 0);
+    expect(row['mint']).toBe('Base1');
+    expect(row['pool_unresolved']).toBe(0);
   });
 });
 

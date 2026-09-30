@@ -7,7 +7,7 @@ export type TableName =
   | 'events_lifecycle'
   | 'tx_costs'
   | 'ingest_gaps'
-  | 'pools'
+  | 'pumpswap_pools'
   | 'token_metadata'
   | 'protocol_config'
   | 'runs';
@@ -78,6 +78,7 @@ export function eventToRow(e: PumpEvent, nowMs: number): { table: TableName; row
             pool_base_reserves: null,
             pool_quote_reserves: null,
             lp_fee: null,
+            pool_unresolved: 0,
           },
         };
       }
@@ -94,6 +95,7 @@ export function eventToRow(e: PumpEvent, nowMs: number): { table: TableName; row
           pool_base_reserves: u(e.poolBaseReserves),
           pool_quote_reserves: u(e.poolQuoteReserves),
           lp_fee: u(e.lpFee),
+          pool_unresolved: e.poolUnresolved ? 1 : 0,
         },
       };
     }

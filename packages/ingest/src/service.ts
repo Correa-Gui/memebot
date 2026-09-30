@@ -1,7 +1,7 @@
 import type { EventSource, IngestGap, Logger, PumpEvent, SocialEvent } from '@memebot/core';
 import { PROTOCOL_PROGRAM_IDS } from '../../../config/protocol.ts';
 import { parseLogs, type LogsNotification } from './log-parser.ts';
-import { Normalizer, type PoolInfo, type PoolResolver } from './normalize.ts';
+import { Normalizer, type PoolCacheStats, type PoolInfo, type PoolResolver } from './normalize.ts';
 import type { TxCostSampler } from './onchain.ts';
 import { WsLogsSource, type WsLogsSourceOptions } from './ws-source.ts';
 
@@ -9,6 +9,8 @@ export interface IngestServiceOptions {
   wsUrl: string;
   resolvePool: PoolResolver;
   knownPools?: Iterable<[string, PoolInfo]>;
+  /** Resoluções de pool simultâneas (RPC) permitidas; o resto espera na fila. Padrão: 4. */
+  poolResolveConcurrency?: number;
   sampler?: TxCostSampler;
   onGap: (g: IngestGap) => void;
   logger: Logger;
@@ -21,12 +23,14 @@ export interface IngestStats {
   failedTxSkipped: number;
   events: number;
   gaps: number;
+  /** Trades gravados com pool ainda não resolvida (normal sob carga; não é um IngestGap). */
+  unresolvedPools: number;
   costSamples: number;
 }
 
 /** EventSource ao vivo via WebSocket: logsSubscribe → parseLogs → Normalizer (+ amostragem de custos). */
 export class IngestService implements EventSource {
-  readonly stats: IngestStats = { notifications: 0, failedTxSkipped: 0, events: 0, gaps: 0, costSamples: 0 };
+  readonly stats: IngestStats = { notifications: 0, failedTxSkipped: 0, events: 0, gaps: 0, unresolvedPools: 0, costSamples: 0 };
   private readonly o: IngestServiceOptions;
   private readonly normalizer: Normalizer;
   private readonly now: () => number;
@@ -37,7 +41,23 @@ export class IngestService implements EventSource {
   constructor(opts: IngestServiceOptions) {
     this.o = opts;
     this.now = opts.now ?? Date.now;
-    this.normalizer = new Normalizer(opts.resolvePool, opts.knownPools);
+    this.normalizer = new Normalizer(opts.resolvePool, opts.knownPools, {
+      ...(opts.poolResolveConcurrency !== undefined ? { concurrency: opts.poolResolveConcurrency } : {}),
+      now: this.now,
+    });
+    this.normalizer.setOnResolveFailure((_pool, detail) => {
+      this.stats.gaps++;
+      this.o.onGap({ kind: 'pool_resolve_failed', detectedAtMs: this.now(), fromSlot: null, toSlot: null, sig: null, program: null, detail });
+    });
+  }
+
+  /** Reconsidera pools pendentes cujo backoff expirou. Chamar periodicamente (ex.: junto do log por minuto). */
+  retryPendingPools(): void {
+    this.normalizer.retryPendingPools();
+  }
+
+  poolCacheStats(): PoolCacheStats {
+    return this.normalizer.poolCacheStats();
   }
 
   start(onEvent: (e: PumpEvent | SocialEvent) => void): Promise<void> {
@@ -90,6 +110,7 @@ export class IngestService implements EventSource {
     gaps.forEach(gap);
     for (const e of events) {
       this.stats.events++;
+      if (e.kind === 'trade' && e.venue === 'pumpswap' && e.poolUnresolved) this.stats.unresolvedPools++;
       onEvent(e);
     }
     const sampler = this.o.sampler;

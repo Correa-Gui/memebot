@@ -18,12 +18,6 @@ export function poolRetryDelayMs(attempts: number): number {
   return Math.min(1_000 * 2 ** Math.max(0, attempts - 1), 300_000);
 }
 
-interface LookupOutcome {
-  info: PoolInfo | null;
-  /** Preenchido só para quem disparou a tentativa que falhou (um gap por tentativa, não por trade). */
-  failure?: string;
-}
-
 export class NormalizeError extends Error {
   override name = 'NormalizeError';
 }
@@ -64,22 +58,89 @@ export interface NormalizeResult {
   gaps: IngestGap[];
 }
 
+export interface PoolCacheStats {
+  /** Pools com base/quote conhecidos (nunca reconsultadas por RPC). */
+  cacheSize: number;
+  /** Pools na fila ou sendo resolvidas agora. */
+  pending: number;
+  /** Contas conferidas e confirmadas como não sendo uma Pool do PumpSwap. */
+  notPool: number;
+}
+
 /**
- * Converte eventos decodificados em `PumpEvent`. Mantém um cache pool → (base, quote)
- * alimentado por CreatePoolEvent e, para pools criadas antes da gravação, pelo resolver on-chain.
+ * Roda no máximo `concurrency` resoluções de pool ao mesmo tempo; o resto espera na fila.
+ * Isso é o que evita a tempestade de requisições vista com o RPC público (ver ROADMAP Fase 1).
+ */
+class ConcurrencyQueue {
+  private readonly limit: number;
+  private running = 0;
+  private readonly waiting: (() => void)[] = [];
+
+  constructor(limit: number) {
+    this.limit = limit;
+  }
+
+  push(task: () => Promise<void>): void {
+    const run = (): void => {
+      this.running++;
+      task()
+        .catch(() => undefined)
+        .finally(() => {
+          this.running--;
+          this.waiting.shift()?.();
+        });
+    };
+    if (this.running < this.limit) run();
+    else this.waiting.push(run);
+  }
+}
+
+/**
+ * Converte eventos decodificados em `PumpEvent`. Mantém um cache pool → (base, quote) permanente
+ * em memória (nunca reconsulta uma pool já resolvida) alimentado por CreatePoolEvent e, para pools
+ * criadas antes da gravação, por um resolver on-chain enfileirado com limite de concorrência.
+ *
+ * A busca é **não bloqueante**: se a pool ainda não está em cache, o trade é retornado com
+ * `mint`/`quoteMint` vazios e `poolUnresolved: true` na hora, e a resolução roda em segundo plano.
+ * Trades futuros na mesma pool (e a view `v_trades` no ClickHouse) enxergam o resultado assim que
+ * ele chega — nada é reprocessado.
  */
 export class Normalizer {
   private readonly pools = new Map<string, PoolInfo>();
   private readonly notPools = new Set<string>();
-  private readonly retry = new Map<string, { atMs: number; attempts: number }>();
-  private readonly pending = new Map<string, Promise<LookupOutcome>>();
+  private readonly queued = new Set<string>();
+  private readonly retryAt = new Map<string, number>();
+  private readonly retryAttempts = new Map<string, number>();
   private readonly resolvePool: PoolResolver;
+  private readonly queue: ConcurrencyQueue;
+  private readonly now: () => number;
+  private onResolveFailure: ((pool: string, detail: string) => void) | null = null;
 
-  constructor(resolvePool: PoolResolver, knownPools?: Iterable<[string, PoolInfo]>) {
+  constructor(resolvePool: PoolResolver, knownPools?: Iterable<[string, PoolInfo]>, opts?: { concurrency?: number; now?: () => number }) {
     this.resolvePool = resolvePool;
+    this.queue = new ConcurrencyQueue(opts?.concurrency ?? 4);
+    this.now = opts?.now ?? Date.now;
     for (const [pool, info] of knownPools ?? []) this.pools.set(pool, info);
   }
 
+  /** Chamado pelo serviço para receber os `pool_resolve_failed` (falha real de RPC, não pendência normal). */
+  setOnResolveFailure(cb: (pool: string, detail: string) => void): void {
+    this.onResolveFailure = cb;
+  }
+
+  poolCacheStats(): PoolCacheStats {
+    return { cacheSize: this.pools.size, pending: this.queued.size, notPool: this.notPools.size };
+  }
+
+  /** Reconsidera pools pendentes cujo backoff já expirou (chamado periodicamente, não a cada trade). */
+  retryPendingPools(): void {
+    const nowMs = this.now();
+    for (const [pool, at] of this.retryAt) {
+      if (nowMs >= at && !this.queued.has(pool)) this.enqueue(pool);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await -- async por design: nunca bloqueia em RPC (ver classe)
   async normalize(parsed: ParsedLogs, receivedAtMs: number, recvSeq: number): Promise<NormalizeResult> {
     const ctx: Ctx = { slot: parsed.slot, sig: parsed.signature, receivedAtMs, recvSeq };
     const out: NormalizeResult = { events: [], gaps: [] };
@@ -95,8 +156,7 @@ export class Normalizer {
     for (const ev of ordered) {
       if (ev.trailingBytes > 0) gap('trailing_bytes', ev.program, `${ev.name}: ${String(ev.trailingBytes)} bytes além do IDL`);
       try {
-        const { event, poolFailure } = await this.toEvent(ev, ctx);
-        if (poolFailure) gap('pool_unresolved', ev.program, poolFailure);
+        const event = this.toEvent(ev, ctx);
         if (event) out.events.push(event);
       } catch (err) {
         if (!(err instanceof NormalizeError)) throw err;
@@ -107,12 +167,7 @@ export class Normalizer {
     return out;
   }
 
-  private async toEvent(ev: ParsedProgramEvent, ctx: Ctx): Promise<{ event: PumpEvent | null; poolFailure?: string }> {
-    if (ev.name === 'BuyEvent' || ev.name === 'SellEvent') return this.swapTrade(ev, ctx);
-    return { event: this.simpleEvent(ev, ctx) };
-  }
-
-  private simpleEvent(ev: ParsedProgramEvent, ctx: Ctx): PumpEvent | null {
+  private toEvent(ev: ParsedProgramEvent, ctx: Ctx): PumpEvent | null {
     const d = ev.data;
     switch (ev.name) {
       case 'CreateEvent':
@@ -153,25 +208,30 @@ export class Normalizer {
         const pool = str(d, 'pool');
         const info = { baseMint: str(d, 'base_mint'), quoteMint: str(d, 'quote_mint') };
         this.pools.set(pool, info);
+        this.notPools.delete(pool);
         return { kind: 'pool_created', ...base(ev, ctx), pool, mint: info.baseMint, quoteMint: info.quoteMint, creator: str(d, 'creator') };
       }
+      case 'BuyEvent':
+      case 'SellEvent':
+        return this.swapTrade(ev, ctx);
       default:
         return null;
     }
   }
 
-  private async swapTrade(ev: ParsedProgramEvent, ctx: Ctx): Promise<{ event: PumpSwapTradeEvent; poolFailure?: string }> {
+  private swapTrade(ev: ParsedProgramEvent, ctx: Ctx): PumpSwapTradeEvent {
     const d = ev.data;
     const pool = str(d, 'pool');
-    const { info, failure } = await this.lookupPool(pool, ctx.receivedAtMs);
+    const info = this.lookupPoolNonBlocking(pool);
     const isBuy = ev.name === 'BuyEvent';
-    const event: PumpSwapTradeEvent = {
+    return {
       kind: 'trade',
       venue: 'pumpswap',
       ...base(ev, ctx),
       pool,
       mint: info?.baseMint ?? '',
       quoteMint: info?.quoteMint ?? '',
+      poolUnresolved: info === null,
       trader: str(d, 'user'),
       side: isBuy ? 'buy' : 'sell',
       tokenAmount: big(d, isBuy ? 'base_amount_out' : 'base_amount_in'),
@@ -185,40 +245,40 @@ export class Normalizer {
       // só o BuyEvent traz ix_name (buy / buy_exact_quote_in); o SellEvent não tem esse campo no IDL
       ixName: isBuy ? str(d, 'ix_name') : null,
     };
-    return failure ? { event, poolFailure: failure } : { event };
   }
 
-  private async lookupPool(pool: string, nowMs: number): Promise<LookupOutcome> {
+  /** Nunca espera rede: devolve o que já está em cache e dispara a resolução em segundo plano. */
+  private lookupPoolNonBlocking(pool: string): PoolInfo | null {
     const cached = this.pools.get(pool);
-    if (cached) return { info: cached };
-    if (this.notPools.has(pool)) return { info: null };
-    const inFlight = this.pending.get(pool);
-    if (inFlight) return { info: (await inFlight).info };
-    const r = this.retry.get(pool);
-    if (r && nowMs < r.atMs) return { info: null };
+    if (cached) return cached;
+    if (this.notPools.has(pool)) return null;
+    if (!this.queued.has(pool)) {
+      const retryAt = this.retryAt.get(pool);
+      if (retryAt === undefined || this.now() >= retryAt) this.enqueue(pool);
+    }
+    return null;
+  }
 
-    const attempt = this.resolvePool(pool).then(
-      (res): LookupOutcome => {
-        this.retry.delete(pool);
-        if (res === 'not_pool') {
-          this.notPools.add(pool);
-          return { info: null, failure: `pool=${pool}: conta não é uma Pool do PumpSwap` };
-        }
-        this.pools.set(pool, res);
-        return { info: res };
-      },
-      (e: unknown): LookupOutcome => {
-        const attempts = (r?.attempts ?? 0) + 1;
-        const waitMs = poolRetryDelayMs(attempts);
-        this.retry.set(pool, { atMs: nowMs + waitMs, attempts });
-        return { info: null, failure: `pool=${pool}: tentativa ${String(attempts)} falhou (${e instanceof Error ? e.message : String(e)}); nova tentativa em ${String(waitMs)} ms` };
-      },
-    );
-    this.pending.set(pool, attempt);
+  private enqueue(pool: string): void {
+    this.queued.add(pool);
+    this.queue.push(() => this.resolveOnce(pool));
+  }
+
+  private async resolveOnce(pool: string): Promise<void> {
     try {
-      return await attempt;
+      const res = await this.resolvePool(pool);
+      this.retryAt.delete(pool);
+      this.retryAttempts.delete(pool);
+      if (res === 'not_pool') this.notPools.add(pool);
+      else this.pools.set(pool, res);
+    } catch (e) {
+      const attempts = (this.retryAttempts.get(pool) ?? 0) + 1;
+      this.retryAttempts.set(pool, attempts);
+      const waitMs = poolRetryDelayMs(attempts);
+      this.retryAt.set(pool, this.now() + waitMs);
+      this.onResolveFailure?.(pool, `pool=${pool}: tentativa ${String(attempts)} falhou (${e instanceof Error ? e.message : String(e)}); próxima em ${String(waitMs)} ms`);
     } finally {
-      this.pending.delete(pool);
+      this.queued.delete(pool);
     }
   }
 }

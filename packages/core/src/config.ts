@@ -18,6 +18,8 @@ const ConfigSchema = z.object({
   IPFS_GATEWAY: z.string().url().startsWith('https://').default('https://ipfs.io/ipfs/'),
   METADATA_TIMEOUT_MS: z.coerce.number().int().positive().default(5_000),
   METADATA_CONCURRENCY: z.coerce.number().int().positive().default(8),
+  /** Resoluções de pool PumpSwap (RPC) simultâneas; o resto espera na fila. Ver ROADMAP Fase 1 item 2. */
+  POOL_RESOLVE_CONCURRENCY: z.coerce.number().int().positive().default(4),
 
   CLICKHOUSE_URL: z.string().default('http://127.0.0.1:8123'),
   CLICKHOUSE_USER: z.string().default('memebot'),

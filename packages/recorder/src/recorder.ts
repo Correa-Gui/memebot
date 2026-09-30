@@ -17,6 +17,8 @@ export interface PoolRow {
   pool: string;
   baseMint: string;
   quoteMint: string;
+  /** Slot da CreatePoolEvent; 0 se a pool foi resolvida por leitura de conta (slot de criação desconhecido). */
+  createdSlot: bigint;
 }
 
 /** Adaptador do ClickHouse: grava eventos em lote e oferece as leituras que o ingest precisa na partida. */
@@ -57,12 +59,20 @@ export class Recorder {
     const { table, row } = eventToRow(e, this.now());
     this.writer.add(table, row);
     if (e.kind === 'pool_created') {
-      this.writer.add('pools', { pool: e.pool, base_mint: e.mint, quote_mint: e.quoteMint, source: 'create_pool_event', seen_at: chTime(e.ts) });
+      this.writer.add('pumpswap_pools', {
+        pool: e.pool,
+        base_mint: e.mint,
+        quote_mint: e.quoteMint,
+        created_slot: e.slot.toString(),
+        source: 'create_pool_event',
+        seen_at: chTime(e.ts),
+      });
     }
   }
 
-  recordResolvedPool(p: PoolRow): void {
-    this.writer.add('pools', { pool: p.pool, base_mint: p.baseMint, quote_mint: p.quoteMint, source: 'account', seen_at: chTime(this.now()) });
+  /** Pool resolvida por leitura de conta (pool criada antes da gravação começar): slot de criação é desconhecido. */
+  recordResolvedPool(p: Omit<PoolRow, 'createdSlot'>): void {
+    this.writer.add('pumpswap_pools', { pool: p.pool, base_mint: p.baseMint, quote_mint: p.quoteMint, created_slot: '0', source: 'account', seen_at: chTime(this.now()) });
   }
 
   recordGap(g: IngestGap): void {
@@ -102,8 +112,8 @@ export class Recorder {
 
   /** Pools já conhecidas, para o ingest não precisar consultar o RPC de novo após reiniciar. */
   async loadPools(): Promise<PoolRow[]> {
-    const rs = await this.client.query({ query: 'SELECT pool, base_mint, quote_mint FROM pools FINAL', format: 'JSONEachRow' });
-    const rows = await rs.json<{ pool: string; base_mint: string; quote_mint: string }>();
-    return rows.map((r) => ({ pool: r.pool, baseMint: r.base_mint, quoteMint: r.quote_mint }));
+    const rs = await this.client.query({ query: 'SELECT pool, base_mint, quote_mint, created_slot FROM pumpswap_pools FINAL', format: 'JSONEachRow' });
+    const rows = await rs.json<{ pool: string; base_mint: string; quote_mint: string; created_slot: string }>();
+    return rows.map((r) => ({ pool: r.pool, baseMint: r.base_mint, quoteMint: r.quote_mint, createdSlot: BigInt(r.created_slot) }));
   }
 }

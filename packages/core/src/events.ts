@@ -58,9 +58,11 @@ export interface PumpSwapTradeEvent extends OnchainEventBase {
   kind: 'trade';
   venue: 'pumpswap';
   pool: string;
-  /** Base mint da pool; string vazia se a pool não pôde ser resolvida (ver ingest_gaps). */
+  /** Base mint da pool; string vazia se a pool não pôde ser resolvida ainda (ver poolUnresolved). */
   mint: string;
   quoteMint: string;
+  /** true = mint/quoteMint vazios porque a pool ainda não foi resolvida; `v_trades` preenche depois. */
+  poolUnresolved: boolean;
   trader: string;
   side: 'buy' | 'sell';
   /** base_amount_out (buy) ou base_amount_in (sell). */
@@ -124,9 +126,13 @@ export interface SocialEvent {
   url: string;
 }
 
-/** Problemas de ingestão gravados em `ingest_gaps` (o backtest ignora os tokens afetados). */
+/**
+ * Problemas de ingestão gravados em `ingest_gaps` (o backtest ignora os tokens afetados).
+ * Pool não resolvida NÃO é um `IngestGap`: é esperado sob carga e contado à parte em
+ * `IngestStats.unresolvedPools` (ver ingest/service.ts), para não confundir com problemas reais.
+ */
 export interface IngestGap {
-  kind: 'reconnect' | 'log_truncated' | 'parse_error' | 'unknown_event' | 'pool_unresolved' | 'trailing_bytes';
+  kind: 'reconnect' | 'log_truncated' | 'parse_error' | 'unknown_event' | 'trailing_bytes' | 'pool_resolve_failed';
   detectedAtMs: number;
   /** Para reconnect: último slot visto antes da queda e primeiro depois. */
   fromSlot: bigint | null;
