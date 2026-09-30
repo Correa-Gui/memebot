@@ -1,0 +1,29 @@
+{
+  "name": "memebot",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present run build",
+    "typecheck": "pnpm -r --if-present run typecheck && tsc -p config/tsconfig.json && tsc -p infra/clickhouse/tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm audit --prod",
+    "migrate": "node --experimental-strip-types --disable-warning=ExperimentalWarning infra/clickhouse/migrate.ts",
+    "bot": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/main.ts",
+    "sanity": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/sanity.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/node": "^22.10.7",
+    "@vitest/coverage-v8": "^3.0.5",
+    "eslint": "^9.19.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0",
+    "vitest": "^3.0.5"
+  },
+  "packageManager": "pnpm@11.13.0"
+}

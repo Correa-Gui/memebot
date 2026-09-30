@@ -1,0 +1,109 @@
+import { createClient, type ClickHouseClient } from '@clickhouse/client';
+import type { IngestGap, Logger, PumpEvent } from '@memebot/core';
+import { BatchWriter, type WriterStats } from './batch-writer.ts';
+import { chTime, eventToRow, gapToRow } from './rows.ts';
+
+export interface RecorderOptions {
+  url: string;
+  username: string;
+  password: string;
+  database: string;
+  runId: string;
+  logger: Logger;
+  now?: () => number;
+}
+
+export interface PoolRow {
+  pool: string;
+  baseMint: string;
+  quoteMint: string;
+}
+
+/** Adaptador do ClickHouse: grava eventos em lote e oferece as leituras que o ingest precisa na partida. */
+export class Recorder {
+  private readonly client: ClickHouseClient;
+  private readonly writer: BatchWriter;
+  private readonly runId: string;
+  private readonly now: () => number;
+
+  constructor(o: RecorderOptions) {
+    this.client = createClient({ url: o.url, username: o.username, password: o.password, database: o.database, request_timeout: 30_000 });
+    this.writer = new BatchWriter({
+      logger: o.logger,
+      insert: async (table, rows) => {
+        await this.client.insert({ table, values: rows, format: 'JSONEachRow' });
+      },
+    });
+    this.runId = o.runId;
+    this.now = o.now ?? Date.now;
+  }
+
+  get stats(): WriterStats {
+    return this.writer.stats;
+  }
+
+  async start(): Promise<void> {
+    const ping = await this.client.ping();
+    if (!ping.success) throw new Error(`ClickHouse indisponível: ${String(ping.error)}`);
+    this.writer.start();
+  }
+
+  async stop(): Promise<void> {
+    await this.writer.stop();
+    await this.client.close();
+  }
+
+  recordEvent(e: PumpEvent): void {
+    const { table, row } = eventToRow(e, this.now());
+    this.writer.add(table, row);
+    if (e.kind === 'pool_created') {
+      this.writer.add('pools', { pool: e.pool, base_mint: e.mint, quote_mint: e.quoteMint, source: 'create_pool_event', seen_at: chTime(e.ts) });
+    }
+  }
+
+  recordResolvedPool(p: PoolRow): void {
+    this.writer.add('pools', { pool: p.pool, base_mint: p.baseMint, quote_mint: p.quoteMint, source: 'account', seen_at: chTime(this.now()) });
+  }
+
+  recordGap(g: IngestGap): void {
+    this.writer.add('ingest_gaps', gapToRow(g, this.runId));
+  }
+
+  recordMetadata(mint: string, m: { ok: true; description: string | null; image: string | null; twitter: string | null; telegram: string | null; website: string | null; rawJson: string } | { ok: false; error: string }): void {
+    const empty = { description: null, image: null, twitter: null, telegram: null, website: null, raw_json: null };
+    this.writer.add('token_metadata', {
+      mint,
+      fetched_at: chTime(this.now()),
+      ...(m.ok
+        ? { ok: 1, description: m.description, image: m.image, twitter: m.twitter, telegram: m.telegram, website: m.website, raw_json: m.rawJson, error: null }
+        : { ok: 0, ...empty, error: m.error }),
+    });
+  }
+
+  recordProtocolConfig(s: { programId: string; account: string; accountType: string; configJson: string; configHash: string }): void {
+    this.writer.add('protocol_config', {
+      ts: chTime(this.now()),
+      run_id: this.runId,
+      program_id: s.programId,
+      account: s.account,
+      account_type: s.accountType,
+      config_json: s.configJson,
+      config_hash: s.configHash,
+    });
+  }
+
+  async recordRun(r: { mode: 'record' | 'paper' | 'live' | 'replay'; configHash: string; gitCommit: string; idlHash: string }): Promise<void> {
+    await this.client.insert({
+      table: 'runs',
+      values: [{ run_id: this.runId, started_at: chTime(this.now()), mode: r.mode, config_hash: r.configHash, git_commit: r.gitCommit, idl_hash: r.idlHash }],
+      format: 'JSONEachRow',
+    });
+  }
+
+  /** Pools já conhecidas, para o ingest não precisar consultar o RPC de novo após reiniciar. */
+  async loadPools(): Promise<PoolRow[]> {
+    const rs = await this.client.query({ query: 'SELECT pool, base_mint, quote_mint FROM pools FINAL', format: 'JSONEachRow' });
+    const rows = await rs.json<{ pool: string; base_mint: string; quote_mint: string }>();
+    return rows.map((r) => ({ pool: r.pool, baseMint: r.base_mint, quoteMint: r.quote_mint }));
+  }
+}

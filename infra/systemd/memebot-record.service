@@ -1,0 +1,44 @@
+# memebot — gravação de eventos (pnpm bot --mode=record)
+# Instalação e verificação: infra/systemd/README.md
+[Unit]
+Description=memebot record (Pump.fun/PumpSwap -> ClickHouse)
+Wants=network-online.target
+After=network-online.target docker.service
+# Sem Requires=docker: se o ClickHouse não responder, o bot sai com erro e o systemd tenta de novo.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=memebot
+Group=memebot
+WorkingDirectory=/opt/memebot
+# O bot lê /opt/memebot/.env sozinho (dono memebot, permissão 600). Ajuste o PATH se o pnpm estiver em outro lugar.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+# o sistema de arquivos é só-leitura fora de data/: desliga a checagem de versão do pnpm
+Environment=npm_config_update_notifier=false
+ExecStart=/usr/bin/env pnpm bot --mode=record
+# Tempo para o flush final do buffer no ClickHouse após SIGTERM.
+TimeoutStopSec=30
+KillSignal=SIGTERM
+Restart=always
+RestartSec=5
+
+# Hardening (RISK_AND_SECURITY §4): usuário sem privilégios, só escreve em data/.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/memebot/data
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: memebot-clickhouse
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8123:8123"   # só local; não expor à internet
+      - "127.0.0.1:9000:9000"
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-memebot}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-memebot}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      # volume nomeado: bind mount em NTFS (Docker Desktop/Windows) quebra os renames atômicos do ClickHouse.
+      # Não é apagado por `docker compose down` (só com `-v`). Backup: export Parquet (RISK_AND_SECURITY §4).
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+
+volumes:
+  clickhouse-data:

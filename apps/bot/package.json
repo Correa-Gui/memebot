@@ -1,0 +1,18 @@
+{
+  "name": "@memebot/bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@memebot/core": "workspace:*",
+    "@memebot/ingest": "workspace:*",
+    "@memebot/recorder": "workspace:*",
+    "@clickhouse/client": "^1.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7"
+  }
+}

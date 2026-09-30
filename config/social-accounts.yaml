@@ -1,0 +1,20 @@
+# Contas monitoradas pelo módulo social (Fase 5). Só leitura.
+# Revise esta lista periodicamente: narrativas mudam.
+# weight: importância relativa da conta como gatilho de narrativa (0..1)
+
+solana_ecosystem:
+  - { handle: pumpdotfun, weight: 0.8 }
+  - { handle: a1lon9, weight: 0.8 }        # cofundador Pump.fun (confirme o handle)
+  - { handle: aeyakovenko, weight: 0.8 }   # Toly, cofundador Solana
+  - { handle: solana, weight: 0.6 }
+  - { handle: bonk_fun, weight: 0.5 }      # confirme o handle
+
+macro:
+  - { handle: elonmusk, weight: 1.0 }
+  - { handle: WhiteHouse, weight: 0.7 }
+  - { handle: realDonaldTrump, weight: 0.7 }
+  - { handle: POTUS, weight: 0.6 }
+  - { handle: SpaceX, weight: 0.5 }
+  - { handle: Tesla, weight: 0.4 }
+
+# Adicione aqui outras contas (traders, notícias) conforme os dados mostrarem que movem tokens.
