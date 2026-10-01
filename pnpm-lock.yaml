@@ -38,12 +38,36 @@ importers:
       '@memebot/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../../packages/curve-math
+      '@memebot/execution':
+        specifier: workspace:*
+        version: link:../../packages/execution
       '@memebot/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest
+      '@memebot/monitor':
+        specifier: workspace:*
+        version: link:../../packages/monitor
+      '@memebot/positions':
+        specifier: workspace:*
+        version: link:../../packages/positions
       '@memebot/recorder':
         specifier: workspace:*
         version: link:../../packages/recorder
+      '@memebot/risk':
+        specifier: workspace:*
+        version: link:../../packages/risk
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../../packages/state
+      '@memebot/strategy':
+        specifier: workspace:*
+        version: link:../../packages/strategy
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.7
