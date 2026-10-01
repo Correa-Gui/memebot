@@ -1,0 +1,97 @@
+import { readFileSync } from 'node:fs';
+import { parse as parseYaml } from 'yaml';
+import { z } from 'zod';
+
+/**
+ * Schema zod de `config/strategy.v0.yaml` (CLAUDE.md §6: config lida do disco é fronteira
+ * externa, sempre validada). Espelha o arquivo inteiro, mesmo as seções que esta tarefa
+ * (Fase 3/parte A do `docs/ROADMAP.md`: só `packages/features` e `packages/strategy` v0, filtros
+ * duros + gatilho) ainda não usa (`exits`, `risk`, `signals`, que são "parte B") — não dá para
+ * carregar o arquivo validando só um pedaço dele.
+ */
+const TakeProfitStepSchema = z.object({
+  gainPct: z.number().positive(),
+  sellFraction: z.number().positive().max(1),
+});
+
+const EntrySchema = z.object({
+  minAgeSec: z.number().nonnegative(),
+  maxAgeSec: z.number().positive(),
+  minBuySellVolumeRatio60s: z.number().positive(),
+  minUniqueBuyers60s: z.number().int().nonnegative(),
+  requirePriceAboveMean120s: z.boolean(),
+  maxSingleSellPctSupply60s: z.number().positive().max(1),
+});
+
+const FiltersSchema = z.object({
+  allowedVenues: z.array(z.enum(['curve', 'pumpswap'])).min(1),
+  allowedQuoteMints: z.array(z.string().min(1)).min(1),
+  maxTop10PctSupply: z.number().positive().max(1),
+  maxSameSlotAsCreatePct: z.number().positive().max(1),
+  maxCreatorHoldingPct: z.number().positive().max(1),
+  maxCreatorTokens24h: z.number().int().nonnegative(),
+  minUniqueHolders: z.number().int().nonnegative(),
+  minVolume60sSol: z.number().nonnegative(),
+  maxRiskScore: z.number().min(0).max(1),
+});
+
+const SizingSchema = z.object({
+  sizeSol: z.number().positive(),
+  maxOwnPriceImpactPct: z.number().positive().max(1),
+});
+
+const ExitsSchema = z.object({
+  takeProfit: z.array(TakeProfitStepSchema).min(1),
+  trailingStopPct: z.number().positive().max(1),
+  stopLossPct: z.number().positive().max(1),
+  timeStopSec: z.number().int().positive(),
+  emergency: z.object({
+    singleSellPctSupply: z.number().positive().max(1),
+    exitOnCreatorSell: z.boolean(),
+  }),
+});
+
+const SignalsSchema = z.object({
+  riskModel: z.object({ enabled: z.boolean(), path: z.string() }),
+  narrative: z.object({ enabled: z.boolean(), minMatch: z.number().min(0).max(1) }),
+  smartMoney: z.object({ enabled: z.boolean(), minWallets: z.number().int().nonnegative() }),
+});
+
+const RiskSchema = z.object({
+  maxOpenPositions: z.number().int().positive(),
+  maxDailyLossSol: z.number().positive(),
+});
+
+export const StrategyConfigSchema = z.object({
+  version: z.string(),
+  entry: EntrySchema,
+  filters: FiltersSchema,
+  sizing: SizingSchema,
+  exits: ExitsSchema,
+  signals: SignalsSchema,
+  risk: RiskSchema,
+});
+
+export type StrategyV0Config = z.infer<typeof StrategyConfigSchema>;
+
+/**
+ * Carrega e valida `config/strategy.v0.yaml` (ou outro caminho equivalente).
+ *
+ * Parser YAML: o monorepo ainda não tinha dependência direta de YAML (`js-yaml` só aparecia
+ * transitivamente via outra lib). Adicionamos `yaml` (pacote `yaml` no npm, ~40M downloads/semana,
+ * mantido ativamente, API simples `parse`/`stringify`, zero dependências nativas) em vez de
+ * `js-yaml` (também popular, mas API baseada em callbacks/tags mais antiga) — justificativa
+ * pedida por CLAUDE.md §5 para toda dependência nova.
+ *
+ * Não é uma função pura (lê o disco) — por isso fica fora de `evaluate.ts`; quem monta o app
+ * chama isto uma vez e passa o `StrategyV0Config` resultante para a função pura `evaluate`.
+ */
+export function loadStrategyConfig(filePath: string): StrategyV0Config {
+  const raw = readFileSync(filePath, 'utf8');
+  const parsed: unknown = parseYaml(raw);
+  const result = StrategyConfigSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Config de estratégia inválida em ${filePath}: ${result.error.message}`);
+  }
+  return result.data;
+}

@@ -9,16 +9,18 @@ entry:
   maxSingleSellPctSupply60s: 0.03
 
 filters:
+  allowedVenues: [curve]      # PumpSwap fica fora até o swap exato bater (docs/ROADMAP.md Fase 2)
+  allowedQuoteMints: ["11111111111111111111111111111111", "So11111111111111111111111111111111111111112"]
   maxTop10PctSupply: 0.30
   maxSameSlotAsCreatePct: 0.10
   maxCreatorHoldingPct: 0.05
-  maxCreatorPriorRugs: 3
+  maxCreatorTokens24h: 3
   minUniqueHolders: 40
   minVolume60sSol: 5
   maxRiskScore: 0.30          # ignorado enquanto o modelo não existir
 
 sizing:
-  sizeSol: 0.1                # paper; em live o hard-limit manda
+  sizeSol: 0.05               # = hard limit maxPositionLamports (vale também no paper; config só reduz)
   maxOwnPriceImpactPct: 0.02
 
 exits:
