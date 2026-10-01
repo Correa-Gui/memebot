@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { AppConfig, Logger, PumpEvent } from '@memebot/core';
 import {
   IngestService,
+  RateLimiter,
   RpcClient,
   TxCostSampler,
   createPoolResolver,
@@ -112,7 +113,9 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
     await refreshTips();
     timers.push(setInterval(() => void refreshTips(), 3_600_000));
 
-    const baseResolver = createPoolResolver(rpc);
+    // cliente próprio sem retry imediato (429 → backoff por pool do Normalizer) e taxa limitada
+    const poolRpc = new RpcClient(rpcUrl, { maxRetries: 0 });
+    const baseResolver = createPoolResolver(poolRpc, new RateLimiter(cfg.POOL_RESOLVE_PER_SEC));
     const resolvePool: PoolResolver = async (pool) => {
       const info = await baseResolver(pool);
       if (info !== 'not_pool') recorder.recordResolvedPool({ pool, ...info });
@@ -163,6 +166,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
     let last = { ...service.stats };
     let lastRpc = { ...rpc.stats };
     let lastSamplerRpc = { ...samplerRpc.stats };
+    let lastPoolRpc = { ...poolRpc.stats };
     let lastWs = service.wsStats();
     let lastCost = { ...sampler.stats, rateLimited: sampler.rateLimited };
     timers.push(
@@ -170,10 +174,16 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
         const s = service.stats;
         const ws = service.wsStats();
         const mem = process.memoryUsage();
-        // Todas as requisições HTTP ao RPC_URL (cada tentativa = 1 crédito no Helius): resolver de pools,
-        // protocol_config e rent (cliente `rpc`) + amostrador de custos (cliente próprio, sem retry).
-        const httpRequestsPerMin = rpc.stats.requests - lastRpc.requests + (samplerRpc.stats.requests - lastSamplerRpc.requests);
-        const http429PerMin = rpc.stats.rateLimited - lastRpc.rateLimited + (samplerRpc.stats.rateLimited - lastSamplerRpc.rateLimited);
+        // Todas as requisições HTTP ao RPC_URL (cada tentativa = 1 crédito no Helius): protocol_config e
+        // rent (cliente `rpc`) + resolvedor de pools e amostrador de custos (clientes próprios, sem retry).
+        const httpRequestsPerMin =
+          rpc.stats.requests - lastRpc.requests +
+          (samplerRpc.stats.requests - lastSamplerRpc.requests) +
+          (poolRpc.stats.requests - lastPoolRpc.requests);
+        const http429PerMin =
+          rpc.stats.rateLimited - lastRpc.rateLimited +
+          (samplerRpc.stats.rateLimited - lastSamplerRpc.rateLimited) +
+          (poolRpc.stats.rateLimited - lastPoolRpc.rateLimited);
         log.info(
           {
             eventsPerMin: s.events - last.events,
@@ -206,6 +216,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
         last = { ...s };
         lastRpc = { ...rpc.stats };
         lastSamplerRpc = { ...samplerRpc.stats };
+        lastPoolRpc = { ...poolRpc.stats };
         lastWs = ws;
         lastCost = { ...sampler.stats, rateLimited: sampler.rateLimited };
         service.retryPendingPools();

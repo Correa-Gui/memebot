@@ -12,4 +12,5 @@ export {
 } from './onchain.ts';
 export { fetchTokenMetadata, MetadataFetchError, type TokenMetadata } from './metadata.ts';
 export { RpcClient, RpcError } from './rpc.ts';
+export { RateLimiter } from './rate-limiter.ts';
 export type { PoolInfo, PoolResolver } from './normalize.ts';

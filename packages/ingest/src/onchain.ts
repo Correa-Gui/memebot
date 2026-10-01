@@ -1,4 +1,5 @@
 import type { TxCostEvent } from '@memebot/core';
+import type { RateLimiter } from './rate-limiter.ts';
 import { address, getAddressEncoder, getProgramDerivedAddress } from '@solana/kit';
 import { z } from 'zod';
 import {
@@ -23,8 +24,15 @@ async function fetchAccount(rpc: RpcClient, addr: string): Promise<{ owner: stri
  * Resolve base/quote de uma pool do PumpSwap lendo a conta Pool (confere o dono da conta).
  * Erro de RPC é propagado (transitório); conta inexistente/de outro programa → 'not_pool'.
  */
-export function createPoolResolver(rpc: RpcClient): PoolResolver {
+/**
+ * `limiter` (opcional) espaça as consultas para caber no orçamento de RPC: há centenas de pools do
+ * PumpSwap criadas antes da gravação, e sem limite o resolvedor gerava ~100 chamadas/min com 80% de
+ * 429 no Helius free (medido em 2026-10-01). Quem chama deve usar um `RpcClient` sem retry imediato:
+ * a falha cai no backoff exponencial por pool do `Normalizer`.
+ */
+export function createPoolResolver(rpc: RpcClient, limiter?: RateLimiter): PoolResolver {
   return async (pool: string): Promise<PoolInfo | 'not_pool'> => {
+    await limiter?.acquire();
     const acc = await fetchAccount(rpc, pool);
     if (acc?.owner !== PUMP_SWAP_PROGRAM_ID) return 'not_pool';
     const d = PUMP_AMM_IDL.decodeAccount('Pool', acc.bytes);

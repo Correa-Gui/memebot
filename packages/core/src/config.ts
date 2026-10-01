@@ -20,6 +20,8 @@ const ConfigSchema = z.object({
   METADATA_CONCURRENCY: z.coerce.number().int().positive().default(8),
   /** Resoluções de pool PumpSwap (RPC) simultâneas; o resto espera na fila. Ver ROADMAP Fase 1 item 2. */
   POOL_RESOLVE_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  /** Consultas de pool PumpSwap por segundo (aceita fração). Ver .env.example: orçamento de créditos do RPC. */
+  POOL_RESOLVE_PER_SEC: z.coerce.number().positive().max(50).default(0.1),
 
   CLICKHOUSE_URL: z.string().default('http://127.0.0.1:8123'),
   CLICKHOUSE_USER: z.string().default('memebot'),
