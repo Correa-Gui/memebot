@@ -368,7 +368,7 @@ Nada disso é competitivo para slot zero, e não precisa ser.
   transações reais dos dois programas, que também emitem os mesmos eventos por self-CPI).
 - **Não entrega** índice da transação no bloco, fee nem tip. Buscar isso por bloco custa ~90 KB (`getBlock`
   só assinaturas) ou ~1,9 MB (`getBlock` com contas) por slot — até ~400 GB/dia. Decisão: custos por
-  **amostragem** (`getTransaction`, `INGEST_COST_SAMPLES_PER_SEC`, padrão 2/s) em `tx_costs`; ordem dentro do
+  **amostragem** (`getTransaction`, `INGEST_COST_SAMPLES_PER_SEC`, padrão 0,2/s desde 2026-10-01) em `tx_costs`; ordem dentro do
   slot = ordem de chegada (`received_at`, `recv_seq`). A ordem exata é um motivo concreto para o gRPC depois.
 - A mainnet tem transações **versão 1**: toda chamada que busca transação usa `maxSupportedTransactionVersion: 1`.
 - Cuidados implementados no parser: `Program data:` só conta se o topo da pilha de invocação for Pump/PumpSwap
@@ -389,3 +389,27 @@ Nada disso é competitivo para slot zero, e não precisa ser.
   `% comprado no mesmo slot` e holders únicos (`docs/STRATEGY.md` §3) podem divergir do saldo real on-chain,
   especialmente para tokens com transferências fora da curva/pool. Ficar ciente disso ao calibrar os filtros
   no backtest; corrigir via indexador de contas de token é um item do backlog, não da v0.
+
+### Tamanho do stream e orçamento de RPC (medido em 2026-10-01, `pnpm status`)
+Configuração local atual: **stream (`RPC_WS_URL`) = RPC público da Solana**; **consultas HTTP (`RPC_URL`) =
+Helius free** (1 crédito por requisição, 1M/mês). Todas as chamadas HTTP (pools, `protocol_config`, rent,
+`getTransaction` das amostras) vão para `RPC_URL`; a única exceção é a lista de contas de tip, buscada no block
+engine da Jito. O log por minuto (`ingest`) traz `ws.{mbPerMin,messagesPerMin,reconnectsPerMin}` e
+`http.{requestsPerMin,rateLimitedPerMin}` (cada tentativa conta: é o que o provedor cobra); `pnpm status`
+resume a janela e projeta por dia/mês.
+
+| Medida (3 min, ~22 mil eventos/min) | Valor |
+|---|---|
+| WebSocket (payload decodificado) | ~200 MB/min ≈ **280 GB/dia ≈ 8,4 TB/mês**; ~115 mil mensagens/min; 0 reconexões |
+| HTTP com limite de pools | 18 req/min, 0 × 429 → ~26 mil/dia ≈ **78% do Helius free** |
+| HTTP antes do limite | ~255 req/min, ~205 × 429 (resolvedor de pools com 3 retries imediatos) |
+
+- O volume do WS é o argumento central na escolha de provedor pago: cobrança por GB entregue ficaria cara;
+  ~65% das notificações são de transações com erro e são descartadas depois de baixadas (o filtro
+  `logsSubscribe` não permite excluí-las). gRPC com filtro de falhas ou plano sem cobrança por volume são as
+  alternativas a avaliar.
+- Pools do PumpSwap: `POOL_RESOLVE_PER_SEC` (padrão 0,1/s) com cliente sem retry imediato; falha cai no backoff
+  por pool. A fila de pools pendentes cresce (~100/min) porque surgem mais pools do que o orçamento resolve —
+  aceitável na v0 (só curva); trades do PumpSwap ficam com `mint = ''` até a pool ser resolvida ou o
+  `pool_created` aparecer.
+- Runs com qualquer endpoint público (HTTP **ou** WS) são marcadas `provisional`.
