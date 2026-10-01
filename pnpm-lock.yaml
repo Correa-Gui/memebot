@@ -129,6 +129,19 @@ importers:
         specifier: ^22.10.7
         version: 22.20.4
 
+  packages/monitor:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
   packages/positions:
     dependencies:
       '@memebot/core':
