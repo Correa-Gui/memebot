@@ -239,12 +239,14 @@ export interface Fill {
   expectedPriceLamportsPerUnit: number; realizedPriceLamportsPerUnit: number;
   slippageBps: number; landedSlot: bigint | null /* null no paper */; status: 'filled' | 'failed' | 'expired'; error: string | null;
   venueUnverified: boolean;                            // fechado no último preço da curva por graduação
-  costEstimateSource: 'tx_costs_median' | 'fallback'; costCappedByHardLimit: boolean;
+  costEstimateSource: 'tx_costs_median' | 'fallback'; costCappedByHardLimit: boolean; // legado (006): 'tx_costs_median' só se os 2 tipos forem mediana
+  priorityFeeSource: TxCostSource; jitoTipSource: TxCostSource; // 007: 'tx_costs_median' | 'tx_costs_p75' | 'fallback'
   virtualQuoteBefore: bigint | null; virtualTokenBefore: TokenAmount | null; // reservas usadas no preenchimento
 }
 // fluxo de caixa do fill: solOut + rentRefund − solIn − priorityFee − jitoTip − baseFee − rent
 export function fillCashFlow(fill: Fill): Lamports;
-// Custos: mediana de tx_costs × 1,5 (tip: só amostras com tip > 0); < PAPER_COST_MIN_SAMPLES → fallback configurável.
+// Custos, POR TIPO (priority: todas as amostras; tip: só tip > 0): ≥ PAPER_COST_MIN_SAMPLES → mediana × 1,5 (tx_costs_median);
+// 1..mínimo−1 → p75 nearest-rank × 1,5 (tx_costs_p75); 0 amostras → fallback configurável (fallback). estimateOneCost/estimateTxCosts.
 export function estimateTxCosts(samples: readonly TxCostSample[], params: TxCostEstimateParams): TxCostEstimate;
 // Paper executor: máquina de estados pura (ver §5). Sem timers. `PaperExecutorParams` inclui
 // `baseFeeLamportsPerSignature` (o orquestrador passa LAMPORTS_PER_SIGNATURE de packages/ingest — o
@@ -290,7 +292,14 @@ export class PaperEngine {
 // no máximo 1×/s por mint. `decisions` grava uma linha só quando o resultado do mint muda (primeiro reject,
 // mudança de motivo, enter, cada exit) — o report conta tokens (mints distintos) por motivo.
 // Relógio: PaperClock.nowMs = max(maior ts de evento, parede − 2 s, último valor) — monotônico; ticks de 1 s.
-// Adaptador: apps/bot/src/paper/run-paper.ts (ClickHouse, RPC, Telegram, data/STOP, sinais/IPC de parada).
+// Adaptador: apps/bot/src/paper/run-paper.ts (ClickHouse, RPC, Telegram, data/STOP, sinais/IPC de parada). Na partida
+// envia "paper iniciado" (run, versão + sha256 do YAML, tamanho, custos por tipo, hora de Brasília com UTC);
+// o log por minuto `paper` inclui telegram { enabled, sent, failed, dropped }.
+// report (apps/bot/src/report/): origem dos custos por tipo; se algum fill não usou mediana, recalcula com a mediana
+// real × 1,5 de tx_costs (sampled_at ≤ fim do run, com teto) e mostra "como rodou" × "com mediana real"; marca
+// operações abertas durante lacunas `reconnect` ([detected_at − duration_ms, detected_at]; linhas sem duration_ms:
+// "desconectado por N ms" + 30 s de heartbeat) com PnL com/sem elas; qualidade medida (v_run_quality ou o mesmo
+// fallback sobre [started_at, último ts de decisions/fills], provisional acima de 1% sem stream).
 
 // monitor (packages/monitor, Fase 3): depende só de core.
 export class TelegramNotifier { // sendMessage via fetch; timeout 5 s; 3 retries com backoff; 429 → retry_after (≤ 30 s);
@@ -314,7 +323,7 @@ export interface NarrativeClassifier {
 Deve ser **pessimista por padrão** (implementado em `packages/execution/src/paper.ts`, Fase 3/parte B):
 1. **Latência simulada:** a ordem é preenchida no estado da curva `N` ms depois da decisão (`PAPER_LATENCY_MS`, padrão 800 ms) — usa-se o estado após todos os eventos com `ts ≤ decisão + N` (o orquestrador chama `settleBeforeEvent` antes de aplicar cada evento e `settleOnTick` em ticks sem evento). A nossa própria ordem **não** é injetada no `MarketState` (pessimista: a venda posterior não se beneficia do preço que a nossa compra empurrou).
 2. **Preço exato** via `curve-math` sobre as reservas daquele instante, incluindo taxas lidas da configuração on-chain (passadas como parâmetro).
-3. **Custos:** priority fee e tip de Jito = mediana de `tx_costs` × 1,5 (tip só sobre amostras com tip > 0, porque o live vai usar Jito). Com menos de `PAPER_COST_MIN_SAMPLES` (30) amostras usa `PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS` / `PAPER_FALLBACK_JITO_TIP_LAMPORTS` (500 000 cada) e o fill sai com `cost_estimate_source = 'fallback'`. Nunca acima de `maxPriorityFeeLamports`/`maxJitoTipLamports`: se passar, usa o limite e marca `cost_capped`. Rent da conta de token é injetado e cobrado na 1ª compra do mint e devolvido (`rent_refund`) só na venda que zera a posição. A conta é a ATA **Token-2022** do mint (o mint do Pump.fun é do programa `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`): tamanho **170 bytes** — `GetAccountDataSize` devolve 170 (`qgAAAAAAAAA=`) no `CreateIdempotent` da tx real `packages/ingest/test/fixtures/curve-create.json`, cujas ATAs criadas ficaram com 1 513 840 lamports, o mesmo valor de `getMinimumBalanceForRentExemption(170)` na mainnet em 2026-10-01. O orquestrador lê o rent por RPC na partida (`fetchTokenAccountRent`, `packages/ingest/src/onchain.ts`); se o RPC falhar, usa o valor observado nessa transação e registra no log. A **taxa base** por assinatura (`LAMPORTS_PER_SIGNATURE` = 5000, https://solana.com/docs/core/fees; 1 assinatura por tx) é cobrada em toda transação que entra no bloco — `filled`, `failed` e `expired` — e entra no custo de entrada e no valor de liquidação de `packages/positions`.
+3. **Custos:** priority fee e tip de Jito estimados de `tx_costs` (tip só sobre amostras com tip > 0, porque o live vai usar Jito), com o mínimo de amostras `PAPER_COST_MIN_SAMPLES` (30) valendo **por tipo**: com ≥ mínimo, mediana × 1,5 (`tx_costs_median`); com 1 a mínimo−1 amostras, percentil 75 (nearest-rank) das disponíveis × 1,5 (`tx_costs_p75` — o × 1,5 é mantido por pessimismo e para o p75 ficar sempre ≥ a estimativa da mediana); sem amostras, `PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS` / `PAPER_FALLBACK_JITO_TIP_LAMPORTS` (500 000 cada, `fallback`). A origem de cada tipo vai para `fills.priority_fee_source`/`jito_tip_source` (migração 007); `cost_estimate_source` (006) fica como valor combinado legado (`tx_costs_median` só quando os dois tipos vieram da mediana). Nunca acima de `maxPriorityFeeLamports`/`maxJitoTipLamports`: se passar, usa o limite e marca `cost_capped`. Rent da conta de token é injetado e cobrado na 1ª compra do mint e devolvido (`rent_refund`) só na venda que zera a posição. A conta é a ATA **Token-2022** do mint (o mint do Pump.fun é do programa `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`): tamanho **170 bytes** — `GetAccountDataSize` devolve 170 (`qgAAAAAAAAA=`) no `CreateIdempotent` da tx real `packages/ingest/test/fixtures/curve-create.json`, cujas ATAs criadas ficaram com 1 513 840 lamports, o mesmo valor de `getMinimumBalanceForRentExemption(170)` na mainnet em 2026-10-01. O orquestrador lê o rent por RPC na partida (`fetchTokenAccountRent`, `packages/ingest/src/onchain.ts`); se o RPC falhar, usa o valor observado nessa transação e registra no log. A **taxa base** por assinatura (`LAMPORTS_PER_SIGNATURE` = 5000, https://solana.com/docs/core/fees; 1 assinatura por tx) é cobrada em toda transação que entra no bloco — `filled`, `failed` e `expired` — e entra no custo de entrada e no valor de liquidação de `packages/positions`.
 4. **Falhas:** taxa configurável (`PAPER_FAIL_RATE`, 10%) sorteada com PRNG semeado (mulberry32; seed derivada do run) — um sorteio por ordem, sempre, para o replay ser estável. `failed` e `expired` (slippage acima do `maxSlippageBps` aprovado) pagam a priority fee e a taxa base e **não** pagam tip (o tip do Jito reverte com o bundle); posição intacta. Compra pendente cuja curva completou durante a latência → `failed` (`curve_unavailable_at_fill`).
 5. Registrar `expectedPriceLamportsPerUnit` × `realizedPriceLamportsPerUnit` em todo fill para depois calibrar contra o live, e as reservas virtuais usadas no preenchimento (`virtualQuoteBefore`/`virtualTokenBefore`, para a tabela de sensibilidade do `pnpm report`).
 6. **PumpSwap:** nunca simulado (`PumpSwapSimulationNotValidatedError`). Graduação com posição aberta → vende tudo no último preço da curva, `venue_unverified = 1`, sem sorteio de falha/slippage.
