@@ -1,0 +1,21 @@
+{
+  "name": "@memebot/execution",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@memebot/core": "workspace:*",
+    "@memebot/curve-math": "workspace:*",
+    "@memebot/risk": "workspace:*",
+    "@memebot/state": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7"
+  }
+}
