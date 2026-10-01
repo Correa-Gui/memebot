@@ -1,0 +1,13 @@
+<!--
+  Limite interno do ClickHouse (mata a query mais pesada com erro, antes do container inteiro
+  ser derrubado pelo OOM killer do Docker). Ver docker-compose.yml e docs/ARCHITECTURE.md §6.
+
+  Por que fixo em vez de calculado a partir do mem_limit do Docker: nos testes desta fase (24.8,
+  Docker Desktop/Windows) `system.asynchronous_metrics.OSMemoryTotal` reportou a RAM do HOST, não
+  o limite do cgroup do container — então `max_server_memory_usage_to_ram_ratio` (padrão do
+  ClickHouse) não protege sozinho aqui. CLICKHOUSE_SOFT_MEMORY_LIMIT deve ficar abaixo de
+  CLICKHOUSE_MEMORY_LIMIT_MB (docker-compose.yml); os dois têm que ser ajustados juntos.
+-->
+<clickhouse>
+    <max_server_memory_usage from_env="CLICKHOUSE_SOFT_MEMORY_LIMIT" />
+</clickhouse>

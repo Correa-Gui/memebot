@@ -11,12 +11,20 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-memebot}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      # lido por infra/clickhouse/config.d/memory.xml (from_env); manter abaixo de CLICKHOUSE_MEMORY_LIMIT_MB.
+      CLICKHOUSE_SOFT_MEMORY_LIMIT: ${CLICKHOUSE_SOFT_MEMORY_LIMIT:-1800Mi}
     volumes:
       # volume nomeado: bind mount em NTFS (Docker Desktop/Windows) quebra os renames atômicos do ClickHouse.
       # Não é apagado por `docker compose down` (só com `-v`). Backup: export Parquet (RISK_AND_SECURITY §4).
       - clickhouse-data:/var/lib/clickhouse
+      - ./infra/clickhouse/config.d:/etc/clickhouse-server/config.d:ro
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
+    # Limite duro do container (cgroup). O ClickHouse detecta esse limite sozinho e usa por padrão
+    # até 90% dele (max_server_memory_usage_to_ram_ratio) — verificado em system.asynchronous_metrics
+    # após subir (ver docs/ARCHITECTURE.md §6). Sem isto, uma consulta pesada podia consumir toda a
+    # RAM da máquina e travar o resto (bot, editor, etc.), como quase aconteceu nos testes desta fase.
+    mem_limit: "${CLICKHOUSE_MEMORY_LIMIT_MB:-2048}m"
 
 volumes:
   clickhouse-data:
