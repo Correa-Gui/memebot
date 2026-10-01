@@ -15,6 +15,7 @@ import { PUMP_FUN_PROGRAM_ID } from '../../../../config/protocol.ts';
 import { openRecordingSession, waitForShutdown } from '../recording.ts';
 import { PaperClock } from './clock.ts';
 import { PaperEngine } from './engine.ts';
+import { formatPaperStarted } from './start-message.ts';
 
 export const STRATEGY_CONFIG_PATH = 'config/strategy.v0.yaml';
 /** Pré-carga de `token_created` para o filtro de criador (24 h, como a feature). */
@@ -60,10 +61,11 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
   const config = loadStrategyConfig(STRATEGY_CONFIG_PATH);
   const limits = buildEffectiveRiskLimits(config);
   let engine: PaperEngine | null = null;
+  const strategyHash = createHash('sha256').update(strategyYaml).digest('hex');
 
   const session = await openRecordingSession(cfg, log, {
     mode: 'paper',
-    extraConfigHash: createHash('sha256').update(strategyYaml).digest('hex'),
+    extraConfigHash: strategyHash,
     preflight: async (recorder) => {
       const missing = await recorder.missingFillsColumns();
       if (missing.length > 0) {
@@ -128,6 +130,10 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
       seed, startMs, sinks,
     });
     engine = e;
+    telegram.send(formatPaperStarted({
+      runId, startedAtMs: Date.now(), configVersion: config.version, configHash: strategyHash, sizeLamports: limits.sizeLamports,
+      maxOpenPositions: limits.maxOpenPositions, costs, latencyMs: cfg.PAPER_LATENCY_MS, failRate: cfg.PAPER_FAIL_RATE,
+    }));
     log.info(
       {
         runId, seed, protocolSource: protocol.source, fees: { protocolBps: protocol.fees.protocolFeeBps.toString(), creatorBps: protocol.fees.creatorFeeBps.toString() },
@@ -180,6 +186,7 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
           runNetPnlLamports: e.runNetPnlLamports.toString(),
           costSource: { priority: c.priorityFeeSource, tip: c.jitoTipSource, samples: c.prioritySampleCount, tipSamples: c.tipSampleCount },
           trackedTokens: e.trackedTokens,
+          telegram: { enabled: telegram.enabled, ...telegram.stats },
         },
         'paper',
       );
