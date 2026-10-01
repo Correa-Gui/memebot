@@ -45,6 +45,9 @@ const ConfigSchema = z.object({
   PAPER_COST_MIN_SAMPLES: z.coerce.number().int().positive().default(30),
   PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS: z.coerce.bigint().nonnegative().default(500_000n),
   PAPER_FALLBACK_JITO_TIP_LAMPORTS: z.coerce.bigint().nonnegative().default(500_000n),
+  /** Janela de `tx_costs` (horas) usada na estimativa de custos do paper, e o intervalo de recarga. */
+  PAPER_COST_LOOKBACK_HOURS: z.coerce.number().int().positive().max(24 * 30).default(24),
+  PAPER_COST_RELOAD_MS: z.coerce.number().int().positive().default(600_000),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
