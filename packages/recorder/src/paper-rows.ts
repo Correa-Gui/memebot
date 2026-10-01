@@ -44,6 +44,9 @@ export interface FillRecord {
   error: string | null;
   venueUnverified: boolean;
   costEstimateSource: 'tx_costs_median' | 'fallback';
+  /** Migração 007: origem por tipo de custo. */
+  priorityFeeSource: 'tx_costs_median' | 'tx_costs_p75' | 'fallback';
+  jitoTipSource: 'tx_costs_median' | 'tx_costs_p75' | 'fallback';
   costCappedByHardLimit: boolean;
   virtualQuoteBefore: bigint | null;
   virtualTokenBefore: bigint | null;
@@ -91,6 +94,8 @@ export function fillToRow(f: FillRecord): Row {
     error: f.error,
     venue_unverified: f.venueUnverified ? 1 : 0,
     cost_estimate_source: f.costEstimateSource,
+    priority_fee_source: f.priorityFeeSource,
+    jito_tip_source: f.jitoTipSource,
     cost_capped: f.costCappedByHardLimit ? 1 : 0,
     rent_refund: u(f.rentRefund),
     base_fee: u(f.baseFee),
@@ -99,7 +104,7 @@ export function fillToRow(f: FillRecord): Row {
   };
 }
 
-/** Colunas que o paper grava em `fills` e que só existem depois da migração 006. */
+/** Colunas que o paper grava em `fills` e que só existem depois das migrações 006 e 007. */
 export const FILLS_REQUIRED_COLUMNS = [
   'base_fee',
   'expected_price_lamports_per_unit',
@@ -110,6 +115,8 @@ export const FILLS_REQUIRED_COLUMNS = [
   'cost_estimate_source',
   'cost_capped',
   'rent_refund',
+  'priority_fee_source',
+  'jito_tip_source',
 ] as const;
 
 // ---- leituras (fronteira externa: validadas com zod) ----

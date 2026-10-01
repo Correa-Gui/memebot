@@ -15,6 +15,7 @@ const FILL: FillRecord = {
   priorityFee: 225_000n, jitoTip: 300_000n, rent: 1_513_840n, rentRefund: 0n, baseFee: 5_000n,
   expectedPriceLamportsPerUnit: 0.03, realizedPriceLamportsPerUnit: 0.031, slippageBps: 333, landedSlot: null,
   status: 'filled', error: null, venueUnverified: false, costEstimateSource: 'fallback', costCappedByHardLimit: true,
+  priorityFeeSource: 'tx_costs_p75', jitoTipSource: 'fallback',
   virtualQuoteBefore: 30_000_000_000n, virtualTokenBefore: 1_073_000_000_000_000n,
 };
 
@@ -24,7 +25,7 @@ describe('fillToRow', () => {
     expect(row).toMatchObject({
       run_id: 'paper-1', ts: '2026-09-30 01:00:54.000', side: 'buy', sol_in: '50000000', token_delta: '1234',
       base_fee: '5000', rent: '1513840', rent_refund: '0', cost_estimate_source: 'fallback', cost_capped: 1,
-      venue_unverified: 0, expected_price_lamports_per_unit: 0.03, realized_price_lamports_per_unit: 0.031,
+      venue_unverified: 0, priority_fee_source: 'tx_costs_p75', jito_tip_source: 'fallback', expected_price_lamports_per_unit: 0.03, realized_price_lamports_per_unit: 0.031,
       virtual_quote_before: '30000000000', virtual_token_before: '1073000000000000', landed_slot: null,
     });
     for (const col of FILLS_REQUIRED_COLUMNS) expect(row).toHaveProperty(col);

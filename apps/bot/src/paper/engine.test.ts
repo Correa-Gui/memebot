@@ -90,7 +90,7 @@ describe('PaperEngine — entrada', () => {
     const enters = h.decisions.filter((d) => d.type === 'enter');
     expect(enters).toHaveLength(1);
     expect(enters[0]?.reason).toBe('momentum_trigger');
-    expect(enters[0]?.features).toMatchObject({ protocolFeeBps: 95, creatorFeeBps: 30, costEstimateSource: 'fallback' });
+    expect(enters[0]?.features).toMatchObject({ protocolFeeBps: 95, creatorFeeBps: 30, costEstimateSource: 'priority:fallback/tip:fallback' });
     const buy = h.fills.find((f) => f.side === 'buy');
     expect(buy).toMatchObject({ status: 'filled', baseFee: LAMPORTS_PER_SIGNATURE, rent: 1_513_840n, decisionId: enters[0]?.decisionId });
     expect(buy?.solIn).toBeLessThanOrEqual(HARD_LIMITS.maxPositionLamports);

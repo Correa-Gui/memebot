@@ -1,8 +1,8 @@
-export type { CostEstimateSource, Fill, FillStatus } from './fill.ts';
-export { fillCashFlow } from './fill.ts';
+export type { CostEstimateSource, Fill, FillStatus, TxCostSource } from './fill.ts';
+export { combinedCostSource, fillCashFlow } from './fill.ts';
 
 export type { TxCostEstimate, TxCostEstimateParams, TxCostSample } from './costs.ts';
-export { estimateTxCosts, medianLamports } from './costs.ts';
+export { estimateOneCost, estimateTxCosts, medianLamports, p75Lamports } from './costs.ts';
 
 export {
   HardLimitViolationError,

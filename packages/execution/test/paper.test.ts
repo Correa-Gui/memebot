@@ -6,8 +6,11 @@ import {
   HardLimitViolationError,
   InvalidOrderError,
   PumpSwapSimulationNotValidatedError,
+  combinedCostSource,
   createPaperExecutorState,
+  estimateOneCost,
   estimateTxCosts,
+  p75Lamports,
   fillCashFlow,
   medianLamports,
   mulberry32Next,
@@ -63,12 +66,33 @@ describe('estimateTxCosts', () => {
   const sample = (priorityFee: bigint, jitoTip: bigint | null): TxCostSample => ({ priorityFee, jitoTip });
   const p = { minSamples: 30, fallbackPriorityFeeLamports: 500_000n, fallbackJitoTipLamports: 400_000n };
 
-  it('com menos amostras que o mínimo (hoje: 3) usa o fallback e marca a origem', () => {
+  it('mínimo por tipo: 1..mínimo−1 amostras → p75 × 1,5 (tx_costs_p75); zero amostras → fallback', () => {
+    // priority: 3 amostras (< 30) → p75 nearest-rank de [140k,150k,150k] = 150k → × 1,5 = 225k; tip: nenhuma > 0 → fallback
     const est = estimateTxCosts([sample(150_000n, 0n), sample(150_000n, 0n), sample(140_000n, null)], p);
     expect(est).toMatchObject({
-      priorityFeeLamports: 500_000n, jitoTipLamports: 400_000n, priorityFeeSource: 'fallback', jitoTipSource: 'fallback',
+      priorityFeeLamports: 225_000n, jitoTipLamports: 400_000n, priorityFeeSource: 'tx_costs_p75', jitoTipSource: 'fallback',
       prioritySampleCount: 3, tipSampleCount: 0,
     });
+    expect(estimateTxCosts([], p)).toMatchObject({ priorityFeeSource: 'fallback', priorityFeeLamports: 500_000n });
+    // tip com poucas amostras > 0: p75 também
+    const tips = estimateTxCosts([sample(1n, 1_000n), sample(1n, 2_000n), sample(1n, 4_000n), sample(1n, 8_000n)], p);
+    expect(tips).toMatchObject({ jitoTipSource: 'tx_costs_p75', jitoTipLamports: 6_000n });
+  });
+
+  it('p75Lamports (nearest-rank) e estimateOneCost', () => {
+    expect(p75Lamports([1n])).toBe(1n);
+    expect(p75Lamports([4n, 1n, 3n, 2n])).toBe(3n);
+    expect(p75Lamports([1n, 2n, 3n, 4n, 5n])).toBe(4n);
+    expect(() => p75Lamports([])).toThrow(RangeError);
+    expect(estimateOneCost([10n, 20n], 2, 99n)).toEqual({ lamports: 23n, source: 'tx_costs_median' });
+  });
+
+  it('o fill registra a origem por tipo e a combinada (pior das duas) para a coluna legada', () => {
+    const c = { ...costs(), priorityFeeSource: 'tx_costs_p75' as const };
+    const { fill } = openAt(params({ costs: c }), initialMarket());
+    expect(fill).toMatchObject({ priorityFeeSource: 'tx_costs_p75', jitoTipSource: 'tx_costs_median', costEstimateSource: 'fallback' });
+    expect(combinedCostSource('tx_costs_median', 'tx_costs_median')).toBe('tx_costs_median');
+    expect(combinedCostSource('tx_costs_median', 'fallback')).toBe('fallback');
   });
 
   it('com amostras suficientes: mediana × 1,5 (tip só de quem pagou tip)', () => {

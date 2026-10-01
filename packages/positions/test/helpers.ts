@@ -76,6 +76,7 @@ const ZERO_FILL: Omit<Fill, 'side' | 'decisionId' | 'ts'> = {
   priorityFee: 0n, jitoTip: 0n, rent: 0n, rentRefund: 0n, baseFee: 0n, expectedPriceLamportsPerUnit: 0, realizedPriceLamportsPerUnit: 0, slippageBps: 0,
   landedSlot: null, status: 'filled', error: null, venueUnverified: false, costEstimateSource: 'tx_costs_median',
   costCappedByHardLimit: false, virtualQuoteBefore: null, virtualTokenBefore: null,
+  priorityFeeSource: 'tx_costs_median', jitoTipSource: 'tx_costs_median',
 };
 
 /** Fill de compra de 0,05 SOL (total com taxas) nas reservas iniciais reais. */

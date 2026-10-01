@@ -1,7 +1,23 @@
 import type { Lamports, TokenAmount } from '@memebot/core';
 
-/** Origem da estimativa de priority fee / tip usada no fill (nunca silenciosa). */
+/**
+ * Origem de cada custo estimado (priority fee, tip) — migração 007 (`priority_fee_source`,
+ * `jito_tip_source`): mediana × 1,5 (amostras ≥ mínimo), p75 × 1,5 (1..mínimo−1 amostras) ou fallback
+ * configurado (nenhuma amostra). Ver `estimateOneCost`.
+ */
+export type TxCostSource = 'tx_costs_median' | 'tx_costs_p75' | 'fallback';
+
+/**
+ * Origem combinada (coluna legada `cost_estimate_source` da migração 006, cujo Enum8 só tem
+ * 'tx_costs_median' e 'fallback'): `tx_costs_median` só quando os DOIS tipos vieram da mediana;
+ * qualquer outra coisa (p75 ou fallback em algum tipo) vira `fallback` = "não é a mediana".
+ * Mantida por compatibilidade com linhas/relatórios anteriores à 007.
+ */
 export type CostEstimateSource = 'tx_costs_median' | 'fallback';
+
+export function combinedCostSource(priority: TxCostSource, tip: TxCostSource): CostEstimateSource {
+  return priority === 'tx_costs_median' && tip === 'tx_costs_median' ? 'tx_costs_median' : 'fallback';
+}
 
 export type FillStatus = 'filled' | 'failed' | 'expired';
 
@@ -56,7 +72,10 @@ export interface Fill {
   error: string | null;
   /** true = fechado no último preço da bonding curve porque o token graduou (sem simular PumpSwap). */
   venueUnverified: boolean;
+  /** Pior dos dois (compatibilidade, ver `combinedCostSource`). */
   costEstimateSource: CostEstimateSource;
+  priorityFeeSource: TxCostSource;
+  jitoTipSource: TxCostSource;
   /** true = a estimativa de priority fee/tip passou do limite e foi trocada pelo limite. */
   costCappedByHardLimit: boolean;
   virtualQuoteBefore: bigint | null;

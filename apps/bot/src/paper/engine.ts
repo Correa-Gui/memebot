@@ -405,9 +405,8 @@ export class PaperEngine {
 
   // ---- fills ----
 
-  private costSource(): 'tx_costs_median' | 'fallback' {
-    const c = this.params.costs;
-    return c.priorityFeeSource === 'tx_costs_median' && c.jitoTipSource === 'tx_costs_median' ? 'tx_costs_median' : 'fallback';
+  private costSource(): string {
+    return `priority:${this.params.costs.priorityFeeSource}/tip:${this.params.costs.jitoTipSource}`;
   }
 
   private addPnl(delta: Lamports, ts: number): void {
@@ -445,7 +444,7 @@ export class PaperEngine {
         priceLamportsPerUnit: fill.realizedPriceLamportsPerUnit,
         sizeLamports: fill.solIn,
         costLamports: fill.protocolFee + fill.creatorFee + fill.priorityFee + fill.jitoTip + fill.baseFee + fill.rent,
-        costSource: fill.costEstimateSource,
+        costSource: `priority ${fill.priorityFeeSource}, tip ${fill.jitoTipSource}`,
       }),
     );
   }

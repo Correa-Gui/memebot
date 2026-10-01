@@ -6,6 +6,7 @@ import type { EffectiveRiskLimits } from '@memebot/risk';
 import type { MarketState, TokenState } from '@memebot/state';
 import type { TxCostEstimate } from './costs.ts';
 import { HardLimitViolationError, InvalidOrderError, PumpSwapSimulationNotValidatedError } from './errors.ts';
+import { combinedCostSource } from './fill.ts';
 import type { Fill, FillStatus } from './fill.ts';
 import { mulberry32Next } from './prng.ts';
 
@@ -251,10 +252,6 @@ function cappedCosts(params: PaperExecutorParams): CostsForFill {
 }
 
 function baseFill(p: PendingOrder, params: PaperExecutorParams, costs: CostsForFill): Fill {
-  const source =
-    params.costs.priorityFeeSource === 'tx_costs_median' && params.costs.jitoTipSource === 'tx_costs_median'
-      ? 'tx_costs_median'
-      : 'fallback';
   return {
     runId: params.runId,
     ts: p.dueMs,
@@ -279,7 +276,9 @@ function baseFill(p: PendingOrder, params: PaperExecutorParams, costs: CostsForF
     status: 'failed',
     error: null,
     venueUnverified: false,
-    costEstimateSource: source,
+    costEstimateSource: combinedCostSource(params.costs.priorityFeeSource, params.costs.jitoTipSource),
+    priorityFeeSource: params.costs.priorityFeeSource,
+    jitoTipSource: params.costs.jitoTipSource,
     costCappedByHardLimit: costs.capped,
     virtualQuoteBefore: null,
     virtualTokenBefore: null,

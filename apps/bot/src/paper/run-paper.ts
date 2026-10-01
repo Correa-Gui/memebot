@@ -67,7 +67,7 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     preflight: async (recorder) => {
       const missing = await recorder.missingFillsColumns();
       if (missing.length > 0) {
-        throw new Error(`tabela fills sem as colunas da migração 006 (${missing.join(', ')}): aplique com \`pnpm migrate\` antes do paper`);
+        throw new Error(`tabela fills sem as colunas das migrações 006/007 (${missing.join(', ')}): aplique com \`pnpm migrate\` antes do paper`);
       }
     },
     onProtocolConfig: (snaps) => {
