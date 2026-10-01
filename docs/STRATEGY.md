@@ -25,8 +25,8 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 | Filtro | Valor inicial |
 |---|---|
 | % do supply no top 10 holders (excluindo curva/pool) | ≤ 30% |
-| % comprado no mesmo slot da criação (proxy de bundle) | ≤ 10% |
-| Criador ainda segura | ≤ 5% |
+| % do supply comprado no slot de criação por carteiras **diferentes do criador** (proxy de bundle; v0.1) | ≤ 10% |
+| Criador ainda segura (inclui a compra inicial, medida à parte como `creatorInitialBuyPct` no snapshot) | ≤ 5% |
 | Criador criou ≥ 3 tokens nas últimas 24h | rejeita |
 | Holders únicos | ≥ 40 |
 | Volume últimos 60 s | ≥ 5 SOL |
@@ -88,3 +88,4 @@ critério quando a Fase 4 do `docs/ROADMAP.md` existir):
 | Versão | Data | Mudança | Resultado (backtest fora da amostra) |
 |---|---|---|---|
 | v0 | — | versão inicial | — |
+| v0.1 | 2026-10-01 | `maxSameSlotAsCreatePct` passa a ignorar as compras do criador no slot de criação (proxy de bundle = só outras carteiras); a compra inicial do criador vira a feature informativa `creatorInitialBuyPct` e continua coberta por `maxCreatorHoldingPct`. Motivo: no paper de 01/10, o criador comprou na mesma tx do create em 693 de 956 tokens (72%; mediana 0,5% do supply, p90 6,7%). Limites inalterados. Efeito medido: dos 331 tokens acima de 10% no slot, 286 continuam acima só com outras carteiras (o filtro muda para 45 tokens). | ainda sem backtest (Fase 4 condicional) — avaliar no paper |

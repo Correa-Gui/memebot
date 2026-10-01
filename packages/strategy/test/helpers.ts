@@ -125,6 +125,8 @@ export interface ScenarioOverrides {
   sameSlotAmount?: bigint;
   /** Compra do próprio criador — controla `creatorHoldingPct`. Default: 0n. */
   creatorHoldingAmount?: bigint;
+  /** A compra do criador acontece no slot de criação (compra inicial). Default: false. */
+  creatorBuysInCreationSlot?: boolean;
   /** Nº de outros tokens do mesmo criador criados nas últimas 24h — controla `creatorTokensCreated24h`. Default: 0. */
   creatorOtherTokens24h?: number;
   /** Quote (lamports) de cada compra na janela de 60s. Default: 2_000_000_000n (2 SOL). */
@@ -182,7 +184,7 @@ export function buildScenario(overrides: ScenarioOverrides = {}): Scenario {
 
   const creatorHoldingAmount = overrides.creatorHoldingAmount ?? 0n;
   if (creatorHoldingAmount > 0n) {
-    events.push(curveTrade({ mint, ts: setupTs, slot: OTHER_SLOT, side: 'buy', trader: creator, tokenAmount: creatorHoldingAmount, quoteAmount: 1_000n }));
+    events.push(curveTrade({ mint, ts: setupTs, slot: overrides.creatorBuysInCreationSlot ? CREATED_AT_SLOT : OTHER_SLOT, side: 'buy', trader: creator, tokenAmount: creatorHoldingAmount, quoteAmount: 1_000n }));
   }
 
   const creatorOtherTokens24h = overrides.creatorOtherTokens24h ?? 0;

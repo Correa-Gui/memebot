@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buySellVolumeRatio60s,
   creatorHoldingPct,
+  creatorInitialBuyPct,
   creatorTokensCreated24h,
   curveProgress,
   largestSingleSellPctSupply60s,
@@ -103,6 +104,16 @@ describe('sameSlotBuyPct', () => {
     );
 
     expect(sameSlotBuyPct(getToken(state, 'mintA'))).toBeCloseTo(0.1, 6);
+  });
+
+  it('v0.1: não conta a compra do criador no slot de criação; ela vai para creatorInitialBuyPct', () => {
+    let state = createEmptyMarketState();
+    state = applyEvent(state, tokenCreated({ mint: 'mintA', ts: 1_000, slot: 50n, creator: 'dev', tokenTotalSupply: 1_000n }));
+    state = applyEvent(state, curveTrade({ mint: 'mintA', ts: 1_000, slot: 50n, side: 'buy', trader: 'dev', tokenAmount: 300n }));
+    state = applyEvent(state, curveTrade({ mint: 'mintA', ts: 1_000, slot: 50n, side: 'buy', trader: 'sniper', tokenAmount: 50n }));
+    const token = getToken(state, 'mintA');
+    expect(sameSlotBuyPct(token)).toBeCloseTo(0.05, 9);
+    expect(creatorInitialBuyPct(token)).toBeCloseTo(0.3, 9);
   });
 
   it('retorna null se createdAtSlot é desconhecido', () => {

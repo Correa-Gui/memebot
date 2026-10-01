@@ -27,7 +27,7 @@ describe('evaluate — com o config/strategy.v0.yaml real do repositório', () =
   const realConfig = loadStrategyConfig(fileURLToPath(new URL('../../../config/strategy.v0.yaml', import.meta.url)));
 
   it('parseia o arquivo real', () => {
-    expect(realConfig.version).toBe('v0');
+    expect(realConfig.version).toBe('v0.1');
     expect(realConfig.filters.allowedVenues).toEqual(['curve']);
   });
 
@@ -82,6 +82,20 @@ describe('evaluate — filtros duros (docs/STRATEGY.md §3)', () => {
     const { state, mint, nowMs, config } = buildScenario({ sameSlotAmount: 150_000n });
     const decisions = evaluate(state, mint, clockAt(nowMs), config, CURVE_PARAMS);
     expect(decisions).toEqual([{ outcome: 'reject', mint, reason: 'maxSameSlotAsCreatePct' }]);
+  });
+
+  it('v0.1: compra inicial grande do CRIADOR no slot de criação não é bundle — cai no filtro de criador', () => {
+    const { state, mint, nowMs, config } = buildScenario({ creatorHoldingAmount: 150_000n, creatorBuysInCreationSlot: true });
+    const decisions = evaluate(state, mint, clockAt(nowMs), config, CURVE_PARAMS);
+    expect(decisions).toEqual([{ outcome: 'reject', mint, reason: 'maxCreatorHoldingPct' }]);
+  });
+
+  it('v0.1: compra inicial pequena do criador no slot de criação entra no snapshot como creatorInitialBuyPct', () => {
+    const { state, mint, nowMs, config } = buildScenario({ creatorHoldingAmount: 40_000n, creatorBuysInCreationSlot: true });
+    const [d] = evaluate(state, mint, clockAt(nowMs), config, CURVE_PARAMS);
+    if (d?.outcome !== 'enter') throw new Error('esperava enter');
+    expect(d.features.sameSlotBuyPct).toBe(0);
+    expect(d.features.creatorInitialBuyPct).toBeCloseTo(0.04, 9);
   });
 
   it('rejeita criador segurando acima do limite com o motivo "maxCreatorHoldingPct"', () => {

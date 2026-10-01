@@ -3,6 +3,7 @@ import type { CurveInitialParams } from '@memebot/curve-math';
 import {
   buySellVolumeRatio60s,
   creatorHoldingPct,
+  creatorInitialBuyPct,
   creatorTokensCreated24h,
   curveProgress,
   largestSingleSellPctSupply60s,
@@ -148,6 +149,7 @@ export function evaluate(
         volume60sSol: volumeSol,
         largestSingleSellPctSupply60s: largestSellPct ?? Number.NaN,
         creatorHoldingPct: creatorHeldPct ?? Number.NaN,
+        creatorInitialBuyPct: creatorInitialBuyPct(token) ?? Number.NaN,
         creatorTokensCreated24h: creatorTokens24h,
         riskScore: risk.value,
       },

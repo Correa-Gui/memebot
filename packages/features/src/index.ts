@@ -89,9 +89,11 @@ export function top10HolderPct(token: TokenState): number | null {
 }
 
 /**
- * % do supply comprado no mesmo slot da criação do token (proxy de bundle, `docs/STRATEGY.md` §3).
- * Fórmula: soma de `tokenAmount` de todos os trades de **compra** cujo `slot` é igual a
- * `token.createdAtSlot`, dividido por `tokenTotalSupply`.
+ * % do supply comprado no slot de criação por carteiras DIFERENTES do criador (proxy de bundle,
+ * `docs/STRATEGY.md` §3, v0.1). Fórmula: soma de `tokenAmount` das **compras** com `slot ===
+ * token.createdAtSlot` e `trader ∉ token.creatorWallets`, dividido por `tokenTotalSupply`.
+ * v0.1 (2026-10-01): a compra inicial do criador (72% dos tokens a fazem na mesma tx do create) saiu
+ * daqui e é medida em `creatorInitialBuyPct`.
  * Sem janela de tempo (usa o slot exato, não uma janela de ms) — ver lacuna #1: exige
  * `TokenState.createdAtSlot`, adicionado em `packages/state` nesta tarefa.
  * **Aproximação**: (a) só conta compras no venue `curve` observadas pelo ingest — um bundle pode
@@ -103,11 +105,28 @@ export function sameSlotBuyPct(token: TokenState): number | null {
   if (token.createdAtSlot === null || token.tokenTotalSupply === null || token.tokenTotalSupply <= 0n) return null;
   let boughtInCreationSlot: TokenAmount = 0n;
   for (const t of token.trades) {
-    if (t.side === 'buy' && t.slot === token.createdAtSlot) {
+    if (t.side === 'buy' && t.slot === token.createdAtSlot && !token.creatorWallets.has(t.trader)) {
       boughtInCreationSlot += t.tokenAmount;
     }
   }
   return toRatio(boughtInCreationSlot, token.tokenTotalSupply);
+}
+
+/**
+ * % do supply comprado pelo(s) criador(es) no slot de criação (a "compra inicial", que no Pump.fun
+ * costuma vir na mesma transação do create). Fórmula: soma de `tokenAmount` das compras com
+ * `slot === createdAtSlot` e `trader ∈ creatorWallets`, dividido por `tokenTotalSupply`.
+ * Informativa (snapshot da decisão): o risco do criador é filtrado por `maxCreatorHoldingPct`
+ * (quanto ainda segura). Herda as aproximações de `creatorHoldingPct`/ARCHITECTURE §8.
+ * `null` se `createdAtSlot` ou `tokenTotalSupply` são desconhecidos.
+ */
+export function creatorInitialBuyPct(token: TokenState): number | null {
+  if (token.createdAtSlot === null || token.tokenTotalSupply === null || token.tokenTotalSupply <= 0n) return null;
+  let bought: TokenAmount = 0n;
+  for (const t of token.trades) {
+    if (t.side === 'buy' && t.slot === token.createdAtSlot && token.creatorWallets.has(t.trader)) bought += t.tokenAmount;
+  }
+  return toRatio(bought, token.tokenTotalSupply);
 }
 
 /**

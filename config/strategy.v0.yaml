@@ -1,4 +1,4 @@
-version: v0
+version: v0.1              # v0.1 (2026-10-01): proxy de bundle exclui o criador — docs/STRATEGY.md §8
 
 entry:
   minAgeSec: 60
