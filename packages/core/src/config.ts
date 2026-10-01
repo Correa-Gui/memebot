@@ -35,6 +35,16 @@ const ConfigSchema = z.object({
 
   PAPER_LATENCY_MS: z.coerce.number().int().nonnegative().default(800),
   PAPER_FAIL_RATE: z.coerce.number().min(0).max(1).default(0.1),
+  /**
+   * Custos do paper executor (ARCHITECTURE §5): priority fee / tip = mediana de `tx_costs` × 1,5, mas
+   * só com pelo menos este nº de amostras; abaixo disso usa os fallbacks abaixo (marcados no fill
+   * como `cost_estimate_source = 'fallback'`). Fallbacks propositalmente conservadores (~2× a mediana
+   * × 1,5 das poucas amostras de 2026-10-01 para a priority fee; tip sem amostras com Jito) e
+   * sempre limitados pelos hard limits (`packages/risk/src/hard-limits.ts`).
+   */
+  PAPER_COST_MIN_SAMPLES: z.coerce.number().int().positive().default(30),
+  PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS: z.coerce.bigint().nonnegative().default(500_000n),
+  PAPER_FALLBACK_JITO_TIP_LAMPORTS: z.coerce.bigint().nonnegative().default(500_000n),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;

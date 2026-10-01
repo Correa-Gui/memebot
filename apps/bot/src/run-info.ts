@@ -14,7 +14,9 @@ export function publicConfig(cfg: AppConfig): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(cfg)
       .filter(([k]) => !SECRET_KEY.test(k))
-      .sort(([a], [b]) => a.localeCompare(b)),
+      .sort(([a], [b]) => a.localeCompare(b))
+      // valores em lamports são bigint (ex.: PAPER_FALLBACK_*_LAMPORTS); JSON não serializa bigint
+      .map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : v]),
   );
 }
 

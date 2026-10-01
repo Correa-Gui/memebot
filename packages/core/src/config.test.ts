@@ -9,6 +9,15 @@ describe('loadConfig', () => {
     const cfg = loadConfig({});
     expect(cfg.MODE).toBe('record');
     expect(cfg.PAPER_LATENCY_MS).toBe(800);
+    expect(cfg.PAPER_COST_MIN_SAMPLES).toBe(30);
+    expect(cfg.PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS).toBe(500_000n);
+    expect(cfg.PAPER_FALLBACK_JITO_TIP_LAMPORTS).toBe(500_000n);
+  });
+
+  it('lê os fallbacks de custo do paper como bigint', () => {
+    const cfg = loadConfig({ PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS: '123456', PAPER_COST_MIN_SAMPLES: '10' });
+    expect(cfg.PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS).toBe(123_456n);
+    expect(cfg.PAPER_COST_MIN_SAMPLES).toBe(10);
   });
 
   it('recusa live sem LIVE_CONFIRM', () => {
