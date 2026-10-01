@@ -57,9 +57,16 @@ const FillRow = z.object({
   realized_price_lamports_per_unit: z.number(),
   venue_unverified: z.number(),
   cost_estimate_source: z.string(),
+  // migração 007; ausentes/'unknown' em fills anteriores → cai na coluna legada cost_estimate_source
+  priority_fee_source: z.string().optional(),
+  jito_tip_source: z.string().optional(),
   virtual_quote_before: big,
   virtual_token_before: big,
 });
+
+function sourceOrLegacy(perType: string | undefined, legacy: string): string {
+  return perType === undefined || perType === '' || perType === 'unknown' ? legacy : perType;
+}
 
 export function parseFillRows(rows: unknown[]): ReportFill[] {
   return rows.map((r) => {
@@ -84,8 +91,35 @@ export function parseFillRows(rows: unknown[]): ReportFill[] {
       realizedPrice: p.realized_price_lamports_per_unit,
       venueUnverified: p.venue_unverified === 1,
       costEstimateSource: p.cost_estimate_source,
+      priorityFeeSource: sourceOrLegacy(p.priority_fee_source, p.cost_estimate_source),
+      jitoTipSource: sourceOrLegacy(p.jito_tip_source, p.cost_estimate_source),
       virtualQuoteBefore: p.virtual_quote_before,
       virtualTokenBefore: p.virtual_token_before,
     };
+  });
+}
+
+const GapRow = z.object({ detected_ms: ms, duration_ms: ms, detail: z.string() });
+
+export function parseGapRows(rows: unknown[]): { detectedAtMs: number; durationMs: number; detail: string }[] {
+  return rows.map((r) => {
+    const p = GapRow.parse(r);
+    return { detectedAtMs: p.detected_ms, durationMs: p.duration_ms, detail: p.detail };
+  });
+}
+
+const HealthRow = z.object({ uptime_ms: ms, stream_gap_ms: ms });
+
+export function parseRunHealthRow(row: unknown): { uptimeMs: number; streamGapMs: number } {
+  const p = HealthRow.parse(row);
+  return { uptimeMs: p.uptime_ms, streamGapMs: p.stream_gap_ms };
+}
+
+const CostRow = z.object({ priority_fee: big, jito_tip: big.nullable() });
+
+export function parseCostRows(rows: unknown[]): { priorityFee: bigint; jitoTip: bigint | null }[] {
+  return rows.map((r) => {
+    const p = CostRow.parse(r);
+    return { priorityFee: p.priority_fee, jitoTip: p.jito_tip };
   });
 }

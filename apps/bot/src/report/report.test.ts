@@ -1,9 +1,10 @@
 import { bondingCurveBuy, bondingCurveSell } from '@memebot/curve-math';
 import { quoteInForBudget } from '@memebot/risk';
 import { describe, expect, it } from 'vitest';
-import { buildOperations, computeReport, fillCash, histogram, maxDrawdown, operationMetrics, percentile, sensitivity } from './compute.ts';
+import { buildOperations, computeReport, realMedianCostsFrom, recostWithRealMedian, fillCash, histogram, maxDrawdown, operationMetrics, percentile, sensitivity } from './compute.ts';
 import type { ReportDecision, ReportFill } from './compute.ts';
 import { formatReportJson, formatReportText, table } from './format.ts';
+import { gapInterval, coveredMs, mergeIntervals, runQuality } from './quality.ts';
 import { parseDecisionRows, parseFillRows } from './rows.ts';
 
 const FEES = { protocolFeeBps: 95n, creatorFeeBps: 30n };
@@ -17,6 +18,7 @@ function base(partial: Partial<ReportFill>): ReportFill {
   return {
     ts: 0, decisionId: 'd', mint: 'm', side: 'buy', status: 'filled', solIn: 0n, solOut: 0n, tokenDelta: 0n, protocolFee: 0n, creatorFee: 0n,
     ...COSTS, rent: 0n, rentRefund: 0n, expectedPrice: 0, realizedPrice: 0, venueUnverified: false, costEstimateSource: 'tx_costs_median',
+    priorityFeeSource: 'tx_costs_median', jitoTipSource: 'tx_costs_median',
     virtualQuoteBefore: VQ, virtualTokenBefore: K / VQ, ...partial,
   };
 }
@@ -170,5 +172,77 @@ describe('parse das linhas do ClickHouse', () => {
     const d = parseDecisionRows([{ ts_ms: '1', decision_id: 'e', mint: 'm', type: 'enter', reason: 'momentum_trigger', features_json: '{"protocolFeeBps":95}' }]);
     expect(d.features.get('e')).toEqual({ protocolFeeBps: 95 });
     expect(() => parseFillRows([{ side: 'x' }])).toThrow();
+  });
+});
+
+describe('origem dos custos e comparação com a mediana real', () => {
+  const fills = op('a', 0, 60_000_000_000n).map((f) => ({ ...f, priorityFeeSource: 'tx_costs_p75', jitoTipSource: 'fallback', costEstimateSource: 'fallback' }));
+  const failed = base({ ts: 5_000, decisionId: 'x-in', mint: 'x', status: 'failed', jitoTip: 0n, priorityFeeSource: 'fallback', jitoTipSource: 'fallback' });
+  const input = {
+    runId: 'r', mode: 'paper', startedAtMs: 0, decisions: [] as ReportDecision[], fills: [...fills, failed], fees: FEES,
+    sizeLamports: 50_000_000n, maxOpenPositions: 3, hardLimitPositionLamports: 50_000_000n, sensitivitySizesLamports: [],
+  };
+
+  it('mediana real × 1,5 por tipo (tip só > 0), com teto; sem amostras → null', () => {
+    const caps = { maxPriorityFeeLamports: 2_000_000n, maxJitoTipLamports: 150_000n };
+    expect(realMedianCostsFrom([{ priorityFee: 100_000n, jitoTip: 0n }, { priorityFee: 200_000n, jitoTip: 100_000n }, { priorityFee: 300_000n, jitoTip: null }], caps))
+      .toEqual({ priorityFeeLamports: 300_000n, jitoTipLamports: 150_000n });
+    expect(realMedianCostsFrom([], caps)).toEqual({ priorityFeeLamports: null, jitoTipLamports: null });
+  });
+
+  it('recost troca só origem ≠ mediana; tip só em fill executado', () => {
+    const r = recostWithRealMedian([...fills, failed, base({ priorityFee: 9n })], { priorityFeeLamports: 1_000n, jitoTipLamports: 2_000n });
+    expect(r.changed).toBe(3);
+    expect(r.fills[0]).toMatchObject({ priorityFee: 1_000n, jitoTip: 2_000n });
+    expect(r.fills[2]).toMatchObject({ priorityFee: 1_000n, jitoTip: 0n });
+    expect(r.fills[3]).toMatchObject({ priorityFee: 9n }); // mediana: intocado
+  });
+
+  it('report conta origens por tipo e mostra "como rodou" × "com mediana real" lado a lado', () => {
+    const r = computeReport({ ...input, realMedianCosts: { priorityFeeLamports: 10_000n, jitoTipLamports: 20_000n } });
+    expect(r.costSources).toEqual({ priority: { tx_costs_p75: 2, fallback: 1 }, tip: { fallback: 3 } });
+    const cmp = r.realMedianComparison;
+    if (!cmp) throw new Error('sem comparação');
+    expect(cmp.recostedFills).toBe(3);
+    // custos menores → PnL maior exatamente pela diferença de custos
+    const saved = (COSTS.priorityFee - 10_000n) * 3n + (COSTS.jitoTip - 20_000n) * 2n;
+    expect(cmp.realMedian.netLamports - cmp.asRun.netLamports).toBe(saved);
+    expect(cmp.asRun.criteria).toHaveLength(4);
+    expect(formatReportText(r)).toContain('com mediana real');
+    // tudo mediana → sem comparação
+    expect(computeReport({ ...input, fills: op('b', 0, 60_000_000_000n), realMedianCosts: { priorityFeeLamports: 1n, jitoTipLamports: 1n } }).realMedianComparison).toBeNull();
+  });
+});
+
+describe('lacunas do stream e qualidade medida', () => {
+  it('intervalo da lacuna: duration_ms; linha antiga → "desconectado por N ms" + 30 s', () => {
+    expect(gapInterval({ detectedAtMs: 100_000, durationMs: 40_000, detail: 'x' })).toEqual({ fromMs: 60_000, toMs: 100_000, estimated: false });
+    expect(gapInterval({ detectedAtMs: 100_000, durationMs: 0, detail: 'desconectado por 32670 ms' })).toEqual({ fromMs: 37_330, toMs: 100_000, estimated: true });
+    expect(mergeIntervals([{ fromMs: 0, toMs: 10 }, { fromMs: 5, toMs: 20 }, { fromMs: 30, toMs: 40 }])).toEqual([{ fromMs: 0, toMs: 20 }, { fromMs: 30, toMs: 40 }]);
+    expect(coveredMs([{ fromMs: -10, toMs: 20 }, { fromMs: 90, toMs: 200 }], 0, 100)).toBe(30);
+  });
+
+  it('qualidade: v_run_quality quando há; senão fallback sobre [início, fim] com limite de 1%', () => {
+    expect(runQuality({ uptimeMs: 3_600_000, streamGapMs: 10_000 }, [], 0, 1)).toMatchObject({ source: 'run_health', quality: 'production' });
+    const q = runQuality(null, [{ detectedAtMs: 1_000_000, durationMs: 0, detail: 'desconectado por 10000 ms' }], 0, 3_600_000);
+    expect(q).toMatchObject({ source: 'ingest_gaps_fallback', streamGapMs: 40_000, uptimeMs: 3_600_000, quality: 'provisional', estimatedGaps: 1 });
+  });
+
+  it('marca operações cuja [entrada, saída] cruza uma lacuna e mostra o PnL com e sem elas', () => {
+    const inGap = op('g', 100_000, 60_000_000_000n); // 100 s → 101 s
+    const clean = op('c', 500_000, 30_000_000_000n);
+    const r = computeReport({
+      runId: 'r', mode: 'paper', startedAtMs: 0, decisions: [], fills: [...inGap, ...clean], fees: FEES, sizeLamports: 50_000_000n,
+      maxOpenPositions: 3, hardLimitPositionLamports: 50_000_000n, sensitivitySizesLamports: [],
+      gaps: [{ detectedAtMs: 130_000, durationMs: 0, detail: 'desconectado por 5000 ms' }], // [95 s, 130 s]
+    });
+    expect(r.gapOperations.operations.map((o) => o.mint)).toEqual(['g']);
+    const netG = inGap.reduce((a, f) => a + fillCash(f), 0n);
+    expect(r.gapOperations.netWithLamports - r.gapOperations.netWithoutLamports).toBe(netG);
+    expect(r.quality.source).toBe('ingest_gaps_fallback');
+    expect(r.endMs).toBe(501_000);
+    const text = formatReportText(r);
+    expect(text).toContain('qualidade medida do stream');
+    expect(text).toContain('lacunas do stream');
   });
 });

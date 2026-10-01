@@ -4,9 +4,9 @@ import { loadConfigFromEnvFile } from '@memebot/core';
 import type { CurveFeeBps } from '@memebot/curve-math';
 import { HARD_LIMITS, buildEffectiveRiskLimits, solToLamports } from '@memebot/risk';
 import { loadStrategyConfig } from '@memebot/strategy';
-import { computeReport } from './report/compute.ts';
+import { computeReport, realMedianCostsFrom, runEndMs } from './report/compute.ts';
 import { formatReportJson, formatReportText } from './report/format.ts';
-import { parseDecisionRows, parseFillRows, parseRunRow } from './report/rows.ts';
+import { parseCostRows, parseDecisionRows, parseFillRows, parseGapRows, parseRunHealthRow, parseRunRow } from './report/rows.ts';
 
 /**
  * `pnpm report --run=<id> [--json] [--config=config/strategy.v0.yaml]`
@@ -32,8 +32,8 @@ async function main(): Promise<void> {
 
   const client = createClient({ url: cfg.CLICKHOUSE_URL, username: cfg.CLICKHOUSE_USER, password: cfg.CLICKHOUSE_PASSWORD, database: cfg.CLICKHOUSE_DB, request_timeout: 60_000 });
   try {
-    const q = async (query: string): Promise<unknown[]> => {
-      const rs = await client.query({ query, query_params: { runId }, format: 'JSONEachRow' });
+    const q = async (query: string, extra: Record<string, unknown> = {}): Promise<unknown[]> => {
+      const rs = await client.query({ query, query_params: { runId, ...extra }, format: 'JSONEachRow' });
       return rs.json<unknown>();
     };
     const runRows = await q('SELECT run_id, mode, toUnixTimestamp64Milli(started_at) AS started_ms FROM runs WHERE run_id = {runId:String} LIMIT 1');
@@ -46,9 +46,21 @@ async function main(): Promise<void> {
       await q(
         'SELECT toUnixTimestamp64Milli(ts) AS ts_ms, decision_id, mint, side, status, sol_in, sol_out, token_delta, protocol_fee, creator_fee, ' +
           'priority_fee, jito_tip, base_fee, rent, rent_refund, expected_price_lamports_per_unit, realized_price_lamports_per_unit, ' +
-          'venue_unverified, cost_estimate_source, virtual_quote_before, virtual_token_before FROM fills WHERE run_id = {runId:String} ORDER BY ts',
+          'venue_unverified, cost_estimate_source, priority_fee_source, jito_tip_source, virtual_quote_before, virtual_token_before ' +
+          'FROM fills WHERE run_id = {runId:String} ORDER BY ts',
       ),
     );
+    const endMs = runEndMs({ decisions: decisions.decisions, fills, startedAtMs: run.startedMs });
+    const gaps = parseGapRows(
+      await q("SELECT toUnixTimestamp64Milli(detected_at) AS detected_ms, duration_ms, detail FROM ingest_gaps WHERE run_id = {runId:String} AND kind = 'reconnect' ORDER BY detected_at"),
+    );
+    const healthRows = await q('SELECT uptime_ms, stream_gap_ms FROM v_run_quality WHERE run_id = {runId:String}');
+    const runHealth = healthRows.length > 0 ? parseRunHealthRow(healthRows[0]) : null;
+    // mediana real: todas as amostras de tx_costs gravadas até o fim do run
+    const costSamples = parseCostRows(
+      await q('SELECT priority_fee, jito_tip FROM tx_costs WHERE sampled_at <= fromUnixTimestamp64Milli({endMs:Int64})', { endMs }),
+    );
+    const realMedianCosts = realMedianCostsFrom(costSamples, limits);
     const firstEnter = decisions.decisions.find((d) => d.type === 'enter');
     const feeFeatures = firstEnter ? decisions.features.get(firstEnter.decisionId) : undefined;
     const fees: CurveFeeBps = {
@@ -66,6 +78,9 @@ async function main(): Promise<void> {
       maxOpenPositions: limits.maxOpenPositions,
       hardLimitPositionLamports: HARD_LIMITS.maxPositionLamports,
       sensitivitySizesLamports: SENSITIVITY_SIZES_SOL.map((s) => solToLamports(s, 'sensitivity')),
+      gaps,
+      runHealth,
+      realMedianCosts,
     });
     console.log(values.json ? formatReportJson(result) : formatReportText(result));
   } finally {

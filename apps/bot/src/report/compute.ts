@@ -1,7 +1,10 @@
 import type { Lamports } from '@memebot/core';
 import { bondingCurveBuy, bondingCurveSell } from '@memebot/curve-math';
 import type { CurveFeeBps } from '@memebot/curve-math';
+import { estimateOneCost } from '@memebot/execution';
 import { quoteInForBudget } from '@memebot/risk';
+import { gapInterval, overlaps, runQuality } from './quality.ts';
+import type { ReportGap, RunQuality } from './quality.ts';
 
 /**
  * Cálculos do `pnpm report --run=<id>` — funções PURAS sobre as linhas de `decisions`/`fills` já
@@ -45,7 +48,11 @@ export interface ReportFill {
   expectedPrice: number;
   realizedPrice: number;
   venueUnverified: boolean;
+  /** Coluna legada (006): 'tx_costs_median' só se os dois tipos vieram da mediana. */
   costEstimateSource: string;
+  /** Origem por tipo (007): tx_costs_median | tx_costs_p75 | fallback (linhas antigas: a legada). */
+  priorityFeeSource: string;
+  jitoTipSource: string;
   /** 0 = desconhecido. */
   virtualQuoteBefore: bigint;
   virtualTokenBefore: bigint;
@@ -283,8 +290,44 @@ export interface CriteriaLine {
   ok: boolean;
 }
 
+export interface CostSourceCounts {
+  priority: Record<string, number>;
+  tip: Record<string, number>;
+}
+
+/** Bloco comparável "como rodou" × "com a mediana real" (pedido 2). */
+export interface ComparableSummary {
+  netLamports: Lamports;
+  expectancyLamports: Lamports;
+  costs: CostBreakdownLine[];
+  criteria: CriteriaLine[];
+}
+
+export interface RealMedianComparison {
+  priorityFeeLamports: Lamports | null;
+  jitoTipLamports: Lamports | null;
+  recostedFills: number;
+  asRun: ComparableSummary;
+  realMedian: ComparableSummary;
+}
+
+export interface GapOperations {
+  gaps: number;
+  estimatedGaps: number;
+  operations: { mint: string; entryTs: number; closeTs: number | null; netLamports: Lamports | null }[];
+  /** PnL líquido do run com e sem as operações FECHADAS marcadas. */
+  netWithLamports: Lamports;
+  netWithoutLamports: Lamports;
+}
+
 export interface ReportResult {
   runId: string;
+  endMs: number;
+  quality: RunQuality;
+  expectancyLamports: Lamports;
+  costSources: CostSourceCounts;
+  realMedianComparison: RealMedianComparison | null;
+  gapOperations: GapOperations;
   mode: string;
   startedAtMs: number | null;
   capitalLamports: Lamports;
@@ -323,6 +366,114 @@ export interface ReportInput {
   sensitivitySizesLamports: readonly Lamports[];
   minOperations?: number;
   maxDrawdownPct?: number;
+  /** Lacunas `reconnect` do run (ingest_gaps). */
+  gaps?: readonly ReportGap[];
+  /** Linha de `v_run_quality` do run, se houver run_health. */
+  runHealth?: { uptimeMs: number; streamGapMs: number } | null;
+  /**
+   * Mediana real × 1,5 de `tx_costs` (sampled_at ≤ fim do run; tip só > 0), já limitada pelos limites
+   * de custo; `null` por tipo = sem amostras. Ausente = não recalcula.
+   */
+  realMedianCosts?: { priorityFeeLamports: Lamports | null; jitoTipLamports: Lamports | null } | null;
+}
+
+/**
+ * Mediana real × 1,5 por tipo a partir das amostras de `tx_costs` (priority: todas; tip: só > 0),
+ * limitada pelos limites de custo (como o executor). `null` = sem amostras daquele tipo.
+ */
+export function realMedianCostsFrom(
+  samples: readonly { priorityFee: Lamports; jitoTip: Lamports | null }[],
+  caps: { maxPriorityFeeLamports: Lamports; maxJitoTipLamports: Lamports },
+): { priorityFeeLamports: Lamports | null; jitoTipLamports: Lamports | null } {
+  const cap = (v: Lamports, max: Lamports): Lamports => (v < max ? v : max);
+  const pri = samples.map((x) => x.priorityFee);
+  const tip = samples.flatMap((x) => (x.jitoTip !== null && x.jitoTip > 0n ? [x.jitoTip] : []));
+  return {
+    priorityFeeLamports: pri.length > 0 ? cap(estimateOneCost(pri, 1, 0n).lamports, caps.maxPriorityFeeLamports) : null,
+    jitoTipLamports: tip.length > 0 ? cap(estimateOneCost(tip, 1, 0n).lamports, caps.maxJitoTipLamports) : null,
+  };
+}
+
+/** Fim do run = último ts de decisions/fills (ou o início, se não houver nada). */
+export function runEndMs(input: Pick<ReportInput, 'decisions' | 'fills' | 'startedAtMs'>): number {
+  let end = input.startedAtMs ?? 0;
+  for (const d of input.decisions) if (d.ts > end) end = d.ts;
+  for (const f of input.fills) if (f.ts > end) end = f.ts;
+  return end;
+}
+
+/**
+ * Troca os custos ESTIMADOS de forma não-mediana (origem ≠ tx_costs_median, por tipo) pela mediana
+ * real: priority em todo fill (toda tx paga); tip só em `filled` (failed/expired não pagam tip — mesma
+ * regra do executor). Tipo sem amostras reais (`null`) fica como rodou. Puro.
+ */
+export function recostWithRealMedian(
+  fills: readonly ReportFill[],
+  real: { priorityFeeLamports: Lamports | null; jitoTipLamports: Lamports | null },
+): { fills: ReportFill[]; changed: number } {
+  let changed = 0;
+  const out = fills.map((f) => {
+    let next = f;
+    if (f.priorityFeeSource !== 'tx_costs_median' && real.priorityFeeLamports !== null) {
+      next = { ...next, priorityFee: real.priorityFeeLamports };
+    }
+    if (f.jitoTipSource !== 'tx_costs_median' && real.jitoTipLamports !== null) {
+      next = { ...next, jitoTip: f.status === 'filled' ? real.jitoTipLamports : 0n };
+    }
+    if (next !== f) changed++;
+    return next;
+  });
+  return { fills: out, changed };
+}
+
+function countSources(fills: readonly ReportFill[]): CostSourceCounts {
+  const priority: Record<string, number> = {};
+  const tip: Record<string, number> = {};
+  for (const f of fills) {
+    priority[f.priorityFeeSource] = (priority[f.priorityFeeSource] ?? 0) + 1;
+    tip[f.jitoTipSource] = (tip[f.jitoTipSource] ?? 0) + 1;
+  }
+  return { priority, tip };
+}
+
+function summary(r: Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs'>): ComparableSummary {
+  return { netLamports: r.netLamports, expectancyLamports: r.expectancyLamports, costs: r.costs, criteria: r.criteria };
+}
+
+export function computeReport(input: ReportInput): ReportResult {
+  const core = computeCore(input);
+  const endMs = runEndMs(input);
+  const gaps = input.gaps ?? [];
+  const quality = runQuality(input.runHealth ?? null, gaps, input.startedAtMs ?? endMs, endMs);
+
+  // operações abertas durante alguma lacuna do stream
+  const exitReasonByDecision = new Map<string, string>();
+  const { operations } = buildOperations(input.fills, exitReasonByDecision);
+  const intervals = gaps.map(gapInterval);
+  const flagged = operations.filter((o) => intervals.some((g) => overlaps({ fromMs: o.entry.ts, toMs: o.closeTs ?? endMs }, g)));
+  const flaggedClosedNet = flagged.filter((o) => o.closed).reduce((acc, o) => acc + operationMetrics(o).net, 0n);
+  const gapOperations: GapOperations = {
+    gaps: gaps.length,
+    estimatedGaps: quality.estimatedGaps,
+    operations: flagged.map((o) => ({ mint: o.mint, entryTs: o.entry.ts, closeTs: o.closeTs, netLamports: o.closed ? operationMetrics(o).net : null })),
+    netWithLamports: core.netLamports,
+    netWithoutLamports: core.netLamports - flaggedClosedNet,
+  };
+
+  let realMedianComparison: RealMedianComparison | null = null;
+  const nonMedian = input.fills.some((f) => f.priorityFeeSource !== 'tx_costs_median' || f.jitoTipSource !== 'tx_costs_median');
+  if (nonMedian && input.realMedianCosts) {
+    const recost = recostWithRealMedian(input.fills, input.realMedianCosts);
+    const alt = computeCore({ ...input, fills: recost.fills });
+    realMedianComparison = {
+      priorityFeeLamports: input.realMedianCosts.priorityFeeLamports,
+      jitoTipLamports: input.realMedianCosts.jitoTipLamports,
+      recostedFills: recost.changed,
+      asRun: summary(core),
+      realMedian: summary(alt),
+    };
+  }
+  return { ...core, endMs, quality, costSources: countSources(input.fills), realMedianComparison, gapOperations };
 }
 
 function countBy<T>(items: readonly T[], key: (t: T) => string): { key: string; count: number }[] {
@@ -331,7 +482,7 @@ function countBy<T>(items: readonly T[], key: (t: T) => string): { key: string; 
   return [...m].map(([k, count]) => ({ key: k, count })).sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 }
 
-export function computeReport(input: ReportInput): ReportResult {
+function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs'> {
   const exitReasonByDecision = new Map(input.decisions.filter((d) => d.type === 'exit').map((d) => [d.decisionId, d.reason]));
   const { operations, failedEntries, orphanSells } = buildOperations(input.fills, exitReasonByDecision);
   const closed = operations.filter((o) => o.closed);
@@ -392,6 +543,8 @@ export function computeReport(input: ReportInput): ReportResult {
     netClosedLamports: netClosed,
     failedEntriesCostLamports: failedCost,
     netWithoutTop3Lamports: netWithoutTop3,
+    // expectativa por operação = PnL líquido do run (inclui custo das entradas não executadas) / fechadas
+    expectancyLamports: closed.length > 0 ? net / BigInt(closed.length) : 0n,
     returns: { p05: percentile(returns, 0.05), p25: percentile(returns, 0.25), p50: percentile(returns, 0.5), p75: percentile(returns, 0.75), p95: percentile(returns, 0.95), mean },
     histogram: histogram(returns),
     maxDrawdownLamports: dd,
