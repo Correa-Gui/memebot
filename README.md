@@ -30,7 +30,8 @@ pnpm migrate                      # cria/atualiza as tabelas (idempotente)
 
 | Ação | Comando |
 |---|---|
-| Iniciar a gravação | `pm2 start ecosystem.config.cjs` |
+| Iniciar a gravação | `pm2 start ecosystem.config.cjs --only memebot-record` |
+| Iniciar o paper (no lugar da gravação) | `pm2 stop memebot-record; pm2 start ecosystem.config.cjs --only memebot-paper` |
 | Status (online, reinícios, memória) | `pm2 status` · detalhes: `pm2 show memebot-record` |
 | Logs ao vivo | `pm2 logs memebot-record` · arquivos: `data/logs/memebot-record.{out,err}.log` |
 | Parar (grava o buffer antes de sair) | `pm2 stop memebot-record` |
@@ -72,8 +73,8 @@ pnpm report --run=<run_id>        # relatório em texto (tabelas); --json para s
 ```
 
 - O modo paper **já grava tudo o que o record grava**: não rode `record` e `paper` ao mesmo tempo (eventos duplicados).
-  Com pm2: troque `args: '--mode=record'` por `args: '--mode=paper'` (e o `name`/arquivos de log) no `ecosystem.config.cjs`,
-  mantendo `shutdown_with_message: true` — no Windows é o que garante a parada limpa (mensagem `shutdown` por IPC).
+  Com pm2: `pm2 stop memebot-record` e depois `pm2 start ecosystem.config.cjs --only memebot-paper` (logs em
+  `data/logs/memebot-paper.{out,err}.log`). Nunca `pm2 start ecosystem.config.cjs` sem `--only`: subiria os dois.
 - O `run_id` aparece no log de partida (`run iniciado`) e na tabela `runs` (`mode = 'paper'`).
 - Kill switch manual: crie o arquivo `data/STOP` (bloqueia novas entradas; posições abertas continuam sendo geridas).
 - Parada limpa (Ctrl+C, `pm2 stop`): não abre novas posições, grava o que estiver no buffer; posições ainda abertas
