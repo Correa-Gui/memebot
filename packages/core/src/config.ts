@@ -13,7 +13,7 @@ const ConfigSchema = z.object({
   JITO_BLOCK_ENGINE_URL: z.string().default('https://ny.mainnet.block-engine.jito.wtf'),
   KEYPAIR_PATH: z.string().default('./secrets/hot.keypair.json'),
   /** getTransaction por segundo para amostrar priority fee / tip (0 desliga). Ver ARCHITECTURE §8. */
-  INGEST_COST_SAMPLES_PER_SEC: z.coerce.number().int().nonnegative().default(2),
+  INGEST_COST_SAMPLES_PER_SEC: z.coerce.number().nonnegative().max(50).default(0.2),
   PROTOCOL_CONFIG_INTERVAL_MS: z.coerce.number().int().positive().default(600_000),
   IPFS_GATEWAY: z.string().url().startsWith('https://').default('https://ipfs.io/ipfs/'),
   METADATA_TIMEOUT_MS: z.coerce.number().int().positive().default(5_000),

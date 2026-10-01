@@ -70,7 +70,10 @@ describe('BoundedQueue', () => {
 
 describe('runQuality', () => {
   it('RPC público conhecido é provisional; qualquer outro é production', () => {
-    expect(runQuality('https://api.mainnet-beta.solana.com')).toBe('provisional');
-    expect(runQuality('https://meu-provedor-pago.example/rpc?api-key=x')).toBe('production');
+    const paid = 'https://meu-provedor-pago.example/rpc?api-key=x';
+    expect(runQuality('https://api.mainnet-beta.solana.com', 'wss://api.mainnet-beta.solana.com')).toBe('provisional');
+    expect(runQuality(paid, 'wss://meu-provedor-pago.example/?api-key=x')).toBe('production');
+    // HTTP pago + stream público (configuração atual): continua provisional — o WS público pode perder mensagens.
+    expect(runQuality(paid, 'wss://api.mainnet-beta.solana.com')).toBe('provisional');
   });
 });

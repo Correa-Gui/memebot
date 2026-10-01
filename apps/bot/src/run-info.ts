@@ -47,10 +47,11 @@ export function newRunId(mode: string, nowMs: number): string {
 const KNOWN_PUBLIC_RPC = /api\.mainnet-beta\.solana\.com|api\.devnet\.solana\.com|api\.testnet\.solana\.com/;
 
 /**
- * Classifica a qualidade de uma run pelo RPC usado. Heurística simples (nome do host), documentada
- * em ARCHITECTURE §6: qualquer coisa que não seja reconhecidamente pública é tratada como produção —
- * então um RPC pago mal configurado não é pego por isto; é o operador quem garante isso ao contratar.
+ * Classifica a qualidade de uma run pelos endpoints usados. Heurística simples (nome do host),
+ * documentada em ARCHITECTURE §6: se o stream (WS) OU as consultas (HTTP) passam por um endpoint
+ * reconhecidamente público, a run é `provisional` — o WS público pode perder mensagens sob carga e o
+ * HTTP público toma 429. Um RPC pago mal configurado não é pego por isto; é o operador quem garante.
  */
-export function runQuality(rpcUrl: string): 'provisional' | 'production' {
-  return KNOWN_PUBLIC_RPC.test(rpcUrl) ? 'provisional' : 'production';
+export function runQuality(rpcUrl: string, wsUrl: string): 'provisional' | 'production' {
+  return KNOWN_PUBLIC_RPC.test(rpcUrl) || KNOWN_PUBLIC_RPC.test(wsUrl) ? 'provisional' : 'production';
 }

@@ -46,6 +46,19 @@ describe('TxCostSampler', () => {
     expect(s.shouldSample()).toBe(true);
   });
 
+  it('aceita taxa fracionária: 0,2/s = uma amostra a cada 5 s, sem rajada depois de ócio', () => {
+    let t = 0;
+    const s = new TxCostSampler(new RpcClient('http://x'), 0.2, { now: () => t });
+    expect(s.shouldSample()).toBe(true);
+    expect(s.shouldSample()).toBe(false);
+    t = 4_999;
+    expect(s.shouldSample()).toBe(false);
+    t = 5_000;
+    expect(s.shouldSample()).toBe(true);
+    t = 600_000; // 10 min ocioso: no máximo 1 ficha acumulada
+    expect([s.shouldSample(), s.shouldSample()]).toEqual([true, false]);
+  });
+
   const rpcReturning = (...results: unknown[]): RpcClient => {
     const fetchFn = vi.fn();
     for (const r of results) {

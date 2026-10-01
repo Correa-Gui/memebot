@@ -3,7 +3,7 @@ import { PROTOCOL_PROGRAM_IDS } from '../../../config/protocol.ts';
 import { parseLogs, type LogsNotification } from './log-parser.ts';
 import { Normalizer, type PoolCacheStats, type PoolInfo, type PoolResolver } from './normalize.ts';
 import type { TxCostSampler } from './onchain.ts';
-import { WsLogsSource, type WsLogsSourceOptions } from './ws-source.ts';
+import { WsLogsSource, type WsLogsSourceOptions, type WsStats } from './ws-source.ts';
 
 export interface IngestServiceOptions {
   wsUrl: string;
@@ -54,6 +54,11 @@ export class IngestService implements EventSource {
   /** Reconsidera pools pendentes cujo backoff expirou. Chamar periodicamente (ex.: junto do log por minuto). */
   retryPendingPools(): void {
     this.normalizer.retryPendingPools();
+  }
+
+  /** Tráfego acumulado do WebSocket desde o início (zeros antes de `start`). */
+  wsStats(): WsStats {
+    return this.source ? { ...this.source.stats } : { payloadBytes: 0, messages: 0, reconnects: 0 };
   }
 
   poolCacheStats(): PoolCacheStats {

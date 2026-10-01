@@ -199,8 +199,8 @@ export class TxCostSampler {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly retryDelays: readonly number[];
   private readonly initialDelayMs: number;
-  private windowStart = 0;
-  private usedInWindow = 0;
+  private tokens: number | null = null;
+  private lastRefill = 0;
   private tipAccounts: ReadonlySet<string> = new Set();
   readonly stats: TxCostSamplerStats = { attempted: 0, sampled: 0, notFound: 0, failed: 0, lastError: null };
 
@@ -222,15 +222,22 @@ export class TxCostSampler {
   }
 
   /** true se a assinatura foi aceita para amostragem nesta janela de 1 s. */
+  /**
+   * Token bucket: acumula `perSecond` fichas por segundo (aceita fração — 0,2 = uma amostra a cada
+   * 5 s), com teto de `max(1, perSecond)` para não disparar rajadas depois de um período ocioso.
+   */
   shouldSample(): boolean {
     if (this.perSecond <= 0) return false;
     const t = this.now();
-    if (t - this.windowStart >= 1_000) {
-      this.windowStart = t;
-      this.usedInWindow = 0;
+    const capacity = Math.max(1, this.perSecond);
+    if (this.tokens === null) {
+      this.tokens = capacity;
+    } else {
+      this.tokens = Math.min(capacity, this.tokens + ((t - this.lastRefill) / 1_000) * this.perSecond);
     }
-    if (this.usedInWindow >= this.perSecond) return false;
-    this.usedInWindow++;
+    this.lastRefill = t;
+    if (this.tokens < 1) return false;
+    this.tokens -= 1;
     return true;
   }
 

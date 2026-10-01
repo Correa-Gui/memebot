@@ -27,6 +27,17 @@ export interface WsLogsSourceOptions {
   createSocket?: (url: string) => SocketLike;
 }
 
+/**
+ * Tráfego recebido pelo WebSocket. `payloadBytes` = bytes UTF-8 das mensagens de texto já
+ * decodificadas (o tamanho na rede pode ser menor se o servidor negociar permessage-deflate);
+ * é a medida certa para comparar provedores que cobram por volume de dados entregues.
+ */
+export interface WsStats {
+  payloadBytes: number;
+  messages: number;
+  reconnects: number;
+}
+
 const SubscribeAck = z.object({ id: z.number(), result: z.number() });
 const SubscribeError = z.object({ id: z.number(), error: z.object({ message: z.string() }) });
 const Notification = z.object({
@@ -56,6 +67,7 @@ export class WsLogsSource {
   private disconnectedAt: number | null = null;
   private awaitingFirstSlotAfterReconnect = false;
   private readonly seen = new Set<string>();
+  readonly stats: WsStats = { payloadBytes: 0, messages: 0, reconnects: 0 };
 
   constructor(opts: WsLogsSourceOptions) {
     this.o = {
@@ -97,7 +109,11 @@ export class WsLogsSource {
     };
     socket.onmessage = (ev) => {
       this.armHeartbeat();
-      if (typeof ev.data === 'string') this.handleMessage(ev.data);
+      if (typeof ev.data === 'string') {
+        this.stats.messages++;
+        this.stats.payloadBytes += Buffer.byteLength(ev.data, 'utf8');
+        this.handleMessage(ev.data);
+      }
     };
     socket.onerror = () => {
       // o onclose vem em seguida e cuida da reconexão
@@ -161,6 +177,7 @@ export class WsLogsSource {
     this.socket = null;
     s?.close();
     if (this.stopped) return;
+    this.stats.reconnects++;
     if (this.disconnectedAt === null || !this.awaitingFirstSlotAfterReconnect) this.disconnectedAt = this.o.now();
     this.awaitingFirstSlotAfterReconnect = true;
     this.o.onStatus?.('disconnected', `${reason}; reconectando em ${String(this.backoffMs)} ms`);

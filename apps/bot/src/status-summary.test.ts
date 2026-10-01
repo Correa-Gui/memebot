@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+import { HELIUS_FREE_MONTHLY_CREDITS, summarizeIngestLog } from './status-summary.ts';
+
+function line(time: number, mbPerMin: number, requestsPerMin: number, extra: Record<string, unknown> = {}): string {
+  const body = {
+    level: 30,
+    time,
+    msg: 'ingest',
+    eventsPerMin: 1000,
+    http: { requestsPerMin, rateLimitedPerMin: 1 },
+    ws: { mbPerMin, messagesPerMin: 500, reconnectsPerMin: 0 },
+    costSamples: { recordedPerMin: 10, notFoundPerMin: 1, failedPerMin: 0 },
+    ...extra,
+  };
+  return `2026-10-01T20:00:00: ${JSON.stringify(body)}`;
+}
+
+describe('summarizeIngestLog', () => {
+  it('ignora linhas que não são ingest ou não têm métricas novas, e usa só as últimas N', () => {
+    const lines = [
+      'lixo',
+      '2026-10-01T20:00:00: {"msg":"ingest","time":1,"eventsPerMin":5}', // formato antigo
+      line(1_000, 100, 999),
+      line(2_000, 10, 20),
+      line(3_000, 20, 40, { ws: { mbPerMin: 20, messagesPerMin: 1, reconnectsPerMin: 2 } }),
+      '{"msg":"run iniciado"}',
+    ];
+    const s = summarizeIngestLog(lines, 2);
+    expect(s?.minutes).toBe(2);
+    expect(s?.avg.wsMbPerMin).toBe(15);
+    expect(s?.avg.httpRequestsPerMin).toBe(30);
+    expect(s?.totals.wsReconnects).toBe(2);
+    expect(s?.fromMs).toBe(2_000);
+  });
+
+  it('projeta por dia e por mês (30 dias) e a fração do plano free do Helius', () => {
+    const s = summarizeIngestLog([line(1, 1, 10)], 30);
+    expect(s?.projection.wsGbPerDay).toBeCloseTo(1_440 / 1_024, 9);
+    expect(s?.projection.httpRequestsPerDay).toBe(14_400);
+    expect(s?.projection.httpRequestsPerMonth).toBe(432_000);
+    expect(s?.projection.heliusFreePlanFraction).toBeCloseTo(432_000 / HELIUS_FREE_MONTHLY_CREDITS, 9);
+  });
+
+  it('null sem nenhuma linha válida', () => {
+    expect(summarizeIngestLog(['nada'], 10)).toBeNull();
+  });
+});

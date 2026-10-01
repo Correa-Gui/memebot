@@ -25,6 +25,11 @@ const Envelope = z.object({
 export interface RpcClientStats {
   /** Chamadas lógicas (`.call()`), não tentativas individuais. */
   calls: number;
+  /**
+   * Requisições HTTP enviadas, contando cada tentativa (retry incluso). É o que provedores como o
+   * Helius cobram (1 crédito por requisição), então é a base da projeção de custo do `pnpm status`.
+   */
+  requests: number;
   /** Respostas HTTP 429 recebidas, contando cada tentativa (para dimensionar o plano de RPC). */
   rateLimited: number;
 }
@@ -37,7 +42,7 @@ export class RpcClient {
   private readonly baseBackoffMs: number;
   private readonly fetchFn: typeof fetch;
   private readonly sleep: (ms: number) => Promise<void>;
-  readonly stats: RpcClientStats = { calls: 0, rateLimited: 0 };
+  readonly stats: RpcClientStats = { calls: 0, requests: 0, rateLimited: 0 };
 
   constructor(url: string, opts: RpcClientOptions = {}) {
     this.url = url;
@@ -54,6 +59,7 @@ export class RpcClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) await this.sleep(this.baseBackoffMs * 2 ** (attempt - 1));
       try {
+        this.stats.requests++;
         const res = await this.fetchFn(this.url, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
