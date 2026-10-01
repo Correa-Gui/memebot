@@ -38,11 +38,25 @@ export interface PaperExecutorParams {
    * do tamanho da conta). Injetado: nunca um número fixo no código.
    */
   tokenAccountRentLamports: Lamports;
+  /**
+   * Taxa base por assinatura (fee não-priority do runtime da Solana). Injetada pelo orquestrador a
+   * partir de `LAMPORTS_PER_SIGNATURE` (`packages/ingest/src/onchain.ts`, fonte:
+   * https://solana.com/docs/core/fees) — o número não é duplicado aqui. Cobrada em toda transação
+   * que entra no bloco (filled, failed, expired), com `SIGNATURES_PER_TX` assinaturas.
+   */
+  baseFeeLamportsPerSignature: Lamports;
   /** De `estimateTxCosts`. Limitada aqui por `limits` e pelos hard limits. */
   costs: TxCostEstimate;
   /** Limites efetivos (já validados); conferidos de novo contra `HARD_LIMITS`. */
   limits: EffectiveRiskLimits;
 }
+
+/**
+ * Assinaturas por transação simulada: só a carteira quente assina (compra/venda na curva, com
+ * criação/fechamento idempotente da ATA na mesma tx, como nas transações reais gravadas em
+ * `packages/ingest/test/fixtures/curve-trade.json`, que têm 1 assinatura).
+ */
+export const SIGNATURES_PER_TX = 1n;
 
 export interface BuyOrder {
   side: 'buy';
@@ -100,6 +114,7 @@ function validateParams(params: PaperExecutorParams): void {
   if (!(params.failRate >= 0 && params.failRate <= 1)) throw new InvalidOrderError('failRate fora de [0, 1]');
   if (!Number.isFinite(params.latencyMs) || params.latencyMs < 0) throw new InvalidOrderError('latencyMs inválido');
   if (params.tokenAccountRentLamports < 0n) throw new InvalidOrderError('tokenAccountRentLamports negativo');
+  if (params.baseFeeLamportsPerSignature < 0n) throw new InvalidOrderError('baseFeeLamportsPerSignature negativo');
 }
 
 function curveReservesOf(token: TokenState): CurveReserves | null {
@@ -255,8 +270,10 @@ function baseFill(p: PendingOrder, params: PaperExecutorParams, costs: CostsForF
     jitoTip: 0n,
     rent: 0n,
     rentRefund: 0n,
-    expectedPriceSol: priceOf(p.expectedQuote, p.expectedTokens),
-    realizedPriceSol: Number.NaN,
+    // Toda transação que entra no bloco paga a taxa base, inclusive as que falham ou expiram.
+    baseFee: params.baseFeeLamportsPerSignature * SIGNATURES_PER_TX,
+    expectedPriceLamportsPerUnit: priceOf(p.expectedQuote, p.expectedTokens),
+    realizedPriceLamportsPerUnit: Number.NaN,
     slippageBps: 0,
     landedSlot: null,
     status: 'failed',
@@ -264,16 +281,23 @@ function baseFill(p: PendingOrder, params: PaperExecutorParams, costs: CostsForF
     venueUnverified: false,
     costEstimateSource: source,
     costCappedByHardLimit: costs.capped,
+    virtualQuoteBefore: null,
+    virtualTokenBefore: null,
   };
 }
 
+function withReserves(fill: Fill, reserves: CurveReserves | null): Fill {
+  if (!reserves) return fill;
+  return { ...fill, virtualQuoteBefore: reserves.virtualQuote, virtualTokenBefore: reserves.virtualToken };
+}
+
 /**
- * Transação que não executou (`failed`) ou expirou por slippage (`expired`): paga a priority fee
- * (pessimista: a transação entrou no bloco e falhou), NÃO paga o tip — o tip do Jito é uma
+ * Transação que não executou (`failed`) ou expirou por slippage (`expired`): paga a priority fee e a
+ * taxa base (pessimista: a transação entrou no bloco e falhou), NÃO paga o tip — o tip do Jito é uma
  * transferência dentro do bundle e reverte junto (bundle que falha não cobra tip). Posição intacta.
  */
 function unexecuted(fill: Fill, status: Exclude<FillStatus, 'filled'>, error: string, realized = Number.NaN, slippageBps = 0): Fill {
-  return { ...fill, status, error, jitoTip: 0n, realizedPriceSol: realized, slippageBps };
+  return { ...fill, status, error, jitoTip: 0n, realizedPriceLamportsPerUnit: realized, slippageBps };
 }
 
 function slippageBpsBuy(expectedQuote: bigint, expectedTokens: bigint, realQuote: bigint, realTokens: bigint): number {
@@ -300,9 +324,9 @@ interface FillOutcome {
 function fillBuy(p: PendingOrder, order: BuyOrder, params: PaperExecutorParams, token: TokenState | undefined,
   holdings: ReadonlyMap<string, Holding>, failedDraw: boolean): FillOutcome {
   const costs = cappedCosts(params);
-  const fill = baseFill(p, params, costs);
-  if (failedDraw) return { fill: unexecuted(fill, 'failed', 'simulated_tx_failure'), holdings };
   const reserves = token ? curveReservesOf(token) : null;
+  const fill = withReserves(baseFill(p, params, costs), reserves);
+  if (failedDraw) return { fill: unexecuted(fill, 'failed', 'simulated_tx_failure'), holdings };
   // A curva encerrou entre a decisão e o preenchimento: a compra na curva falharia on-chain.
   if (!token || !reserves || isGraduated(token)) return { fill: unexecuted(fill, 'failed', 'curve_unavailable_at_fill'), holdings };
 
@@ -330,7 +354,7 @@ function fillBuy(p: PendingOrder, order: BuyOrder, params: PaperExecutorParams, 
       creatorFee: sim.creatorFee,
       jitoTip: costs.jitoTip,
       rent,
-      realizedPriceSol: realized,
+      realizedPriceLamportsPerUnit: realized,
       slippageBps: slippage,
     },
     holdings: next,
@@ -340,9 +364,9 @@ function fillBuy(p: PendingOrder, order: BuyOrder, params: PaperExecutorParams, 
 function fillSell(p: PendingOrder, order: SellOrder, params: PaperExecutorParams, token: TokenState | undefined,
   holdings: ReadonlyMap<string, Holding>, failedDraw: boolean): FillOutcome {
   const costs = cappedCosts(params);
-  const fill = baseFill(p, params, costs);
   const holding = holdings.get(order.mint);
   const reserves = token ? curveReservesOf(token) : null;
+  const fill = withReserves(baseFill(p, params, costs), reserves);
   if (!holding || holding.tokenBalance <= 0n || !token || !reserves) {
     return { fill: unexecuted(fill, 'failed', 'no_position_or_reserves_at_fill'), holdings };
   }
@@ -356,7 +380,7 @@ function fillSell(p: PendingOrder, order: SellOrder, params: PaperExecutorParams
   const sim = bondingCurveSell(reserves, tokensIn, params.fees);
   const realized = priceOf(sim.netQuoteOut, tokensIn);
   // Comparação por preço (líquido por token): na graduação a quantidade pode diferir da submetida.
-  const slippage = fill.expectedPriceSol > 0 ? Math.round((1 - realized / fill.expectedPriceSol) * 10_000) : 0;
+  const slippage = fill.expectedPriceLamportsPerUnit > 0 ? Math.round((1 - realized / fill.expectedPriceLamportsPerUnit) * 10_000) : 0;
   if (!graduated && sellExceedsSlippage(p, sim.netQuoteOut, order.maxSlippageBps)) {
     return { fill: unexecuted(fill, 'expired', 'slippage_exceeded', realized, slippage), holdings };
   }
@@ -380,7 +404,7 @@ function fillSell(p: PendingOrder, order: SellOrder, params: PaperExecutorParams
       creatorFee: sim.creatorFee,
       jitoTip: costs.jitoTip,
       rentRefund,
-      realizedPriceSol: realized,
+      realizedPriceLamportsPerUnit: realized,
       slippageBps: slippage,
       venueUnverified: graduated,
       error: graduated ? 'graduated_closed_at_last_curve_price' : null,

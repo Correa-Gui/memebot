@@ -1,5 +1,6 @@
 import type { CurveCompletedEvent, CurveTradeEvent, PoolCreatedEvent, PumpEvent, TokenCreatedEvent } from '@memebot/core';
 import type { CurveFeeBps } from '@memebot/curve-math';
+import { LAMPORTS_PER_SIGNATURE } from '@memebot/ingest';
 import { HARD_LIMITS } from '@memebot/risk';
 import type { EffectiveRiskLimits } from '@memebot/risk';
 import { applyEvent, createEmptyMarketState } from '@memebot/state';
@@ -14,10 +15,15 @@ export const INITIAL_VIRTUAL_QUOTE = 30_000_000_000n;
 export const INITIAL_VIRTUAL_TOKEN = 1_073_000_000_000_000n;
 export const INITIAL_REAL_TOKEN = 793_100_000_000_000n;
 /**
- * FIXTURE de teste (não é valor de produção): rent-exempt de uma conta SPL de 165 bytes na época
- * da escrita. Em produção o adaptador de borda obtém via `getMinimumBalanceForRentExemption`.
+ * FIXTURE de teste (não é valor de produção): rent-exempt da ATA Token-2022 do mint do Pump.fun
+ * (170 bytes — `GetAccountDataSize` devolve 170 em `packages/ingest/test/fixtures/curve-create.json`),
+ * igual ao saldo pós das ATAs criadas nessa tx real (1 513 840) e a
+ * `getMinimumBalanceForRentExemption(170)` na mainnet em 2026-10-01. Em produção o adaptador de
+ * borda (`fetchTokenAccountRent`) lê via RPC.
  */
-export const RENT_FIXTURE = 2_039_280n;
+export const RENT_FIXTURE = 1_513_840n;
+/** Taxa base por assinatura: a mesma constante que o orquestrador injeta (fonte em `onchain.ts`). */
+export const BASE_FEE = LAMPORTS_PER_SIGNATURE;
 
 export const T0 = 1_759_300_000_000;
 export const MINT = 'mintA';
@@ -56,6 +62,7 @@ export function params(overrides: Partial<PaperExecutorParams> = {}): PaperExecu
     failRate: 0,
     fees: FEES,
     tokenAccountRentLamports: RENT_FIXTURE,
+    baseFeeLamportsPerSignature: BASE_FEE,
     costs: costs(),
     limits: limits(),
     ...overrides,

@@ -30,13 +30,13 @@ export interface Position {
   openedAtMs: number;
   initialTokenAmount: TokenAmount;
   tokenAmount: TokenAmount;
-  /** Custo total de entrada: `solIn` (com taxas da curva) + priority fee + tip + rent. */
+  /** Custo total de entrada: `solIn` (com taxas da curva) + priority fee + tip + taxa base + rent. */
   entryCostLamports: Lamports;
   /** Parte do custo de entrada ainda não alocada a vendas (para o PnL realizado proporcional). */
   costBasisRemainingLamports: Lamports;
   /** Rent da conta de token pago na entrada (volta quando a posição zera). */
   rentPaidLamports: Lamports;
-  /** Soma de (solOut + rentRefund − priority − tip) das vendas, inclusive custo de vendas falhas. Com sinal. */
+  /** Soma de (solOut + rentRefund − priority − tip − taxa base) das vendas, inclusive custo de vendas falhas. Com sinal. */
   realizedNetProceedsLamports: Lamports;
   /** PnL realizado acumulado desta posição. Com sinal. */
   realizedPnlLamports: Lamports;
@@ -59,7 +59,7 @@ export function openPosition(fill: Fill): Position {
   if (fill.side !== 'buy' || fill.status !== 'filled' || fill.tokenDelta <= 0n) {
     throw new InvalidFillForPositionError(`openPosition exige compra preenchida (decision ${fill.decisionId})`);
   }
-  const entryCost = fill.solIn + fill.priorityFee + fill.jitoTip + fill.rent;
+  const entryCost = fill.solIn + fill.priorityFee + fill.jitoTip + fill.baseFee + fill.rent;
   return {
     mint: fill.mint,
     entryDecisionId: fill.decisionId,
@@ -84,9 +84,9 @@ export function markExitSubmitted(position: Position, order: ExitOrder): Positio
 
 /**
  * Aplica o fill de uma venda. PnL realizado (vai para a perda diária do risco):
- * - `filled`: `(solOut + rentRefund − priority − tip) − custoAlocado`, com
+ * - `filled`: `(solOut + rentRefund − priority − tip − taxa base) − custoAlocado`, com
  *   `custoAlocado = custoRestante × vendido / quantidadeAntes` (o resto inteiro na venda que zera).
- * - `failed`/`expired`: `−(priority + tip)` (o que a transação custou), posição intacta.
+ * - `failed`/`expired`: `−(priority + tip + taxa base)` (o que a transação custou), posição intacta.
  * Devolve `position: null` quando a posição zera.
  */
 export function applyExitFill(position: Position, fill: Fill): { position: Position | null; realizedPnlDelta: Lamports } {
@@ -97,7 +97,7 @@ export function applyExitFill(position: Position, fill: Fill): { position: Posit
   const cleared: Position = { ...position, exitPending: null };
 
   if (fill.status !== 'filled') {
-    const cost = fill.priorityFee + fill.jitoTip;
+    const cost = fill.priorityFee + fill.jitoTip + fill.baseFee;
     return {
       position: {
         ...cleared,
@@ -116,7 +116,7 @@ export function applyExitFill(position: Position, fill: Fill): { position: Posit
   const allocatedCost = remaining === 0n
     ? position.costBasisRemainingLamports
     : (position.costBasisRemainingLamports * sold) / position.tokenAmount;
-  const netProceeds = fill.solOut + fill.rentRefund - fill.priorityFee - fill.jitoTip;
+  const netProceeds = fill.solOut + fill.rentRefund - fill.priorityFee - fill.jitoTip - fill.baseFee;
   const delta = netProceeds - allocatedCost;
 
   if (remaining === 0n) return { position: null, realizedPnlDelta: delta };

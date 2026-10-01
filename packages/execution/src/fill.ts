@@ -7,20 +7,28 @@ export type FillStatus = 'filled' | 'failed' | 'expired';
 
 /**
  * Fill (simulado ou real). Espelha a tabela `fills` (migração 001) + colunas da migração 006
- * (`venue_unverified`, `cost_estimate_source`, `cost_capped`, `rent_refund`).
+ * (`venue_unverified`, `cost_estimate_source`, `cost_capped`, `rent_refund`, `base_fee`,
+ * `virtual_quote_before`, `virtual_token_before` e os preços renomeados para
+ * `*_price_lamports_per_unit`).
  *
  * Convenções:
  * - `solIn` (compra) = total pago à curva = `quoteAmountIn + protocolFee + creatorFee`.
  *   `solOut` (venda) = líquido recebido = `quoteOutGross − protocolFee − creatorFee`.
  *   Priority fee, tip e rent ficam nos próprios campos, fora de `solIn`/`solOut`.
  * - `tokenDelta`: + na compra, − na venda, 0 em falha/expiração.
- * - Preços em lamports por unidade mínima de token (mesma unidade de `marginalPrice`); o nome
- *   `*_price_sol` vem da tabela. Compra: `solIn / tokenOut`; venda: `solOut / tokenIn` (ambos
+ * - Preços em lamports por unidade mínima de token (mesma unidade de `marginalPrice`), daí o nome
+ *   `*PriceLamportsPerUnit`. Compra: `solIn / tokenOut`; venda: `solOut / tokenIn` (ambos
  *   líquidos das taxas da curva). `expected` = mesma ordem simulada nas reservas do instante da
  *   decisão; `realized` = no instante do preenchimento (NaN em `failed`).
  * - `slippageBps` > 0 = pior que o esperado (compra mais cara / venda mais barata).
  * - `rent`: rent-exempt da conta de token, cobrado na primeira compra do mint; `rentRefund`:
  *   devolvido só na venda que zera a posição (conta fechada e limpa).
+ * - `baseFee`: taxa base por assinatura do runtime da Solana (não-priority), cobrada em TODA
+ *   transação que entra no bloco — `filled`, `failed` e `expired` (tx com erro também paga). O paper
+ *   usa 1 assinatura por tx (só a carteira quente assina).
+ * - `virtualQuoteBefore`/`virtualTokenBefore`: reservas virtuais da curva usadas no preenchimento
+ *   (antes da nossa ordem); `null` quando não havia reservas. Servem para recalcular a operação com
+ *   outros tamanhos (tabela de sensibilidade do `pnpm report`).
  * - `landedSlot`: `null` no paper (não existe slot real de inclusão).
  */
 export interface Fill {
@@ -39,8 +47,9 @@ export interface Fill {
   jitoTip: Lamports;
   rent: Lamports;
   rentRefund: Lamports;
-  expectedPriceSol: number;
-  realizedPriceSol: number;
+  baseFee: Lamports;
+  expectedPriceLamportsPerUnit: number;
+  realizedPriceLamportsPerUnit: number;
   slippageBps: number;
   landedSlot: bigint | null;
   status: FillStatus;
@@ -50,9 +59,11 @@ export interface Fill {
   costEstimateSource: CostEstimateSource;
   /** true = a estimativa de priority fee/tip passou do limite e foi trocada pelo limite. */
   costCappedByHardLimit: boolean;
+  virtualQuoteBefore: bigint | null;
+  virtualTokenBefore: TokenAmount | null;
 }
 
 /** Fluxo de caixa líquido do fill para a carteira (negativo = saiu SOL). */
 export function fillCashFlow(fill: Fill): Lamports {
-  return fill.solOut + fill.rentRefund - fill.solIn - fill.priorityFee - fill.jitoTip - fill.rent;
+  return fill.solOut + fill.rentRefund - fill.solIn - fill.priorityFee - fill.jitoTip - fill.baseFee - fill.rent;
 }

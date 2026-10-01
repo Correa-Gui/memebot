@@ -3,6 +3,7 @@ import type { CurveTradeEvent, PumpEvent, TokenCreatedEvent } from '@memebot/cor
 import { bondingCurveBuy } from '@memebot/curve-math';
 import type { CurveFeeBps } from '@memebot/curve-math';
 import type { Fill } from '@memebot/execution';
+import { LAMPORTS_PER_SIGNATURE } from '@memebot/ingest';
 import { quoteInForBudget } from '@memebot/risk';
 import { applyEvent, createEmptyMarketState } from '@memebot/state';
 import type { MarketState, TokenState } from '@memebot/state';
@@ -14,14 +15,19 @@ export const FEES: CurveFeeBps = { protocolFeeBps: 95n, creatorFeeBps: 30n };
 export const INITIAL_VIRTUAL_QUOTE = 30_000_000_000n;
 export const INITIAL_VIRTUAL_TOKEN = 1_073_000_000_000_000n;
 export const K = INITIAL_VIRTUAL_QUOTE * INITIAL_VIRTUAL_TOKEN;
-/** FIXTURE de teste: rent-exempt de conta SPL (165 bytes); produção lê via RPC no adaptador. */
-export const RENT_FIXTURE = 2_039_280n;
+/**
+ * FIXTURE de teste: rent-exempt da ATA Token-2022 (170 bytes) observado na tx real
+ * `packages/ingest/test/fixtures/curve-create.json`; produção lê via RPC no adaptador.
+ */
+export const RENT_FIXTURE = 1_513_840n;
+/** Taxa base de 1 assinatura (mesma constante que o orquestrador injeta no executor). */
+export const BASE_FEE = LAMPORTS_PER_SIGNATURE;
 export const SUPPLY = 1_000_000_000_000_000n;
 export const T0 = 1_759_300_000_000;
 export const MINT = 'mintA';
 export const CREATOR = 'creator-1';
 
-export const CTX: ExitContext = { fees: FEES, exitPriorityFeeLamports: 225_000n, exitJitoTipLamports: 300_000n };
+export const CTX: ExitContext = { fees: FEES, exitPriorityFeeLamports: 225_000n, exitJitoTipLamports: 300_000n, exitBaseFeeLamports: BASE_FEE };
 
 export function realConfig(): StrategyV0Config {
   return loadStrategyConfig(fileURLToPath(new URL('../../../config/strategy.v0.yaml', import.meta.url)));
@@ -67,9 +73,9 @@ export function tokenAt(vq: bigint, extra: readonly PumpEvent[] = []): TokenStat
 
 const ZERO_FILL: Omit<Fill, 'side' | 'decisionId' | 'ts'> = {
   runId: 'run-test', mint: MINT, solIn: 0n, solOut: 0n, tokenDelta: 0n, protocolFee: 0n, creatorFee: 0n,
-  priorityFee: 0n, jitoTip: 0n, rent: 0n, rentRefund: 0n, expectedPriceSol: 0, realizedPriceSol: 0, slippageBps: 0,
+  priorityFee: 0n, jitoTip: 0n, rent: 0n, rentRefund: 0n, baseFee: 0n, expectedPriceLamportsPerUnit: 0, realizedPriceLamportsPerUnit: 0, slippageBps: 0,
   landedSlot: null, status: 'filled', error: null, venueUnverified: false, costEstimateSource: 'tx_costs_median',
-  costCappedByHardLimit: false,
+  costCappedByHardLimit: false, virtualQuoteBefore: null, virtualTokenBefore: null,
 };
 
 /** Fill de compra de 0,05 SOL (total com taxas) nas reservas iniciais reais. */
@@ -77,7 +83,7 @@ export function buyFill(ts = T0): Fill {
   const sim = bondingCurveBuy({ virtualQuote: INITIAL_VIRTUAL_QUOTE, virtualToken: INITIAL_VIRTUAL_TOKEN }, quoteInForBudget(50_000_000n, FEES), FEES);
   return {
     ...ZERO_FILL, side: 'buy', decisionId: 'd-buy', ts, solIn: sim.totalQuoteCost, tokenDelta: sim.tokenOut,
-    protocolFee: sim.protocolFee, creatorFee: sim.creatorFee, priorityFee: 225_000n, jitoTip: 300_000n, rent: RENT_FIXTURE,
+    protocolFee: sim.protocolFee, creatorFee: sim.creatorFee, priorityFee: 225_000n, jitoTip: 300_000n, baseFee: BASE_FEE, rent: RENT_FIXTURE,
   };
 }
 

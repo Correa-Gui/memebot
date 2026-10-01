@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Position } from '../src/index.ts';
 import { applyExitFill, evaluateExits, markExitSubmitted, netPnlRatio, openPosition } from '../src/index.ts';
-import { CREATOR, CTX, INITIAL_VIRTUAL_QUOTE, MINT, RENT_FIXTURE, SUPPLY, T0, buyFill, realConfig, sellFill, tokenAt, trade } from './helpers.ts';
+import { BASE_FEE, CREATOR, CTX, INITIAL_VIRTUAL_QUOTE, MINT, RENT_FIXTURE, SUPPLY, T0, buyFill, realConfig, sellFill, tokenAt, trade } from './helpers.ts';
 
 const config = realConfig().exits;
 
@@ -23,10 +23,10 @@ function evalAt(position: Position, vq: bigint, nowMs = T0 + 10_000, extra: Para
 }
 
 describe('openPosition e PnL líquido', () => {
-  it('custo de entrada = solIn + priority + tip + rent', () => {
+  it('custo de entrada = solIn + priority + tip + taxa base + rent', () => {
     const fill = buyFill();
     const pos = openPosition(fill);
-    expect(pos.entryCostLamports).toBe(fill.solIn + 225_000n + 300_000n + RENT_FIXTURE);
+    expect(pos.entryCostLamports).toBe(fill.solIn + 225_000n + 300_000n + BASE_FEE + RENT_FIXTURE);
     expect(pos.tokenAmount).toBe(fill.tokenDelta);
   });
 
@@ -141,23 +141,34 @@ describe('applyExitFill', () => {
     const pos = openPosition(buyFill());
     const order = { mint: MINT, fraction: 0.5, reason: 'take_profit_1' as const, takeProfitStep: 1 };
     const half = pos.tokenAmount / 2n;
-    const r1 = applyExitFill(markExitSubmitted(pos, order), sellFill({ tokenDelta: -half, solOut: 40_000_000n, priorityFee: 225_000n, jitoTip: 300_000n }));
+    const r1 = applyExitFill(markExitSubmitted(pos, order), sellFill({ tokenDelta: -half, solOut: 40_000_000n, priorityFee: 225_000n, jitoTip: 300_000n, baseFee: BASE_FEE }));
     expect(r1.position).not.toBeNull();
     const p1 = r1.position as Position;
     expect(p1.takeProfitStepsDone).toBe(1);
     expect(p1.exitPending).toBeNull();
     const allocated = (pos.entryCostLamports * half) / pos.tokenAmount;
-    expect(r1.realizedPnlDelta).toBe(40_000_000n - 525_000n - allocated);
+    expect(r1.realizedPnlDelta).toBe(40_000_000n - 525_000n - BASE_FEE - allocated);
 
     const r2 = applyExitFill(p1, sellFill({ tokenDelta: -p1.tokenAmount, solOut: 30_000_000n, rentRefund: RENT_FIXTURE }));
     expect(r2.position).toBeNull();
-    expect(r1.realizedPnlDelta + r2.realizedPnlDelta).toBe(40_000_000n - 525_000n + 30_000_000n + RENT_FIXTURE - pos.entryCostLamports);
+    expect(r1.realizedPnlDelta + r2.realizedPnlDelta).toBe(40_000_000n - 525_000n - BASE_FEE + 30_000_000n + RENT_FIXTURE - pos.entryCostLamports);
   });
 
   it('falha/expiração: perde só o custo da transação e mantém a posição', () => {
     const pos = openPosition(buyFill());
-    const r = applyExitFill(pos, sellFill({ status: 'failed', priorityFee: 225_000n }));
-    expect(r.realizedPnlDelta).toBe(-225_000n);
+    const r = applyExitFill(pos, sellFill({ status: 'failed', priorityFee: 225_000n, baseFee: BASE_FEE }));
+    expect(r.realizedPnlDelta).toBe(-225_000n - BASE_FEE);
     expect(r.position?.tokenAmount).toBe(pos.tokenAmount);
+  });
+});
+
+describe('taxa base na liquidação', () => {
+  it('L desconta a taxa base da saída: com taxa base o PnL líquido é menor', () => {
+    const pos = openPosition(buyFill());
+    const token = tokenAt(INITIAL_VIRTUAL_QUOTE * 2n);
+    const withFee = netPnlRatio(pos, token, CTX) ?? Number.NaN;
+    const withoutFee = netPnlRatio(pos, token, { ...CTX, exitBaseFeeLamports: 0n }) ?? Number.NaN;
+    expect(withFee).toBeLessThan(withoutFee);
+    expect((withoutFee - withFee) * Number(pos.entryCostLamports)).toBeCloseTo(Number(BASE_FEE), 3);
   });
 });

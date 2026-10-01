@@ -13,6 +13,11 @@ export interface ExitContext {
   /** Custos estimados da transação de saída (os mesmos que o executor cobraria, já limitados). */
   exitPriorityFeeLamports: Lamports;
   exitJitoTipLamports: Lamports;
+  /**
+   * Taxa base da transação de saída (assinaturas × `LAMPORTS_PER_SIGNATURE`), a mesma que o executor
+   * cobra no fill (`Fill.baseFee`).
+   */
+  exitBaseFeeLamports: Lamports;
 }
 
 /** Token saiu da bonding curve (mesma regra do executor: completou ou já migrou). */
@@ -22,7 +27,7 @@ function graduated(token: TokenState): boolean {
 
 /**
  * Valor líquido de liquidação do restante AGORA (lamports, com sinal):
- * `L = netQuoteOut(bondingCurveSell(reservas atuais, quantidade)) − priorityFeeSaída − tipSaída + rentPago`.
+ * `L = netQuoteOut(bondingCurveSell(reservas atuais, quantidade)) − priorityFeeSaída − tipSaída − taxaBaseSaída + rentPago`.
  * `netQuoteOut` já desconta as taxas de protocolo/criador da venda; o rent entra porque vender tudo
  * fecha a conta de token e devolve o rent (que foi cobrado no custo de entrada). `null` sem reservas.
  */
@@ -33,7 +38,7 @@ export function liquidationValue(position: Position, token: TokenState, ctx: Exi
     position.tokenAmount,
     ctx.fees,
   );
-  return netQuoteOut - ctx.exitPriorityFeeLamports - ctx.exitJitoTipLamports + position.rentPaidLamports;
+  return netQuoteOut - ctx.exitPriorityFeeLamports - ctx.exitJitoTipLamports - ctx.exitBaseFeeLamports + position.rentPaidLamports;
 }
 
 /**
@@ -41,8 +46,8 @@ export function liquidationValue(position: Position, token: TokenState, ctx: Exi
  *
  *   pnl = (realizadoLíquido + L − custoEntrada) / custoEntrada
  *
- * - `custoEntrada` = solIn (com taxas da curva) + priority fee + tip + rent da compra;
- * - `realizadoLíquido` = Σ (solOut + rentRefund − priority − tip) das vendas já feitas (e −custo das falhas);
+ * - `custoEntrada` = solIn (com taxas da curva) + priority fee + tip + taxa base + rent da compra;
+ * - `realizadoLíquido` = Σ (solOut + rentRefund − priority − tip − taxa base) das vendas já feitas (e −custo das falhas);
  * - `L` = `liquidationValue` do restante (venda total agora, com taxas da curva e custos da tx de saída).
  * Logo, logo após entrar (mesmas reservas), pnl < 0: paga as taxas de ida e volta.
  */

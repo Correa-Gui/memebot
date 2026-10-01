@@ -26,7 +26,7 @@ import type { MarketState } from '@memebot/state';
 import type { StrategyV0Config } from '@memebot/strategy';
 import { applyExitFill, evaluateExits, markExitSubmitted, openPosition } from '../src/index.ts';
 import type { ExitContext, Position } from '../src/index.ts';
-import { CREATOR, FEES, RENT_FIXTURE, SUPPLY, T0, created, realConfig, trade } from './helpers.ts';
+import { BASE_FEE, CREATOR, FEES, RENT_FIXTURE, SUPPLY, T0, created, realConfig, trade } from './helpers.ts';
 
 /**
  * Simulação integrada (risk → execution/paper → positions) dirigida por eventos sintéticos gerados
@@ -89,6 +89,7 @@ function runScenario(seed: number): Trace {
     failRate: rand() * 0.3,
     fees: FEES,
     tokenAccountRentLamports: RENT_FIXTURE,
+    baseFeeLamportsPerSignature: BASE_FEE,
     costs: {
       priorityFeeLamports: priorityEst, jitoTipLamports: tipEst,
       priorityFeeSource: 'fallback', jitoTipSource: 'fallback', prioritySampleCount: 3, tipSampleCount: 0,
@@ -99,6 +100,7 @@ function runScenario(seed: number): Trace {
     fees: FEES,
     exitPriorityFeeLamports: priorityEst < limits.maxPriorityFeeLamports ? priorityEst : limits.maxPriorityFeeLamports,
     exitJitoTipLamports: tipEst < limits.maxJitoTipLamports ? tipEst : limits.maxJitoTipLamports,
+    exitBaseFeeLamports: BASE_FEE,
   };
 
   const mints = ['m0', 'm1', 'm2', 'm3', 'm4', 'm5'];
@@ -228,6 +230,8 @@ describe('propriedade: nenhum fill ultrapassa hard limits', () => {
         expect(f.solIn).toBeLessThanOrEqual(t.limits.sizeLamports);
         expect(f.priorityFee).toBeLessThanOrEqual(HARD_LIMITS.maxPriorityFeeLamports);
         expect(f.jitoTip).toBeLessThanOrEqual(HARD_LIMITS.maxJitoTipLamports);
+        // taxa base: toda tx que entra no bloco paga (filled, failed, expired), 1 assinatura
+        expect(f.baseFee).toBe(BASE_FEE);
         if (f.status === 'filled' && !f.venueUnverified) {
           const max = f.side === 'buy' ? approvedSlippage.get(f.decisionId) : t.limits.maxSlippageBps;
           expect(max).toBeDefined();

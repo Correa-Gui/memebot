@@ -22,6 +22,7 @@ export type {
   SellOrder,
 } from './paper.ts';
 export {
+  SIGNATURES_PER_TX,
   createPaperExecutorState,
   isGraduated,
   openMints,

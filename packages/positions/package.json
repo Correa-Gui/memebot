@@ -17,6 +17,7 @@
     "@memebot/strategy": "workspace:*"
   },
   "devDependencies": {
+    "@memebot/ingest": "workspace:*",
     "@memebot/risk": "workspace:*",
     "@types/node": "^22.10.7"
   }

@@ -25,6 +25,7 @@ import {
   INITIAL_VIRTUAL_TOKEN,
   MINT,
   RENT_FIXTURE,
+  BASE_FEE,
   T0,
   applyAll,
   completed,
@@ -152,8 +153,8 @@ describe('paper executor — latência e preço', () => {
     expect(r1).toEqual(r2);
     const fill = onlyFill(r1.fills);
     expect(fill).toMatchObject({ status: 'failed', error: 'simulated_tx_failure', priorityFee: 225_000n, jitoTip: 0n, tokenDelta: 0n });
-    expect(Number.isNaN(fill.realizedPriceSol)).toBe(true);
-    expect(fillCashFlow(fill)).toBe(-225_000n);
+    expect(Number.isNaN(fill.realizedPriceLamportsPerUnit)).toBe(true);
+    expect(fillCashFlow(fill)).toBe(-225_000n - BASE_FEE);
     expect(r1.state.holdings.size).toBe(0);
   });
 
@@ -294,5 +295,41 @@ describe('propriedade: comprar e vender no mesmo instante sempre perde', () => {
       const pnl = fills.reduce((acc, f) => acc + fillCashFlow(f), 0n);
       expect(pnl).toBeLessThan(0n);
     }
+  });
+});
+
+describe('taxa base por assinatura (fee não-priority)', () => {
+  it('cobrada em filled, failed e expired (1 assinatura por tx) e descontada em fillCashFlow', () => {
+    const market = initialMarket();
+    const filled = openAt(params(), market).fill;
+    expect(filled.status).toBe('filled');
+    expect(filled.baseFee).toBe(BASE_FEE);
+    expect(fillCashFlow(filled)).toBe(-(filled.solIn + filled.priorityFee + filled.jitoTip + BASE_FEE + filled.rent));
+
+    const pf = params({ failRate: 1, latencyMs: 0 });
+    const failed = onlyFill(settleOnTick(submitOrder(createPaperExecutorState(1), pf, buy(), market, T0), pf, market, T0).fills);
+    expect(failed).toMatchObject({ status: 'failed', baseFee: BASE_FEE });
+
+    const pe = params({ latencyMs: 800 });
+    const s = submitOrder(createPaperExecutorState(1), pe, buy('d', 50_000_000n, 100), market, T0);
+    const moved = applyAll([trade(MINT, T0 + 500, 33_000_000_000n, K / 33_000_000_000n)], market);
+    const expired = onlyFill(settleOnTick(s, pe, moved, T0 + 800).fills);
+    expect(expired).toMatchObject({ status: 'expired', baseFee: BASE_FEE });
+    expect(fillCashFlow(expired)).toBe(-(expired.priorityFee + BASE_FEE));
+  });
+
+  it('venda também paga a taxa base; parâmetro negativo é recusado', () => {
+    const p = params({ latencyMs: 0 });
+    const market = initialMarket();
+    const { state } = openAt(p, market);
+    const sold = onlyFill(settleOnTick(submitOrder(state, p, sell(), market, T0 + 1), p, market, T0 + 1).fills);
+    expect(sold.baseFee).toBe(BASE_FEE);
+    expect(() => submitOrder(createPaperExecutorState(1), params({ baseFeeLamportsPerSignature: -1n }), buy(), market, T0)).toThrow(InvalidOrderError);
+  });
+
+  it('o fill guarda as reservas virtuais usadas no preenchimento', () => {
+    const { fill } = openAt(params(), initialMarket());
+    expect(fill.virtualQuoteBefore).toBe(INITIAL_VIRTUAL_QUOTE);
+    expect(fill.virtualTokenBefore).toBe(INITIAL_VIRTUAL_TOKEN);
   });
 });

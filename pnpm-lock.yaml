@@ -90,6 +90,9 @@ importers:
         specifier: workspace:*
         version: link:../state
     devDependencies:
+      '@memebot/ingest':
+        specifier: workspace:*
+        version: link:../ingest
       '@types/node':
         specifier: ^22.10.7
         version: 22.20.4
@@ -144,6 +147,9 @@ importers:
         specifier: workspace:*
         version: link:../strategy
     devDependencies:
+      '@memebot/ingest':
+        specifier: workspace:*
+        version: link:../ingest
       '@memebot/risk':
         specifier: workspace:*
         version: link:../risk
