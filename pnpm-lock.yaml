@@ -16,7 +16,7 @@ importers:
         version: 22.20.4
       '@vitest/coverage-v8':
         specifier: ^3.0.5
-        version: 3.2.7(vitest@3.2.7(@types/node@22.20.4))
+        version: 3.2.7(vitest@3.2.7(@types/node@22.20.4)(yaml@2.9.1))
       eslint:
         specifier: ^9.19.0
         version: 9.39.5
@@ -28,7 +28,7 @@ importers:
         version: 8.71.0(eslint@9.39.5)(typescript@5.9.3)
       vitest:
         specifier: ^3.0.5
-        version: 3.2.7(@types/node@22.20.4)
+        version: 3.2.7(@types/node@22.20.4)(yaml@2.9.1)
 
   apps/bot:
     dependencies:
@@ -62,6 +62,54 @@ importers:
         specifier: ^22.10.7
         version: 22.20.4
 
+  packages/curve-math:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
+  packages/execution:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../curve-math
+      '@memebot/risk':
+        specifier: workspace:*
+        version: link:../risk
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../state
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
+  packages/features:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../curve-math
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../state
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
   packages/ingest:
     dependencies:
       '@memebot/core':
@@ -78,6 +126,31 @@ importers:
         specifier: ^22.10.7
         version: 22.20.4
 
+  packages/positions:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../curve-math
+      '@memebot/execution':
+        specifier: workspace:*
+        version: link:../execution
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../state
+      '@memebot/strategy':
+        specifier: workspace:*
+        version: link:../strategy
+    devDependencies:
+      '@memebot/risk':
+        specifier: workspace:*
+        version: link:../risk
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
   packages/recorder:
     dependencies:
       '@clickhouse/client':
@@ -86,6 +159,60 @@ importers:
       '@memebot/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
+  packages/risk:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../curve-math
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../state
+      '@memebot/strategy':
+        specifier: workspace:*
+        version: link:../strategy
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
+  packages/state:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.20.4
+
+  packages/strategy:
+    dependencies:
+      '@memebot/core':
+        specifier: workspace:*
+        version: link:../core
+      '@memebot/curve-math':
+        specifier: workspace:*
+        version: link:../curve-math
+      '@memebot/features':
+        specifier: workspace:*
+        version: link:../features
+      '@memebot/state':
+        specifier: workspace:*
+        version: link:../state
+      yaml:
+        specifier: ^2.6.1
+        version: 2.9.1
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.7
@@ -1717,6 +1844,11 @@ packages:
       utf-8-validate:
         optional: true
 
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -2594,7 +2726,7 @@ snapshots:
       '@typescript-eslint/types': 8.71.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/coverage-v8@3.2.7(vitest@3.2.7(@types/node@22.20.4))':
+  '@vitest/coverage-v8@3.2.7(vitest@3.2.7(@types/node@22.20.4)(yaml@2.9.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 1.0.2
@@ -2609,7 +2741,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.2
       tinyrainbow: 2.0.0
-      vitest: 3.2.7(@types/node@22.20.4)
+      vitest: 3.2.7(@types/node@22.20.4)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -2621,13 +2753,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.7(vite@7.3.6(@types/node@22.20.4))':
+  '@vitest/mocker@3.2.7(vite@7.3.6(@types/node@22.20.4)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 3.2.7
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.6(@types/node@22.20.4)
+      vite: 7.3.6(@types/node@22.20.4)(yaml@2.9.1)
 
   '@vitest/pretty-format@3.2.7':
     dependencies:
@@ -3255,13 +3387,13 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite-node@3.2.4(@types/node@22.20.4):
+  vite-node@3.2.4(@types/node@22.20.4)(yaml@2.9.1):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.3.6(@types/node@22.20.4)
+      vite: 7.3.6(@types/node@22.20.4)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -3276,7 +3408,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite@7.3.6(@types/node@22.20.4):
+  vite@7.3.6(@types/node@22.20.4)(yaml@2.9.1):
     dependencies:
       esbuild: 0.28.2
       fdir: 6.5.0(picomatch@4.0.7)
@@ -3287,12 +3419,13 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.20.4
       fsevents: 2.3.3
+      yaml: 2.9.1
 
-  vitest@3.2.7(@types/node@22.20.4):
+  vitest@3.2.7(@types/node@22.20.4)(yaml@2.9.1):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
-      '@vitest/mocker': 3.2.7(vite@7.3.6(@types/node@22.20.4))
+      '@vitest/mocker': 3.2.7(vite@7.3.6(@types/node@22.20.4)(yaml@2.9.1))
       '@vitest/pretty-format': 3.2.7
       '@vitest/runner': 3.2.7
       '@vitest/snapshot': 3.2.7
@@ -3310,8 +3443,8 @@ snapshots:
       tinyglobby: 0.2.17
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.3.6(@types/node@22.20.4)
-      vite-node: 3.2.4(@types/node@22.20.4)
+      vite: 7.3.6(@types/node@22.20.4)(yaml@2.9.1)
+      vite-node: 3.2.4(@types/node@22.20.4)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.20.4
@@ -3353,6 +3486,8 @@ snapshots:
       strip-ansi: 7.2.0
 
   ws@8.22.0: {}
+
+  yaml@2.9.1: {}
 
   yocto-queue@0.1.0: {}
 
