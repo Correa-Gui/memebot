@@ -1,0 +1,15 @@
+<!--
+  Desliga tabelas de log internas do ClickHouse que não usamos e custam memória.
+
+  Motivo (2026-10-01): com o limite de 1800 MiB (memory.xml), o merge em segundo plano de
+  system.metric_log (tabela com centenas de colunas) estourou o limite 8 vezes
+  (Code 241, "Memory limit (total) exceeded: would use 2.46 GiB"). O limite fez o papel dele (a
+  query falhou em vez do container cair), mas o merge ficava falhando em loop e disputando memória
+  com as inserções do recorder. query_log, part_log e error_log continuam ligados (diagnóstico).
+-->
+<clickhouse>
+    <metric_log remove="1" />
+    <asynchronous_metric_log remove="1" />
+    <trace_log remove="1" />
+    <text_log remove="1" />
+</clickhouse>
