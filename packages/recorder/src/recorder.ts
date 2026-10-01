@@ -1,6 +1,18 @@
 import { createClient, type ClickHouseClient } from '@clickhouse/client';
 import type { IngestGap, Logger, PumpEvent } from '@memebot/core';
 import { BatchWriter, type WriterStats } from './batch-writer.ts';
+import {
+  FILLS_REQUIRED_COLUMNS,
+  decisionToRow,
+  fillToRow,
+  parseProtocolConfigRow,
+  parseTokenCreationRows,
+  parseTxCostRows,
+  type DecisionRecord,
+  type FillRecord,
+  type ProtocolConfigRecord,
+  type TokenCreationRecord,
+} from './paper-rows.ts';
 import { chTime, eventToRow, gapToRow } from './rows.ts';
 
 export interface RecorderOptions {
@@ -115,6 +127,70 @@ export class Recorder {
       values: [{ run_id: this.runId, started_at: chTime(this.now()), mode: r.mode, config_hash: r.configHash, git_commit: r.gitCommit, idl_hash: r.idlHash, quality: r.quality }],
       format: 'JSONEachRow',
     });
+  }
+
+  /** Decisão do paper/live (entrar, sair, rejeitar) com o snapshot de features. Em lote, como os eventos. */
+  recordDecision(d: DecisionRecord): void {
+    this.writer.add('decisions', decisionToRow(d));
+  }
+
+  /** Fill simulado/real com custos por categoria (colunas da migração 006). */
+  recordFill(f: FillRecord): void {
+    this.writer.add('fills', fillToRow(f));
+  }
+
+  /** Colunas de `fills` exigidas pelo paper que ainda não existem (migração 006 não aplicada). */
+  async missingFillsColumns(): Promise<string[]> {
+    const rs = await this.client.query({
+      query: "SELECT name FROM system.columns WHERE database = currentDatabase() AND table = 'fills'",
+      format: 'JSONEachRow',
+    });
+    const present = new Set((await rs.json<{ name: string }>()).map((r) => r.name));
+    return FILLS_REQUIRED_COLUMNS.filter((c) => !present.has(c));
+  }
+
+  /**
+   * `token_created` gravados nas últimas `hours` horas (só criador/horário/slot), para o filtro
+   * "criador criou ≥ N tokens em 24 h" valer desde a partida. Runs gravadas com RPC público podem ter
+   * lacunas (reconexões, 429): a contagem por criador pode sair menor que a real.
+   */
+  async loadRecentTokenCreations(hours: number): Promise<TokenCreationRecord[]> {
+    const rs = await this.client.query({
+      query:
+        'SELECT mint, creator, toUnixTimestamp64Milli(ts) AS ts_ms, slot, quote_mint, token_total_supply ' +
+        'FROM events_token WHERE ts >= now64(3) - toIntervalHour({hours:UInt32}) ORDER BY ts',
+      query_params: { hours },
+      format: 'JSONEachRow',
+    });
+    return parseTokenCreationRows(await rs.json<unknown>());
+  }
+
+  /** Amostras de `tx_costs` das últimas `hours` horas (priority fee e tip), para `estimateTxCosts`. */
+  async loadTxCostSamples(hours: number): Promise<{ priorityFee: bigint; jitoTip: bigint | null }[]> {
+    const rs = await this.client.query({
+      query: 'SELECT priority_fee, jito_tip FROM tx_costs WHERE sampled_at >= now64(3) - toIntervalHour({hours:UInt32})',
+      query_params: { hours },
+      format: 'JSONEachRow',
+    });
+    return parseTxCostRows(await rs.json<unknown>());
+  }
+
+  /** Linha mais recente de `protocol_config` para (programa, tipo de conta); `null` se não houver. */
+  async loadLatestProtocolConfig(programId: string, accountType: string): Promise<ProtocolConfigRecord | null> {
+    const rs = await this.client.query({
+      query:
+        'SELECT config_json, config_hash, toUnixTimestamp64Milli(ts) AS ts_ms FROM protocol_config ' +
+        'WHERE program_id = {programId:String} AND account_type = {accountType:String} ORDER BY ts DESC LIMIT 1',
+      query_params: { programId, accountType },
+      format: 'JSONEachRow',
+    });
+    const rows = await rs.json<unknown>();
+    return rows.length > 0 ? parseProtocolConfigRow(rows[0]) : null;
+  }
+
+  /** Força a gravação do que estiver no buffer (ex.: antes de um relatório no encerramento). */
+  flush(): Promise<void> {
+    return this.writer.flush();
   }
 
   /** Pools já conhecidas, para o ingest não precisar consultar o RPC de novo após reiniciar. */

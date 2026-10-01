@@ -10,7 +10,9 @@ export type TableName =
   | 'pumpswap_pools'
   | 'token_metadata'
   | 'protocol_config'
-  | 'runs';
+  | 'runs'
+  | 'decisions'
+  | 'fills';
 
 /** DateTime64(3, 'UTC') no formato de texto do ClickHouse. */
 export function chTime(ms: number): string {
