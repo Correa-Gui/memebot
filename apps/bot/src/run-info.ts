@@ -43,15 +43,17 @@ export function newRunId(mode: string, nowMs: number): string {
   return `${mode}-${new Date(nowMs).toISOString().replace(/[:.]/g, '-')}-${sha256(String(Math.random())).slice(0, 6)}`;
 }
 
-/** Endpoints públicos conhecidos por não terem SLA e limitarem forte (429 frequente). */
-const KNOWN_PUBLIC_RPC = /api\.mainnet-beta\.solana\.com|api\.devnet\.solana\.com|api\.testnet\.solana\.com/;
+/** Run é `provisional` quando o tempo sem stream passa desta fração do tempo do run (v_run_quality). */
+export const STREAM_GAP_PROVISIONAL_RATIO = 0.01;
 
 /**
- * Classifica a qualidade de uma run pelos endpoints usados. Heurística simples (nome do host),
- * documentada em ARCHITECTURE §6: se o stream (WS) OU as consultas (HTTP) passam por um endpoint
- * reconhecidamente público, a run é `provisional` — o WS público pode perder mensagens sob carga e o
- * HTTP público toma 429. Um RPC pago mal configurado não é pego por isto; é o operador quem garante.
+ * Só o host de um endpoint (sem esquema, path nem query — provedores põem a API key no path ou na
+ * query, ex. Helius `?api-key=`). Informativo: vai para log e `run_health`.
  */
-export function runQuality(rpcUrl: string, wsUrl: string): 'provisional' | 'production' {
-  return KNOWN_PUBLIC_RPC.test(rpcUrl) || KNOWN_PUBLIC_RPC.test(wsUrl) ? 'provisional' : 'production';
+export function endpointHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return 'url-invalida';
+  }
 }

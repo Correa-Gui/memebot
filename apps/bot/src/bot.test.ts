@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseBotArgs } from './args.ts';
 import { BoundedQueue } from './bounded-queue.ts';
 import { formatLamports } from './format.ts';
-import { configHash, publicConfig, runQuality } from './run-info.ts';
+import { configHash, publicConfig, endpointHost } from './run-info.ts';
 
 describe('parseBotArgs', () => {
   it('padrões e debug', () => {
@@ -68,12 +68,10 @@ describe('BoundedQueue', () => {
   });
 });
 
-describe('runQuality', () => {
-  it('RPC público conhecido é provisional; qualquer outro é production', () => {
-    const paid = 'https://meu-provedor-pago.example/rpc?api-key=x';
-    expect(runQuality('https://api.mainnet-beta.solana.com', 'wss://api.mainnet-beta.solana.com')).toBe('provisional');
-    expect(runQuality(paid, 'wss://meu-provedor-pago.example/?api-key=x')).toBe('production');
-    // HTTP pago + stream público (configuração atual): continua provisional — o WS público pode perder mensagens.
-    expect(runQuality(paid, 'wss://api.mainnet-beta.solana.com')).toBe('provisional');
+describe('endpointHost', () => {
+  it('devolve só o host (sem path/query, onde fica a API key)', () => {
+    expect(endpointHost('https://mainnet.helius-rpc.com/?api-key=SEGREDO')).toBe('mainnet.helius-rpc.com');
+    expect(endpointHost('wss://x.example/v1/SEGREDO')).toBe('x.example');
+    expect(endpointHost('lixo')).toBe('url-invalida');
   });
 });

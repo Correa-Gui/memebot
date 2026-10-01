@@ -145,7 +145,7 @@ export class Normalizer {
     const ctx: Ctx = { slot: parsed.slot, sig: parsed.signature, receivedAtMs, recvSeq };
     const out: NormalizeResult = { events: [], gaps: [] };
     const gap = (kind: IngestGap['kind'], program: string | null, detail: string): void => {
-      out.gaps.push({ kind, detectedAtMs: receivedAtMs, fromSlot: parsed.slot, toSlot: parsed.slot, sig: parsed.signature, program, detail });
+      out.gaps.push({ kind, detectedAtMs: receivedAtMs, fromSlot: parsed.slot, toSlot: parsed.slot, sig: parsed.signature, program, durationMs: null, detail });
     };
 
     if (parsed.truncated) gap('log_truncated', null, 'log da transação truncado; eventos posteriores perdidos');

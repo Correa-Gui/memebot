@@ -91,6 +91,21 @@ export class Recorder {
     this.writer.add('ingest_gaps', gapToRow(g, this.runId));
   }
 
+  /**
+   * Saúde do run (uma linha por minuto): base da qualidade MEDIDA (`v_run_quality`, migração 007).
+   * Hosts sem path/query (provedores põem a API key ali) — o chamador passa só `URL.host`.
+   */
+  recordRunHealth(h: { uptimeMs: number; streamGapMs: number; rpcHost: string; wsHost: string }): void {
+    this.writer.add('run_health', {
+      run_id: this.runId,
+      ts: chTime(this.now()),
+      uptime_ms: Math.max(0, Math.round(h.uptimeMs)),
+      stream_gap_ms: Math.max(0, Math.round(h.streamGapMs)),
+      rpc_host: h.rpcHost,
+      ws_host: h.wsHost,
+    });
+  }
+
   recordMetadata(mint: string, m: { ok: true; description: string | null; image: string | null; twitter: string | null; telegram: string | null; website: string | null; rawJson: string } | { ok: false; error: string }): void {
     const empty = { description: null, image: null, twitter: null, telegram: null, website: null, raw_json: null };
     this.writer.add('token_metadata', {
@@ -119,7 +134,10 @@ export class Recorder {
     configHash: string;
     gitCommit: string;
     idlHash: string;
-    /** 'provisional' = RPC público ou não confiável; sanity/backtest excluem por padrão. */
+    /**
+     * Valor inicial gravado na partida. A qualidade que vale é a MEDIDA (`v_run_quality`, a partir de
+     * `run_health`); este campo fica para runs antigos sem `run_health`.
+     */
     quality: 'provisional' | 'production';
   }): Promise<void> {
     await this.client.insert({

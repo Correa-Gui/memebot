@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { AppConfig, Logger, PumpEvent } from '@memebot/core';
+import { configSource, type AppConfig, type Logger, type PumpEvent } from '@memebot/core';
 import {
   IngestService,
   RateLimiter,
@@ -14,7 +14,7 @@ import {
 } from '@memebot/ingest';
 import { Recorder } from '@memebot/recorder';
 import { BoundedQueue } from './bounded-queue.ts';
-import { configHash, gitCommit, idlHash, newRunId, runQuality } from './run-info.ts';
+import { configHash, endpointHost, gitCommit, idlHash, newRunId, STREAM_GAP_PROVISIONAL_RATIO } from './run-info.ts';
 
 /**
  * Caminho comum de `record` e `paper` (extraído de `runRecord`): run em `runs`, gravação de todos os
@@ -69,13 +69,27 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
       throw e;
     }
   }
-  const quality = runQuality(rpcUrl, wsUrl);
+  // Qualidade MEDIDA: começa provisional e é decidida por `v_run_quality` (run_health, gravado a cada
+  // minuto): provisional se o tempo sem stream passar de 1% do run. Hosts só informativos.
+  const quality = 'provisional' as const;
+  const endpoints = { rpcHost: endpointHost(rpcUrl), wsHost: endpointHost(wsUrl) };
+  const runStartedMs = Date.now();
   const baseHash = configHash(cfg);
   const hash = opts.extraConfigHash ? createHash('sha256').update(`${baseHash}:${opts.extraConfigHash}`).digest('hex') : baseHash;
   const run = { mode: opts.mode, configHash: hash, gitCommit: gitCommit(), idlHash: idlHash(), quality };
   await recorder.recordRun(run);
-  log.info({ runId, ...run }, 'run iniciado');
-  if (quality === 'provisional') log.warn({ runId }, 'RPC público detectado (HTTP ou WS): run marcada como provisional (sanity/backtest excluem por padrão)');
+  log.info({ runId, ...run, endpoints }, 'run iniciado (qualidade medida a cada minuto: provisional se sem stream > 1% do tempo)');
+  // Origem (sem valor/chave) das configurações que mais já enganaram: lida pelo `pnpm status`.
+  log.info(
+    {
+      configSources: {
+        RPC_URL: { source: configSource('RPC_URL'), host: endpoints.rpcHost },
+        RPC_WS_URL: { source: configSource('RPC_WS_URL'), host: endpoints.wsHost },
+        INGEST_COST_SAMPLES_PER_SEC: { source: configSource('INGEST_COST_SAMPLES_PER_SEC'), value: cfg.INGEST_COST_SAMPLES_PER_SEC },
+      },
+    },
+    'config sources',
+  );
 
   // configuração de taxas/curva on-chain: na partida e periodicamente (CLAUDE.md §7)
   const snapshotProtocol = async (): Promise<ProtocolConfigSnapshot[]> => {
@@ -173,6 +187,10 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
       setInterval(() => {
         const s = service.stats;
         const ws = service.wsStats();
+        const nowMs = Date.now();
+        const uptimeMs = nowMs - runStartedMs;
+        const streamGapMs = ws.closedGapMs + (ws.openGapSince === null ? 0 : nowMs - ws.openGapSince);
+        recorder.recordRunHealth({ uptimeMs, streamGapMs, ...endpoints });
         const mem = process.memoryUsage();
         // Todas as requisições HTTP ao RPC_URL (cada tentativa = 1 crédito no Helius): protocol_config e
         // rent (cliente `rpc`) + resolvedor de pools e amostrador de custos (clientes próprios, sem retry).
@@ -193,6 +211,11 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
             rpcCallsPerMin: rpc.stats.calls - lastRpc.calls,
             rpc429PerMin: rpc.stats.rateLimited - lastRpc.rateLimited,
             http: { requestsPerMin: httpRequestsPerMin, rateLimitedPerMin: http429PerMin },
+            quality: {
+              streamGapMs,
+              streamGapPct: Math.round((streamGapMs / Math.max(1, uptimeMs)) * 10_000) / 100,
+              measured: streamGapMs / Math.max(1, uptimeMs) > STREAM_GAP_PROVISIONAL_RATIO ? 'provisional' : 'production',
+            },
             ws: {
               mbPerMin: Math.round(((ws.payloadBytes - lastWs.payloadBytes) / 1_048_576) * 100) / 100,
               messagesPerMin: ws.messages - lastWs.messages,

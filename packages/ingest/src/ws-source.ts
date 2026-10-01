@@ -36,6 +36,13 @@ export interface WsStats {
   payloadBytes: number;
   messages: number;
   reconnects: number;
+  /**
+   * Tempo total sem stream em lacunas já fechadas: da última mensagem antes do silêncio até a primeira
+   * notificação depois de reconectar (inclui o tempo de heartbeat até detectar a queda).
+   */
+  closedGapMs: number;
+  /** Início (ms) da lacuna em aberto, ou null se o stream está fluindo. */
+  openGapSince: number | null;
 }
 
 const SubscribeAck = z.object({ id: z.number(), result: z.number() });
@@ -67,7 +74,8 @@ export class WsLogsSource {
   private disconnectedAt: number | null = null;
   private awaitingFirstSlotAfterReconnect = false;
   private readonly seen = new Set<string>();
-  readonly stats: WsStats = { payloadBytes: 0, messages: 0, reconnects: 0 };
+  readonly stats: WsStats = { payloadBytes: 0, messages: 0, reconnects: 0, closedGapMs: 0, openGapSince: null };
+  private lastMessageAt: number | null = null;
 
   constructor(opts: WsLogsSourceOptions) {
     this.o = {
@@ -110,6 +118,7 @@ export class WsLogsSource {
     socket.onmessage = (ev) => {
       this.armHeartbeat();
       if (typeof ev.data === 'string') {
+        this.lastMessageAt = this.o.now();
         this.stats.messages++;
         this.stats.payloadBytes += Buffer.byteLength(ev.data, 'utf8');
         this.handleMessage(ev.data);
@@ -138,14 +147,20 @@ export class WsLogsSource {
       if (this.awaitingFirstSlotAfterReconnect) {
         this.awaitingFirstSlotAfterReconnect = false;
         this.backoffMs = this.o.initialBackoffMs;
+        const nowMs = this.o.now();
+        const gapStart = this.stats.openGapSince ?? this.disconnectedAt ?? nowMs;
+        const durationMs = Math.max(0, nowMs - gapStart);
+        this.stats.closedGapMs += durationMs;
+        this.stats.openGapSince = null;
         this.o.onGap({
           kind: 'reconnect',
-          detectedAtMs: this.o.now(),
+          detectedAtMs: nowMs,
           fromSlot: this.lastSlot,
           toSlot: slot,
           sig: null,
           program: null,
-          detail: `desconectado por ${String(this.o.now() - (this.disconnectedAt ?? this.o.now()))} ms`,
+          durationMs,
+          detail: `desconectado por ${String(nowMs - (this.disconnectedAt ?? nowMs))} ms; sem stream por ${String(durationMs)} ms`,
         });
       }
       if (this.lastSlot === null || slot > this.lastSlot) this.lastSlot = slot;
@@ -179,6 +194,8 @@ export class WsLogsSource {
     if (this.stopped) return;
     this.stats.reconnects++;
     if (this.disconnectedAt === null || !this.awaitingFirstSlotAfterReconnect) this.disconnectedAt = this.o.now();
+    // a lacuna começa na última mensagem recebida (o heartbeat só detecta a queda 30 s depois)
+    this.stats.openGapSince ??= this.lastMessageAt ?? this.o.now();
     this.awaitingFirstSlotAfterReconnect = true;
     this.o.onStatus?.('disconnected', `${reason}; reconectando em ${String(this.backoffMs)} ms`);
     this.reconnectTimer = setTimeout(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HELIUS_FREE_MONTHLY_CREDITS, summarizeIngestLog } from './status-summary.ts';
+import { HELIUS_FREE_MONTHLY_CREDITS, formatConfigSources, lastConfigSources, summarizeIngestLog } from './status-summary.ts';
 
 function line(time: number, mbPerMin: number, requestsPerMin: number, extra: Record<string, unknown> = {}): string {
   const body = {
@@ -43,5 +43,18 @@ describe('summarizeIngestLog', () => {
 
   it('null sem nenhuma linha válida', () => {
     expect(summarizeIngestLog(['nada'], 10)).toBeNull();
+  });
+});
+
+describe('lastConfigSources / formatConfigSources', () => {
+  it('pega a última linha config sources e mostra origem + host/valor, nunca a URL completa', () => {
+    const l = (src: string) =>
+      `2026-10-01T23:00:00: ${JSON.stringify({ msg: 'config sources', configSources: { RPC_URL: { source: src, host: 'mainnet.helius-rpc.com' }, INGEST_COST_SAMPLES_PER_SEC: { source: 'padrão', value: 0.2 } } })}`;
+    const c = lastConfigSources([l('.env'), 'x', l('env do processo')]);
+    expect(c?.['RPC_URL']).toEqual({ source: 'env do processo', host: 'mainnet.helius-rpc.com' });
+    const text = formatConfigSources(c);
+    expect(text).toContain('mainnet.helius-rpc.com');
+    expect(text).toContain('valor 0.2');
+    expect(formatConfigSources(null)).toContain('versão antiga');
   });
 });

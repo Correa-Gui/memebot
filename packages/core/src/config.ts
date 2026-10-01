@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import { z } from 'zod';
 
 const ConfigSchema = z.object({
@@ -73,10 +74,30 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
   return result.data;
 }
 
+export type ConfigSource = 'env do processo' | '.env' | 'padrão';
+
+let lastSources: Partial<Record<keyof AppConfig, ConfigSource>> = {};
+
+/**
+ * De onde veio cada chave na última chamada de `loadConfigFromEnvFile`: o ambiente do processo vence o
+ * `.env` (é o que `process.loadEnvFile` faz). Só a origem — nunca o valor (pode ser segredo).
+ * Motivo: em 2026-10-01 o daemon do pm2 tinha herdado INGEST_COST_SAMPLES_PER_SEC=0 no ambiente e
+ * isso anulava o `.env`/padrão sem nenhum sinal no log.
+ */
+export function configSource(key: keyof AppConfig): ConfigSource | undefined {
+  return lastSources[key];
+}
+
 /** Lê o arquivo `.env` (se existir) para `process.env` e valida. Variáveis já definidas no ambiente têm precedência. */
 export function loadConfigFromEnvFile(envPath = '.env'): AppConfig {
+  const keys = Object.keys(ConfigSchema.shape) as (keyof AppConfig)[];
+  const fromProcess = new Set(keys.filter((k) => process.env[k] !== undefined));
+  const inFile = existsSync(envPath) ? new Set(Object.keys(parseEnv(readFileSync(envPath, 'utf8')))) : new Set<string>();
   if (existsSync(envPath)) {
     process.loadEnvFile(envPath);
   }
+  lastSources = Object.fromEntries(
+    keys.map((k): [keyof AppConfig, ConfigSource] => [k, fromProcess.has(k) ? 'env do processo' : inFile.has(k) ? '.env' : 'padrão']),
+  );
   return loadConfig(process.env);
 }

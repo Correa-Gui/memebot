@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadConfig, loadConfigFromEnvFile } from './config.ts';
+import { configSource, loadConfig, loadConfigFromEnvFile } from './config.ts';
 
 describe('loadConfig', () => {
   it('aplica defaults', () => {
@@ -57,5 +57,28 @@ describe('loadConfigFromEnvFile', () => {
 
   it('funciona sem arquivo', () => {
     expect(() => loadConfigFromEnvFile(path.join(tmpdir(), 'nao-existe.env'))).not.toThrow();
+  });
+});
+
+describe('configSource', () => {
+  it('ambiente do processo vence o .env; o resto é padrão (sem expor valores)', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'cfgsrc-'));
+    const envPath = path.join(dir, '.env');
+    writeFileSync(envPath, 'RPC_URL=https://from-file.example\nINGEST_COST_SAMPLES_PER_SEC=1\n');
+    const saved = { ...process.env };
+    try {
+      delete process.env['RPC_URL'];
+      delete process.env['RPC_WS_URL'];
+      process.env['INGEST_COST_SAMPLES_PER_SEC'] = '0';
+      process.env['MODE'] = 'paper'; // o vitest define MODE=test, que não é um modo válido do bot
+      const cfg = loadConfigFromEnvFile(envPath);
+      expect(configSource('RPC_URL')).toBe('.env');
+      expect(configSource('INGEST_COST_SAMPLES_PER_SEC')).toBe('env do processo');
+      expect(cfg.INGEST_COST_SAMPLES_PER_SEC).toBe(0);
+      expect(configSource('RPC_WS_URL')).toBe('padrão');
+    } finally {
+      for (const k of Object.keys(process.env)) if (!(k in saved)) Reflect.deleteProperty(process.env, k);
+      Object.assign(process.env, saved);
+    }
   });
 });

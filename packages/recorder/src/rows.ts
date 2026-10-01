@@ -12,7 +12,8 @@ export type TableName =
   | 'protocol_config'
   | 'runs'
   | 'decisions'
-  | 'fills';
+  | 'fills'
+  | 'run_health';
 
 /** DateTime64(3, 'UTC') no formato de texto do ClickHouse. */
 export function chTime(ms: number): string {
@@ -137,6 +138,7 @@ export function gapToRow(g: IngestGap, runId: string): Row {
     to_slot: uOrNull(g.toSlot),
     sig: g.sig,
     program: g.program,
+    duration_ms: g.durationMs ?? 0,
     detail: g.detail,
   };
 }

@@ -139,6 +139,8 @@ export interface IngestGap {
   toSlot: bigint | null;
   sig: string | null;
   program: string | null;
+  /** Só em `reconnect`: tempo sem stream (última mensagem antes do silêncio → primeira depois). */
+  durationMs: number | null;
   detail: string;
 }
 

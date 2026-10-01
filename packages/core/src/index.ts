@@ -13,7 +13,7 @@ export type {
   EventSource,
 } from './events.ts';
 export { SystemClock, SimulatedClock } from './clock.ts';
-export { loadConfig, loadConfigFromEnvFile } from './config.ts';
-export type { AppConfig } from './config.ts';
+export { configSource, loadConfig, loadConfigFromEnvFile } from './config.ts';
+export type { AppConfig, ConfigSource } from './config.ts';
 export { createLogger, logger } from './logger.ts';
 export type { Logger } from './logger.ts';

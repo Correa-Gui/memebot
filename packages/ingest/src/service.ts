@@ -47,7 +47,7 @@ export class IngestService implements EventSource {
     });
     this.normalizer.setOnResolveFailure((_pool, detail) => {
       this.stats.gaps++;
-      this.o.onGap({ kind: 'pool_resolve_failed', detectedAtMs: this.now(), fromSlot: null, toSlot: null, sig: null, program: null, detail });
+      this.o.onGap({ kind: 'pool_resolve_failed', detectedAtMs: this.now(), fromSlot: null, toSlot: null, sig: null, program: null, durationMs: null, detail });
     });
   }
 
@@ -58,7 +58,7 @@ export class IngestService implements EventSource {
 
   /** Tráfego acumulado do WebSocket desde o início (zeros antes de `start`). */
   wsStats(): WsStats {
-    return this.source ? { ...this.source.stats } : { payloadBytes: 0, messages: 0, reconnects: 0 };
+    return this.source ? { ...this.source.stats } : { payloadBytes: 0, messages: 0, reconnects: 0, closedGapMs: 0, openGapSince: null };
   }
 
   poolCacheStats(): PoolCacheStats {

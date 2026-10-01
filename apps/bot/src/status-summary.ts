@@ -87,6 +87,35 @@ export function summarizeIngestLog(lines: readonly string[], lastN: number): Ing
   };
 }
 
+const SourceEntry = z.object({ source: z.string().optional(), host: z.string().optional(), value: z.number().optional() });
+const ConfigSourcesLine = z.object({ msg: z.literal('config sources'), configSources: z.record(z.string(), SourceEntry) });
+export type ConfigSources = z.infer<typeof ConfigSourcesLine>['configSources'];
+
+/** Última linha `config sources` do log (origem de RPC_URL/RPC_WS_URL/INGEST_COST_SAMPLES_PER_SEC; sem valores secretos). */
+export function lastConfigSources(lines: readonly string[]): ConfigSources | null {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i] ?? '';
+    const start = line.indexOf('{');
+    if (start < 0 || !line.includes('config sources')) continue;
+    try {
+      const r = ConfigSourcesLine.safeParse(JSON.parse(line.slice(start)));
+      if (r.success) return r.data.configSources;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+export function formatConfigSources(c: ConfigSources | null): string {
+  if (!c) return 'Origem da config: (nenhuma linha "config sources" no log — versão antiga do bot)';
+  const rows = Object.entries(c).map(([k, v]) => {
+    const extra = v.host !== undefined ? `host ${v.host}` : v.value !== undefined ? `valor ${String(v.value)}` : '';
+    return `  ${k.padEnd(28)} ${(v.source ?? '?').padEnd(16)} ${extra}`;
+  });
+  return ['Origem da config (env do processo vence o .env; chaves nunca exibidas)', ...rows].join('\n');
+}
+
 export function formatStatus(s: IngestStatusSummary): string {
   const f = (x: number, d = 1): string => x.toLocaleString('pt-BR', { maximumFractionDigits: d, minimumFractionDigits: d });
   const i = (x: number): string => Math.round(x).toLocaleString('pt-BR');
