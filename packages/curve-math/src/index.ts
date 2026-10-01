@@ -11,7 +11,7 @@ export type {
 } from './bonding-curve.ts';
 export { bondingCurveBuy, bondingCurveSell, deriveRealReserves, marginalPrice } from './bonding-curve.ts';
 
-export { parseCurveInitialParams } from './protocol-params.ts';
+export { parseCurveInitialParams, parseFeeConfigAccount, worstCaseCurveFees } from './protocol-params.ts';
 
 export type {
   PumpSwapReserves,
