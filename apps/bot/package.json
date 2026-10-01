@@ -11,6 +11,7 @@
     "@memebot/core": "workspace:*",
     "@memebot/curve-math": "workspace:*",
     "@memebot/execution": "workspace:*",
+    "@memebot/features": "workspace:*",
     "@memebot/ingest": "workspace:*",
     "@memebot/monitor": "workspace:*",
     "@memebot/positions": "workspace:*",

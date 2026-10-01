@@ -44,6 +44,9 @@ importers:
       '@memebot/execution':
         specifier: workspace:*
         version: link:../../packages/execution
+      '@memebot/features':
+        specifier: workspace:*
+        version: link:../../packages/features
       '@memebot/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest

@@ -16,6 +16,7 @@
     "bot": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/main.ts",
     "sanity": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/sanity.ts",
     "status": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/status.ts",
+    "funnel": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/funnel.ts",
     "report": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/report.ts"
   },
   "devDependencies": {
