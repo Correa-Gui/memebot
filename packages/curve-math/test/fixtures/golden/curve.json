@@ -1,0 +1,2762 @@
+[
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=91166",
+    "before": {
+      "virtualQuote": "91440090178",
+      "virtualToken": "352033775197546"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "16524409",
+      "tokenAmount": "63605569804",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "91456614587",
+      "virtualToken": "351970169627742",
+      "realQuote": "61456614587",
+      "realToken": "72070169627742"
+    },
+    "fees": {
+      "protocolFee": "156982",
+      "creatorFee": "49574"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=113074",
+    "before": {
+      "virtualQuote": "91456614587",
+      "virtualToken": "351970169627742"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "33025406",
+      "tokenAmount": "127143969985",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "91423589181",
+      "virtualToken": "352097313597727",
+      "realQuote": "61423589181",
+      "realToken": "72197313597727"
+    },
+    "fees": {
+      "protocolFee": "313742",
+      "creatorFee": "99077"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=56805",
+    "before": {
+      "virtualQuote": "91423589181",
+      "virtualToken": "352097313597727"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "15702403",
+      "tokenAmount": "60463875184",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "91439291584",
+      "virtualToken": "352036849722543",
+      "realQuote": "61439291584",
+      "realToken": "72136849722543"
+    },
+    "fees": {
+      "protocolFee": "149173",
+      "creatorFee": "47108"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=67578",
+    "before": {
+      "virtualQuote": "91439291584",
+      "virtualToken": "352036849722543"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "80697680",
+      "tokenAmount": "310408220931",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "91519989264",
+      "virtualToken": "351726441501612",
+      "realQuote": "61519989264",
+      "realToken": "71826441501612"
+    },
+    "fees": {
+      "protocolFee": "766628",
+      "creatorFee": "242094"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=91883",
+    "before": {
+      "virtualQuote": "91519989264",
+      "virtualToken": "351726441501612"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "17678389",
+      "tokenAmount": "67954098636",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "91502310875",
+      "virtualToken": "351794395600248",
+      "realQuote": "61502310875",
+      "realToken": "71894395600248"
+    },
+    "fees": {
+      "protocolFee": "167945",
+      "creatorFee": "53036"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=558634",
+    "before": {
+      "virtualQuote": "91502310875",
+      "virtualToken": "351794395600248"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "161708551",
+      "tokenAmount": "620616053263",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "91664019426",
+      "virtualToken": "351173779546985",
+      "realQuote": "61664019426",
+      "realToken": "71273779546985"
+    },
+    "fees": {
+      "protocolFee": "1536232",
+      "creatorFee": "485126"
+    }
+  },
+  {
+    "description": "curve trade real: mint=12aG5N52… recv_seq=1061711",
+    "before": {
+      "virtualQuote": "91664019426",
+      "virtualToken": "351173779546985"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "81075974",
+      "tokenAmount": "310335458216",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "91745095400",
+      "virtualToken": "350863444088769",
+      "realQuote": "61745095400",
+      "realToken": "70963444088769"
+    },
+    "fees": {
+      "protocolFee": "770222",
+      "creatorFee": "243228"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=66855",
+    "before": {
+      "virtualQuote": "36601505435",
+      "virtualToken": "879472022285260"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "98819877",
+      "tokenAmount": "2380902002521",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "36502685558",
+      "virtualToken": "881852924287781",
+      "realQuote": "6502685558",
+      "realToken": "601952924287781"
+    },
+    "fees": {
+      "protocolFee": "938789",
+      "creatorFee": "296460"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=67657",
+    "before": {
+      "virtualQuote": "36842127613",
+      "virtualToken": "873728041512336"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "30199629",
+      "tokenAmount": "716785695600",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "36811927984",
+      "virtualToken": "874444827207936",
+      "realQuote": "6811927984",
+      "realToken": "594544827207936"
+    },
+    "fees": {
+      "protocolFee": "286897",
+      "creatorFee": "90599"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=69987",
+    "before": {
+      "virtualQuote": "36811927984",
+      "virtualToken": "874444827207936"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "2366634262",
+      "tokenAmount": "60080517972828",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34445293722",
+      "virtualToken": "934525345180764",
+      "realQuote": "4445293722",
+      "realToken": "654625345180764"
+    },
+    "fees": {
+      "protocolFee": "22483026",
+      "creatorFee": "7099903"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=69989",
+    "before": {
+      "virtualQuote": "34445293722",
+      "virtualToken": "934525345180764"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1547890189",
+      "tokenAmount": "43971330822850",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "32897403533",
+      "virtualToken": "978496676003614",
+      "realQuote": "2897403533",
+      "realToken": "698596676003614"
+    },
+    "fees": {
+      "protocolFee": "14704957",
+      "creatorFee": "4643671"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=69990",
+    "before": {
+      "virtualQuote": "32897403533",
+      "virtualToken": "978496676003614"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1092362678",
+      "tokenAmount": "33607039036506",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "31805040855",
+      "virtualToken": "1012103715040120",
+      "realQuote": "1805040855",
+      "realToken": "732203715040120"
+    },
+    "fees": {
+      "protocolFee": "10377446",
+      "creatorFee": "3277089"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=69991",
+    "before": {
+      "virtualQuote": "31805040855",
+      "virtualToken": "1012103715040120"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1105032255",
+      "tokenAmount": "36430193396471",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "30700008600",
+      "virtualToken": "1048533908436591",
+      "realQuote": "700008600",
+      "realToken": "768633908436591"
+    },
+    "fees": {
+      "protocolFee": "10497807",
+      "creatorFee": "3315097"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=74296",
+    "before": {
+      "virtualQuote": "30700008600",
+      "virtualToken": "1048533908436591"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "429753775",
+      "tokenAmount": "14886277258241",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "30270254825",
+      "virtualToken": "1063420185694832",
+      "realQuote": "270254825",
+      "realToken": "783520185694832"
+    },
+    "fees": {
+      "protocolFee": "4082661",
+      "creatorFee": "1289262"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=75990",
+    "before": {
+      "virtualQuote": "30270254825",
+      "virtualToken": "1063420185694832"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "977777777",
+      "tokenAmount": "33275330912163",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "31248032602",
+      "virtualToken": "1030144854782669",
+      "realQuote": "1248032602",
+      "realToken": "750244854782669"
+    },
+    "fees": {
+      "protocolFee": "9288889",
+      "creatorFee": "2933334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=79389",
+    "before": {
+      "virtualQuote": "31447401439",
+      "virtualToken": "1023613988269083"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "101897008",
+      "tokenAmount": "3327533091216",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "31345504431",
+      "virtualToken": "1026941521360299",
+      "realQuote": "1345504431",
+      "realToken": "747041521360299"
+    },
+    "fees": {
+      "protocolFee": "968022",
+      "creatorFee": "305692"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=92028",
+    "before": {
+      "virtualQuote": "31345504431",
+      "virtualToken": "1026941521360299"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "1173333333",
+      "tokenAmount": "37053744872386",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "32518837764",
+      "virtualToken": "989887776487913",
+      "realQuote": "2518837764",
+      "realToken": "709987776487913"
+    },
+    "fees": {
+      "protocolFee": "11146667",
+      "creatorFee": "3520000"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=95042",
+    "before": {
+      "virtualQuote": "32643002977",
+      "virtualToken": "986122509403709"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "67184561",
+      "tokenAmount": "2025430389524",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "32710187538",
+      "virtualToken": "984097079014185",
+      "realQuote": "2710187538",
+      "realToken": "704197079014185"
+    },
+    "fees": {
+      "protocolFee": "638254",
+      "creatorFee": "201554"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=97237",
+    "before": {
+      "virtualQuote": "33824148422",
+      "virtualToken": "951686931196970"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "200000000",
+      "tokenAmount": "5594185161628",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "34024148422",
+      "virtualToken": "946092746035342",
+      "realQuote": "4024148422",
+      "realToken": "666192746035342"
+    },
+    "fees": {
+      "protocolFee": "1900000",
+      "creatorFee": "600000"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=102040",
+    "before": {
+      "virtualQuote": "34024148422",
+      "virtualToken": "946092746035342"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "329908922",
+      "tokenAmount": "9263436218096",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33694239500",
+      "virtualToken": "955356182253438",
+      "realQuote": "3694239500",
+      "realToken": "675456182253438"
+    },
+    "fees": {
+      "protocolFee": "3134135",
+      "creatorFee": "989727"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=102593",
+    "before": {
+      "virtualQuote": "33694239500",
+      "virtualToken": "955356182253438"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "10576661",
+      "tokenAmount": "299981601832",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33683662839",
+      "virtualToken": "955656163855270",
+      "realQuote": "3683662839",
+      "realToken": "675756163855270"
+    },
+    "fees": {
+      "protocolFee": "100479",
+      "creatorFee": "31730"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=103465",
+    "before": {
+      "virtualQuote": "34562647471",
+      "virtualToken": "931352265251322"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "139906711",
+      "tokenAmount": "3785359037609",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34422740760",
+      "virtualToken": "935137624288931",
+      "realQuote": "4422740760",
+      "realToken": "655237624288931"
+    },
+    "fees": {
+      "protocolFee": "1329114",
+      "creatorFee": "419721"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=120992",
+    "before": {
+      "virtualQuote": "34422740760",
+      "virtualToken": "935137624288931"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "137682854",
+      "tokenAmount": "3755350729211",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34285057906",
+      "virtualToken": "938892975018142",
+      "realQuote": "4285057906",
+      "realToken": "658992975018142"
+    },
+    "fees": {
+      "protocolFee": "1307988",
+      "creatorFee": "413049"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=121123",
+    "before": {
+      "virtualQuote": "34285057906",
+      "virtualToken": "938892975018142"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "203069951",
+      "tokenAmount": "5594185161628",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34081987955",
+      "virtualToken": "944487160179770",
+      "realQuote": "4081987955",
+      "realToken": "664587160179770"
+    },
+    "fees": {
+      "protocolFee": "1929165",
+      "creatorFee": "609210"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=128012",
+    "before": {
+      "virtualQuote": "34081987955",
+      "virtualToken": "944487160179770"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "32389339",
+      "tokenAmount": "898433934628",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34049598616",
+      "virtualToken": "945385594114398",
+      "realQuote": "4049598616",
+      "realToken": "665485594114398"
+    },
+    "fees": {
+      "protocolFee": "307699",
+      "creatorFee": "97169"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=130434",
+    "before": {
+      "virtualQuote": "34049598616",
+      "virtualToken": "945385594114398"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "92144874",
+      "tokenAmount": "2565340676875",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33957453742",
+      "virtualToken": "947950934791273",
+      "realQuote": "3957453742",
+      "realToken": "668050934791273"
+    },
+    "fees": {
+      "protocolFee": "875377",
+      "creatorFee": "276435"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=141257",
+    "before": {
+      "virtualQuote": "34026951735",
+      "virtualToken": "946014802310247"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "999358445",
+      "tokenAmount": "28624788779606",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33027593290",
+      "virtualToken": "974639591089853",
+      "realQuote": "3027593290",
+      "realToken": "694739591089853"
+    },
+    "fees": {
+      "protocolFee": "9493906",
+      "creatorFee": "2998076"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=142030",
+    "before": {
+      "virtualQuote": "33027593290",
+      "virtualToken": "974639591089853"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "758581426",
+      "tokenAmount": "22911872681686",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "32269011864",
+      "virtualToken": "997551463771539",
+      "realQuote": "2269011864",
+      "realToken": "717651463771539"
+    },
+    "fees": {
+      "protocolFee": "7206524",
+      "creatorFee": "2275745"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=142710",
+    "before": {
+      "virtualQuote": "32269011864",
+      "virtualToken": "997551463771539"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "7849341",
+      "tokenAmount": "242710470564",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "32261162523",
+      "virtualToken": "997794174242103",
+      "realQuote": "2261162523",
+      "realToken": "717894174242103"
+    },
+    "fees": {
+      "protocolFee": "74569",
+      "creatorFee": "23549"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=155420",
+    "before": {
+      "virtualQuote": "33365558607",
+      "virtualToken": "964767303966953"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "49582560",
+      "tokenAmount": "1435816646411",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33315976047",
+      "virtualToken": "966203120613364",
+      "realQuote": "3315976047",
+      "realToken": "686303120613364"
+    },
+    "fees": {
+      "protocolFee": "471035",
+      "creatorFee": "148748"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=160253",
+    "before": {
+      "virtualQuote": "33315976047",
+      "virtualToken": "966203120613364"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "340938798",
+      "tokenAmount": "9787472561963",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "33656914845",
+      "virtualToken": "956415648051401",
+      "realQuote": "3656914845",
+      "realToken": "676515648051401"
+    },
+    "fees": {
+      "protocolFee": "3238919",
+      "creatorFee": "1022817"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=160254",
+    "before": {
+      "virtualQuote": "33656914845",
+      "virtualToken": "956415648051401"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "327986745",
+      "tokenAmount": "9230324073198",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "33984901590",
+      "virtualToken": "947185323978203",
+      "realQuote": "3984901590",
+      "realToken": "667285323978203"
+    },
+    "fees": {
+      "protocolFee": "3115875",
+      "creatorFee": "983961"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=160255",
+    "before": {
+      "virtualQuote": "33984901590",
+      "virtualToken": "947185323978203"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "318728774",
+      "tokenAmount": "8800678349752",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "34303630364",
+      "virtualToken": "938384645628451",
+      "realQuote": "4303630364",
+      "realToken": "658484645628451"
+    },
+    "fees": {
+      "protocolFee": "3027924",
+      "creatorFee": "956187"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=160508",
+    "before": {
+      "virtualQuote": "36851728146",
+      "virtualToken": "873500420367386"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "116724137",
+      "tokenAmount": "2775515784375",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "36735004009",
+      "virtualToken": "876275936151761",
+      "realQuote": "6735004009",
+      "realToken": "596375936151761"
+    },
+    "fees": {
+      "protocolFee": "1108880",
+      "creatorFee": "350173"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=161174",
+    "before": {
+      "virtualQuote": "36932535637",
+      "virtualToken": "871589222726015"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1145214792",
+      "tokenAmount": "27891355009295",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "35787320845",
+      "virtualToken": "899480577735310",
+      "realQuote": "5787320845",
+      "realToken": "619580577735310"
+    },
+    "fees": {
+      "protocolFee": "10879541",
+      "creatorFee": "3435645"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=161175",
+    "before": {
+      "virtualQuote": "35787320845",
+      "virtualToken": "899480577735310"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "509834776",
+      "tokenAmount": "12999409264631",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "35277486069",
+      "virtualToken": "912479986999941",
+      "realQuote": "5277486069",
+      "realToken": "632579986999941"
+    },
+    "fees": {
+      "protocolFee": "4843431",
+      "creatorFee": "1529505"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=161184",
+    "before": {
+      "virtualQuote": "35277486069",
+      "virtualToken": "912479986999941"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "336993730",
+      "tokenAmount": "8800678349752",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34940492339",
+      "virtualToken": "921280665349693",
+      "realQuote": "4940492339",
+      "realToken": "641380665349693"
+    },
+    "fees": {
+      "protocolFee": "3201441",
+      "creatorFee": "1010982"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=161185",
+    "before": {
+      "virtualQuote": "34940492339",
+      "virtualToken": "921280665349693"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "367297618",
+      "tokenAmount": "9787472561963",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34573194721",
+      "virtualToken": "931068137911656",
+      "realQuote": "4573194721",
+      "realToken": "651168137911656"
+    },
+    "fees": {
+      "protocolFee": "3489328",
+      "creatorFee": "1101893"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=161186",
+    "before": {
+      "virtualQuote": "34573194721",
+      "virtualToken": "931068137911656"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "339383508",
+      "tokenAmount": "9230324073198",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34233811213",
+      "virtualToken": "940298461984854",
+      "realQuote": "4233811213",
+      "realToken": "660398461984854"
+    },
+    "fees": {
+      "protocolFee": "3224144",
+      "creatorFee": "1018151"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=165142",
+    "before": {
+      "virtualQuote": "34233811213",
+      "virtualToken": "940298461984854"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "353135969",
+      "tokenAmount": "9800666787957",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33880675244",
+      "virtualToken": "950099128772811",
+      "realQuote": "3880675244",
+      "realToken": "670199128772811"
+    },
+    "fees": {
+      "protocolFee": "3354792",
+      "creatorFee": "1059408"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=168292",
+    "before": {
+      "virtualQuote": "33880675244",
+      "virtualToken": "950099128772811"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "72073499",
+      "tokenAmount": "2025430389524",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33808601745",
+      "virtualToken": "952124559162335",
+      "realQuote": "3808601745",
+      "realToken": "672224559162335"
+    },
+    "fees": {
+      "protocolFee": "684699",
+      "creatorFee": "216221"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=170474",
+    "before": {
+      "virtualQuote": "33808601745",
+      "virtualToken": "952124559162335"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "977777777",
+      "tokenAmount": "26762377909896",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "34786379522",
+      "virtualToken": "925362181252439",
+      "realQuote": "4786379522",
+      "realToken": "645462181252439"
+    },
+    "fees": {
+      "protocolFee": "9288889",
+      "creatorFee": "2933334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=171178",
+    "before": {
+      "virtualQuote": "34983910385",
+      "virtualToken": "920137276794401"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "988755910",
+      "tokenAmount": "26762377909896",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "33995154475",
+      "virtualToken": "946899654704297",
+      "realQuote": "3995154475",
+      "realToken": "666999654704297"
+    },
+    "fees": {
+      "protocolFee": "9393182",
+      "creatorFee": "2966268"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=171911",
+    "before": {
+      "virtualQuote": "34051731214",
+      "virtualToken": "945326386862454"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "656",
+      "tokenAmount": "18227688",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "34051730558",
+      "virtualToken": "945326405090142",
+      "realQuote": "4051730558",
+      "realToken": "665426405090142"
+    },
+    "fees": {
+      "protocolFee": "7",
+      "creatorFee": "2"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=174648",
+    "before": {
+      "virtualQuote": "34051730558",
+      "virtualToken": "945326405090142"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "1173333333",
+      "tokenAmount": "31488459044093",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "35225063891",
+      "virtualToken": "913837946046049",
+      "realQuote": "5225063891",
+      "realToken": "633937946046049"
+    },
+    "fees": {
+      "protocolFee": "11146667",
+      "creatorFee": "3520000"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=175869",
+    "before": {
+      "virtualQuote": "35225063891",
+      "virtualToken": "913837946046049"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "557469462",
+      "tokenAmount": "14237022938309",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "35782533353",
+      "virtualToken": "899600923107740",
+      "realQuote": "5782533353",
+      "realToken": "619700923107740"
+    },
+    "fees": {
+      "protocolFee": "5295960",
+      "creatorFee": "1672409"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=175870",
+    "before": {
+      "virtualQuote": "35782533353",
+      "virtualToken": "899600923107740"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "519745759",
+      "tokenAmount": "12879735818657",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "36302279112",
+      "virtualToken": "886721187289083",
+      "realQuote": "6302279112",
+      "realToken": "606821187289083"
+    },
+    "fees": {
+      "protocolFee": "4937585",
+      "creatorFee": "1559238"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=175871",
+    "before": {
+      "virtualQuote": "36302279112",
+      "virtualToken": "886721187289083"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "404266256",
+      "tokenAmount": "9765872841134",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "36706545368",
+      "virtualToken": "876955314447949",
+      "realQuote": "6706545368",
+      "realToken": "597055314447949"
+    },
+    "fees": {
+      "protocolFee": "3840530",
+      "creatorFee": "1212799"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=176690",
+    "before": {
+      "virtualQuote": "39123453924",
+      "virtualToken": "822780118037977"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1589268005",
+      "tokenAmount": "34838057221711",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37534185919",
+      "virtualToken": "857618175259688",
+      "realQuote": "7534185919",
+      "realToken": "577718175259688"
+    },
+    "fees": {
+      "protocolFee": "15098047",
+      "creatorFee": "4767805"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=176698",
+    "before": {
+      "virtualQuote": "37534185919",
+      "virtualToken": "857618175259688"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "227286444",
+      "tokenAmount": "5224904458038",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37306899475",
+      "virtualToken": "862843079717726",
+      "realQuote": "7306899475",
+      "realToken": "582943079717726"
+    },
+    "fees": {
+      "protocolFee": "2159222",
+      "creatorFee": "681860"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=177051",
+    "before": {
+      "virtualQuote": "37306899475",
+      "virtualToken": "862843079717726"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1313536116",
+      "tokenAmount": "31488459044093",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "35993363359",
+      "virtualToken": "894331538761819",
+      "realQuote": "5993363359",
+      "realToken": "614431538761819"
+    },
+    "fees": {
+      "protocolFee": "12478594",
+      "creatorFee": "3940609"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=177056",
+    "before": {
+      "virtualQuote": "36993363360",
+      "virtualToken": "870156079772517"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "66764379",
+      "tokenAmount": "1573267841843",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "36926598981",
+      "virtualToken": "871729347614360",
+      "realQuote": "6926598981",
+      "realToken": "591829347614360"
+    },
+    "fees": {
+      "protocolFee": "634262",
+      "creatorFee": "200294"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=1669",
+    "before": {
+      "virtualQuote": "37863928304",
+      "virtualToken": "850149508654409"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1016736883",
+      "tokenAmount": "23458459894497",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "36847191421",
+      "virtualToken": "873607968548906",
+      "realQuote": "6847191421",
+      "realToken": "593707968548906"
+    },
+    "fees": {
+      "protocolFee": "9659001",
+      "creatorFee": "3050211"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=5708",
+    "before": {
+      "virtualQuote": "36847191421",
+      "virtualToken": "873607968548906"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "977777777",
+      "tokenAmount": "22582819644500",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "37824969198",
+      "virtualToken": "851025148904406",
+      "realQuote": "7824969198",
+      "realToken": "571125148904406"
+    },
+    "fees": {
+      "protocolFee": "9288889",
+      "creatorFee": "2933334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=6949",
+    "before": {
+      "virtualQuote": "38022500061",
+      "virtualToken": "846603984304985"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "977777777",
+      "tokenAmount": "21225247810068",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "39000277838",
+      "virtualToken": "825378736494917",
+      "realQuote": "9000277838",
+      "realToken": "545478736494917"
+    },
+    "fees": {
+      "protocolFee": "9288889",
+      "creatorFee": "2933334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=9096",
+    "before": {
+      "virtualQuote": "39000277838",
+      "virtualToken": "825378736494917"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1038651144",
+      "tokenAmount": "22582819644500",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37961626694",
+      "virtualToken": "847961556139417",
+      "realQuote": "7961626694",
+      "realToken": "568061556139417"
+    },
+    "fees": {
+      "protocolFee": "9867186",
+      "creatorFee": "3115954"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=9338",
+    "before": {
+      "virtualQuote": "37961626694",
+      "virtualToken": "847961556139417"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "196900518",
+      "tokenAmount": "4421164599421",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37764726176",
+      "virtualToken": "852382720738838",
+      "realQuote": "7764726176",
+      "realToken": "572482720738838"
+    },
+    "fees": {
+      "protocolFee": "1870555",
+      "creatorFee": "590702"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=16803",
+    "before": {
+      "virtualQuote": "39813468615",
+      "virtualToken": "808520361801585"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1045611163",
+      "tokenAmount": "21806671082122",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38767857452",
+      "virtualToken": "830327032883707",
+      "realQuote": "8767857452",
+      "realToken": "550427032883707"
+    },
+    "fees": {
+      "protocolFee": "9933307",
+      "creatorFee": "3136834"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=18956",
+    "before": {
+      "virtualQuote": "38767857452",
+      "virtualToken": "830327032883707"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "977777777",
+      "tokenAmount": "20426779336103",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "39745635229",
+      "virtualToken": "809900253547604",
+      "realQuote": "9745635229",
+      "realToken": "530000253547604"
+    },
+    "fees": {
+      "protocolFee": "9288889",
+      "creatorFee": "2933334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=21236",
+    "before": {
+      "virtualQuote": "41364829750",
+      "virtualToken": "778197329600317"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1426251882",
+      "tokenAmount": "27790308654290",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39938577868",
+      "virtualToken": "805987638254607",
+      "realQuote": "9938577868",
+      "realToken": "526087638254607"
+    },
+    "fees": {
+      "protocolFee": "13549393",
+      "creatorFee": "4278756"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=21924",
+    "before": {
+      "virtualQuote": "39938577868",
+      "virtualToken": "805987638254607"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "44544638",
+      "tokenAmount": "899944805497",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39894033230",
+      "virtualToken": "806887583060104",
+      "realQuote": "9894033230",
+      "realToken": "526987583060104"
+    },
+    "fees": {
+      "protocolFee": "423175",
+      "creatorFee": "133634"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=22105",
+    "before": {
+      "virtualQuote": "39894033230",
+      "virtualToken": "806887583060104"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "97777777",
+      "tokenAmount": "1972795734274",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "39991811007",
+      "virtualToken": "804914787325830",
+      "realQuote": "9991811007",
+      "realToken": "525014787325830"
+    },
+    "fees": {
+      "protocolFee": "928889",
+      "creatorFee": "293334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=28942",
+    "before": {
+      "virtualQuote": "39991811007",
+      "virtualToken": "804914787325830"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "22127732",
+      "tokenAmount": "445611208958",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39969683275",
+      "virtualToken": "805360398534788",
+      "realQuote": "9969683275",
+      "realToken": "525460398534788"
+    },
+    "fees": {
+      "protocolFee": "210214",
+      "creatorFee": "66384"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=28947",
+    "before": {
+      "virtualQuote": "39969683275",
+      "virtualToken": "805360398534788"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "741496209",
+      "tokenAmount": "15223025260347",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39228187066",
+      "virtualToken": "820583423795135",
+      "realQuote": "9228187066",
+      "realToken": "540683423795135"
+    },
+    "fees": {
+      "protocolFee": "7044214",
+      "creatorFee": "2224489"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=30464",
+    "before": {
+      "virtualQuote": "39228187066",
+      "virtualToken": "820583423795135"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1122639189",
+      "tokenAmount": "24175458989302",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38105547877",
+      "virtualToken": "844758882784437",
+      "realQuote": "8105547877",
+      "realToken": "564858882784437"
+    },
+    "fees": {
+      "protocolFee": "10665073",
+      "creatorFee": "3367918"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=30465",
+    "before": {
+      "virtualQuote": "38105547877",
+      "virtualToken": "844758882784437"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "484229765",
+      "tokenAmount": "10873021360704",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37621318112",
+      "virtualToken": "855631904145141",
+      "realQuote": "7621318112",
+      "realToken": "575731904145141"
+    },
+    "fees": {
+      "protocolFee": "4600183",
+      "creatorFee": "1452690"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=33119",
+    "before": {
+      "virtualQuote": "38608972432",
+      "virtualToken": "833744024401297"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "100000000",
+      "tokenAmount": "2153877956502",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "38708972432",
+      "virtualToken": "831590146444795",
+      "realQuote": "8708972432",
+      "realToken": "551690146444795"
+    },
+    "fees": {
+      "protocolFee": "950000",
+      "creatorFee": "300000"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=33674",
+    "before": {
+      "virtualQuote": "39555672624",
+      "virtualToken": "813789727777164"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "417587016",
+      "tokenAmount": "8501383853466",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "39973259640",
+      "virtualToken": "805288343923698",
+      "realQuote": "9973259640",
+      "realToken": "525388343923698"
+    },
+    "fees": {
+      "protocolFee": "3967077",
+      "creatorFee": "1252762"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=33889",
+    "before": {
+      "virtualQuote": "39973259640",
+      "virtualToken": "805288343923698"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1057730958",
+      "tokenAmount": "21887879743844",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38915528682",
+      "virtualToken": "827176223667542",
+      "realQuote": "8915528682",
+      "realToken": "547276223667542"
+    },
+    "fees": {
+      "protocolFee": "10048445",
+      "creatorFee": "3173193"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=33935",
+    "before": {
+      "virtualQuote": "38915528682",
+      "virtualToken": "827176223667542"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "101068680",
+      "tokenAmount": "2153877956502",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38814460002",
+      "virtualToken": "829330101624044",
+      "realQuote": "8814460002",
+      "realToken": "549430101624044"
+    },
+    "fees": {
+      "protocolFee": "960153",
+      "creatorFee": "303207"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=41393",
+    "before": {
+      "virtualQuote": "39850326947",
+      "virtualToken": "807772546142025"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "289906171",
+      "tokenAmount": "5834003136019",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "40140233118",
+      "virtualToken": "801938543006006",
+      "realQuote": "10140233118",
+      "realToken": "522038543006006"
+    },
+    "fees": {
+      "protocolFee": "2754109",
+      "creatorFee": "869719"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=43175",
+    "before": {
+      "virtualQuote": "41377184010",
+      "virtualToken": "777964978399088"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "159206141",
+      "tokenAmount": "3004921858584",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "41217977869",
+      "virtualToken": "780969900257672",
+      "realQuote": "11217977869",
+      "realToken": "501069900257672"
+    },
+    "fees": {
+      "protocolFee": "1512459",
+      "creatorFee": "477619"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=50494",
+    "before": {
+      "virtualQuote": "41711805028",
+      "virtualToken": "771723977045331"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "770558645",
+      "tokenAmount": "14524681943159",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40941246383",
+      "virtualToken": "786248658988490",
+      "realQuote": "10941246383",
+      "realToken": "506348658988490"
+    },
+    "fees": {
+      "protocolFee": "7320308",
+      "creatorFee": "2311676"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=50590",
+    "before": {
+      "virtualQuote": "40941246383",
+      "virtualToken": "786248658988490"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "218674115",
+      "tokenAmount": "4222037565716",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40722572268",
+      "virtualToken": "790470696554206",
+      "realQuote": "10722572268",
+      "realToken": "510570696554206"
+    },
+    "fees": {
+      "protocolFee": "2077405",
+      "creatorFee": "656023"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=52382",
+    "before": {
+      "virtualQuote": "40758974989",
+      "virtualToken": "789764710119480"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "60068663",
+      "tokenAmount": "1165636002140",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40698906326",
+      "virtualToken": "790930346121620",
+      "realQuote": "10698906326",
+      "realToken": "511030346121620"
+    },
+    "fees": {
+      "protocolFee": "570653",
+      "creatorFee": "180206"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=53430",
+    "before": {
+      "virtualQuote": "40698906326",
+      "virtualToken": "790930346121620"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "758",
+      "tokenAmount": "14749237",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40698905568",
+      "virtualToken": "790930360870857",
+      "realQuote": "10698905568",
+      "realToken": "511030360870857"
+    },
+    "fees": {
+      "protocolFee": "8",
+      "creatorFee": "3"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=53795",
+    "before": {
+      "virtualQuote": "40698905568",
+      "virtualToken": "790930360870857"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "470270068",
+      "tokenAmount": "9245923212341",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40228635500",
+      "virtualToken": "800176284083198",
+      "realQuote": "10228635500",
+      "realToken": "520276284083198"
+    },
+    "fees": {
+      "protocolFee": "4467566",
+      "creatorFee": "1410811"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=54107",
+    "before": {
+      "virtualQuote": "40228635500",
+      "virtualToken": "800176284083198"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "8604444",
+      "tokenAmount": "171111936010",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "40237239944",
+      "virtualToken": "800005172147188",
+      "realQuote": "10237239944",
+      "realToken": "520105172147188"
+    },
+    "fees": {
+      "protocolFee": "81743",
+      "creatorFee": "25814"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=54109",
+    "before": {
+      "virtualQuote": "40237239944",
+      "virtualToken": "800005172147188"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "8604444",
+      "tokenAmount": "171038769545",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "40245844388",
+      "virtualToken": "799834133377643",
+      "realQuote": "10245844388",
+      "realToken": "519934133377643"
+    },
+    "fees": {
+      "protocolFee": "81743",
+      "creatorFee": "25814"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=55889",
+    "before": {
+      "virtualQuote": "40245844388",
+      "virtualToken": "799834133377643"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "734414537",
+      "tokenAmount": "14866832648715",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39511429851",
+      "virtualToken": "814700966026358",
+      "realQuote": "9511429851",
+      "realToken": "534800966026358"
+    },
+    "fees": {
+      "protocolFee": "6976939",
+      "creatorFee": "2203244"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=63085",
+    "before": {
+      "virtualQuote": "39691713235",
+      "virtualToken": "811000519925461"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1038706017",
+      "tokenAmount": "21793676111394",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38653007218",
+      "virtualToken": "832794196036855",
+      "realQuote": "8653007218",
+      "realToken": "552894196036855"
+    },
+    "fees": {
+      "protocolFee": "9867708",
+      "creatorFee": "3116119"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=65634",
+    "before": {
+      "virtualQuote": "38653007218",
+      "virtualToken": "832794196036855"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1328395348",
+      "tokenAmount": "29639422369411",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37324611870",
+      "virtualToken": "862433618406266",
+      "realQuote": "7324611870",
+      "realToken": "582533618406266"
+    },
+    "fees": {
+      "protocolFee": "12619756",
+      "creatorFee": "3985187"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=67343",
+    "before": {
+      "virtualQuote": "37418034611",
+      "virtualToken": "860280354277367"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "45868631",
+      "tokenAmount": "1055862871054",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "37372165980",
+      "virtualToken": "861336217148421",
+      "realQuote": "7372165980",
+      "realToken": "581436217148421"
+    },
+    "fees": {
+      "protocolFee": "435752",
+      "creatorFee": "137606"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=74747",
+    "before": {
+      "virtualQuote": "44358946164",
+      "virtualToken": "725670983300815"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "242987329",
+      "tokenAmount": "3996940319287",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "44115958835",
+      "virtualToken": "729667923620102",
+      "realQuote": "14115958835",
+      "realToken": "449767923620102"
+    },
+    "fees": {
+      "protocolFee": "2308380",
+      "creatorFee": "728962"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=74850",
+    "before": {
+      "virtualQuote": "44115958835",
+      "virtualToken": "729667923620102"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "198516360",
+      "tokenAmount": "3298257193826",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "43917442475",
+      "virtualToken": "732966180813928",
+      "realQuote": "13917442475",
+      "realToken": "453066180813928"
+    },
+    "fees": {
+      "protocolFee": "1885906",
+      "creatorFee": "595550"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=74974",
+    "before": {
+      "virtualQuote": "43917442475",
+      "virtualToken": "732966180813928"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "297766198",
+      "tokenAmount": "5003534465203",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "43619676277",
+      "virtualToken": "737969715279131",
+      "realQuote": "13619676277",
+      "realToken": "458069715279131"
+    },
+    "fees": {
+      "protocolFee": "2828779",
+      "creatorFee": "893299"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=74985",
+    "before": {
+      "virtualQuote": "43619676277",
+      "virtualToken": "737969715279131"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "54707840",
+      "tokenAmount": "926724634128",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "43564968437",
+      "virtualToken": "738896439913259",
+      "realQuote": "13564968437",
+      "realToken": "458996439913259"
+    },
+    "fees": {
+      "protocolFee": "519725",
+      "creatorFee": "164124"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=75288",
+    "before": {
+      "virtualQuote": "43564968437",
+      "virtualToken": "738896439913259"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "691358023",
+      "tokenAmount": "11542801284283",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "44256326460",
+      "virtualToken": "727353638628976",
+      "realQuote": "14256326460",
+      "realToken": "447453638628976"
+    },
+    "fees": {
+      "protocolFee": "6567902",
+      "creatorFee": "2074075"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=76147",
+    "before": {
+      "virtualQuote": "44353161224",
+      "virtualToken": "725765631936334"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "97777777",
+      "tokenAmount": "1596451092116",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "44450939001",
+      "virtualToken": "724169180844218",
+      "realQuote": "14450939001",
+      "realToken": "444269180844218"
+    },
+    "fees": {
+      "protocolFee": "928889",
+      "creatorFee": "293334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=77507",
+    "before": {
+      "virtualQuote": "46689283971",
+      "virtualToken": "689451568919118"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "97777777",
+      "tokenAmount": "1440847944698",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "46787061748",
+      "virtualToken": "688010720974420",
+      "realQuote": "16787061748",
+      "realToken": "408110720974420"
+    },
+    "fees": {
+      "protocolFee": "928889",
+      "creatorFee": "293334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=77945",
+    "before": {
+      "virtualQuote": "47873481498",
+      "virtualToken": "672397308077352"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "48888888",
+      "tokenAmount": "685958487055",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "47922370386",
+      "virtualToken": "671711349590297",
+      "realQuote": "17922370386",
+      "realToken": "391811349590297"
+    },
+    "fees": {
+      "protocolFee": "464445",
+      "creatorFee": "146667"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=78984",
+    "before": {
+      "virtualQuote": "47971753101",
+      "virtualToken": "671019881646689"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "340054379",
+      "tokenAmount": "4790575506353",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "47631698722",
+      "virtualToken": "675810457153042",
+      "realQuote": "17631698722",
+      "realToken": "395910457153042"
+    },
+    "fees": {
+      "protocolFee": "3230517",
+      "creatorFee": "1020164"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=79380",
+    "before": {
+      "virtualQuote": "47631698722",
+      "virtualToken": "675810457153042"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "9876542",
+      "tokenAmount": "140101798211",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "47641575264",
+      "virtualToken": "675670355354831",
+      "realQuote": "17641575264",
+      "realToken": "395770355354831"
+    },
+    "fees": {
+      "protocolFee": "93828",
+      "creatorFee": "29630"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=80205",
+    "before": {
+      "virtualQuote": "48284419961",
+      "virtualToken": "666674677151715"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "150459292",
+      "tokenAmount": "2083921602486",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "48133960669",
+      "virtualToken": "668758598754201",
+      "realQuote": "18133960669",
+      "realToken": "388858598754201"
+    },
+    "fees": {
+      "protocolFee": "1429364",
+      "creatorFee": "451378"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=80926",
+    "before": {
+      "virtualQuote": "48133960669",
+      "virtualToken": "668758598754201"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "245697703",
+      "tokenAmount": "3396312770792",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "48379658372",
+      "virtualToken": "665362285983409",
+      "realQuote": "18379658372",
+      "realToken": "385462285983409"
+    },
+    "fees": {
+      "protocolFee": "2334129",
+      "creatorFee": "737094"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=81439",
+    "before": {
+      "virtualQuote": "48379658372",
+      "virtualToken": "665362285983409"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "98765431",
+      "tokenAmount": "1355547226810",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "48478423803",
+      "virtualToken": "664006738756599",
+      "realQuote": "18478423803",
+      "realToken": "384106738756599"
+    },
+    "fees": {
+      "protocolFee": "938272",
+      "creatorFee": "296297"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=81445",
+    "before": {
+      "virtualQuote": "48478423803",
+      "virtualToken": "664006738756599"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "98765431",
+      "tokenAmount": "1350035125010",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "48577189234",
+      "virtualToken": "662656703631589",
+      "realQuote": "18577189234",
+      "realToken": "382756703631589"
+    },
+    "fees": {
+      "protocolFee": "938272",
+      "creatorFee": "296297"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=83508",
+    "before": {
+      "virtualQuote": "48577189234",
+      "virtualToken": "662656703631589"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "176007087",
+      "tokenAmount": "2409698928248",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "48401182147",
+      "virtualToken": "665066402559837",
+      "realQuote": "18401182147",
+      "realToken": "385166402559837"
+    },
+    "fees": {
+      "protocolFee": "1672068",
+      "creatorFee": "528022"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=85383",
+    "before": {
+      "virtualQuote": "48401182147",
+      "virtualToken": "665066402559837"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "156201225",
+      "tokenAmount": "2153264128899",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "48244980922",
+      "virtualToken": "667219666688736",
+      "realQuote": "18244980922",
+      "realToken": "387319666688736"
+    },
+    "fees": {
+      "protocolFee": "1483912",
+      "creatorFee": "468604"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=85384",
+    "before": {
+      "virtualQuote": "48244980922",
+      "virtualToken": "667219666688736"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "351170623",
+      "tokenAmount": "4892238582286",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "47893810299",
+      "virtualToken": "672111905271022",
+      "realQuote": "17893810299",
+      "realToken": "392211905271022"
+    },
+    "fees": {
+      "protocolFee": "3336121",
+      "creatorFee": "1053512"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=85386",
+    "before": {
+      "virtualQuote": "47893810299",
+      "virtualToken": "672111905271022"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "2232033905",
+      "tokenAmount": "32854099844427",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "45661776394",
+      "virtualToken": "704966005115449",
+      "realQuote": "15661776394",
+      "realToken": "425066005115449"
+    },
+    "fees": {
+      "protocolFee": "21204323",
+      "creatorFee": "6696102"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=94272",
+    "before": {
+      "virtualQuote": "45761177000",
+      "virtualToken": "703434706084244"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "634696511",
+      "tokenAmount": "9893693223377",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "45126480489",
+      "virtualToken": "713328399307621",
+      "realQuote": "15126480489",
+      "realToken": "433428399307621"
+    },
+    "fees": {
+      "protocolFee": "6029617",
+      "creatorFee": "1904090"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=95895",
+    "before": {
+      "virtualQuote": "45126480489",
+      "virtualToken": "713328399307621"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "244444444",
+      "tokenAmount": "3843191740429",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "45370924933",
+      "virtualToken": "709485207567192",
+      "realQuote": "15370924933",
+      "realToken": "429585207567192"
+    },
+    "fees": {
+      "protocolFee": "2322223",
+      "creatorFee": "733334"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=97874",
+    "before": {
+      "virtualQuote": "45370924933",
+      "virtualToken": "709485207567192"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "91281131",
+      "tokenAmount": "1430280966772",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "45279643802",
+      "virtualToken": "710915488533964",
+      "realQuote": "15279643802",
+      "realToken": "431015488533964"
+    },
+    "fees": {
+      "protocolFee": "867171",
+      "creatorFee": "273844"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=98743",
+    "before": {
+      "virtualQuote": "45279643802",
+      "virtualToken": "710915488533964"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1641276453",
+      "tokenAmount": "26738141742484",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "43638367349",
+      "virtualToken": "737653630276448",
+      "realQuote": "13638367349",
+      "realToken": "457753630276448"
+    },
+    "fees": {
+      "protocolFee": "15592127",
+      "creatorFee": "4923830"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=101029",
+    "before": {
+      "virtualQuote": "43638367349",
+      "virtualToken": "737653630276448"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "120518537",
+      "tokenAmount": "2042861468597",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "43517848812",
+      "virtualToken": "739696491745045",
+      "realQuote": "13517848812",
+      "realToken": "459796491745045"
+    },
+    "fees": {
+      "protocolFee": "1144927",
+      "creatorFee": "361556"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=102190",
+    "before": {
+      "virtualQuote": "43517848812",
+      "virtualToken": "739696491745045"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "601646791",
+      "tokenAmount": "10369883631178",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "42916202021",
+      "virtualToken": "750066375376223",
+      "realQuote": "12916202021",
+      "realToken": "470166375376223"
+    },
+    "fees": {
+      "protocolFee": "5715645",
+      "creatorFee": "1804941"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=104266",
+    "before": {
+      "virtualQuote": "42916202021",
+      "virtualToken": "750066375376223"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "198765431",
+      "tokenAmount": "3457900473802",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "43114967452",
+      "virtualToken": "746608474902421",
+      "realQuote": "13114967452",
+      "realToken": "466708474902421"
+    },
+    "fees": {
+      "protocolFee": "1888272",
+      "creatorFee": "596297"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=104461",
+    "before": {
+      "virtualQuote": "43213732883",
+      "virtualToken": "744902093570664"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1413448454",
+      "tokenAmount": "25188362410938",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "41800284429",
+      "virtualToken": "770090455981602",
+      "realQuote": "11800284429",
+      "realToken": "490190455981602"
+    },
+    "fees": {
+      "protocolFee": "13427761",
+      "creatorFee": "4240346"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=104464",
+    "before": {
+      "virtualQuote": "41800284429",
+      "virtualToken": "770090455981602"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "811381791",
+      "tokenAmount": "15244062014122",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40988902638",
+      "virtualToken": "785334517995724",
+      "realQuote": "10988902638",
+      "realToken": "505434517995724"
+    },
+    "fees": {
+      "protocolFee": "7708128",
+      "creatorFee": "2434146"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=105209",
+    "before": {
+      "virtualQuote": "41087668069",
+      "virtualToken": "783446752030634"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "8651551",
+      "tokenAmount": "164930329373",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "41096319620",
+      "virtualToken": "783281821701261",
+      "realQuote": "11096319620",
+      "realToken": "503381821701261"
+    },
+    "fees": {
+      "protocolFee": "82190",
+      "creatorFee": "25955"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=105216",
+    "before": {
+      "virtualQuote": "41096319620",
+      "virtualToken": "783281821701261"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8273703",
+      "tokenAmount": "157725725870",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "41088045917",
+      "virtualToken": "783439547427131",
+      "realQuote": "11088045917",
+      "realToken": "503539547427131"
+    },
+    "fees": {
+      "protocolFee": "78601",
+      "creatorFee": "24822"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=106183",
+    "before": {
+      "virtualQuote": "42475540768",
+      "virtualToken": "757847917134129"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "195555555",
+      "tokenAmount": "3473109031906",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "42671096323",
+      "virtualToken": "754374808102223",
+      "realQuote": "12671096323",
+      "realToken": "474474808102223"
+    },
+    "fees": {
+      "protocolFee": "1857778",
+      "creatorFee": "586667"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=106685",
+    "before": {
+      "virtualQuote": "42727673062",
+      "virtualToken": "753375922302595"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "98765431",
+      "tokenAmount": "1737419694224",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "42826438493",
+      "virtualToken": "751638502608371",
+      "realQuote": "12826438493",
+      "realToken": "471738502608371"
+    },
+    "fees": {
+      "protocolFee": "938272",
+      "creatorFee": "296297"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=107235",
+    "before": {
+      "virtualQuote": "42826438493",
+      "virtualToken": "751638502608371"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "98765431",
+      "tokenAmount": "1729424531045",
+      "ixName": "buy"
+    },
+    "after": {
+      "virtualQuote": "42925203924",
+      "virtualToken": "749909078077326",
+      "realQuote": "12925203924",
+      "realToken": "470009078077326"
+    },
+    "fees": {
+      "protocolFee": "938272",
+      "creatorFee": "296297"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=111586",
+    "before": {
+      "virtualQuote": "42925203924",
+      "virtualToken": "749909078077326"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "66047910",
+      "tokenAmount": "1155644022521",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "42859156014",
+      "virtualToken": "751064722099847",
+      "realQuote": "12859156014",
+      "realToken": "471164722099847"
+    },
+    "fees": {
+      "protocolFee": "627456",
+      "creatorFee": "198144"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=113130",
+    "before": {
+      "virtualQuote": "42859156014",
+      "virtualToken": "751064722099847"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1154451771",
+      "tokenAmount": "20790652154987",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "41704704243",
+      "virtualToken": "771855374254834",
+      "realQuote": "11704704243",
+      "realToken": "491955374254834"
+    },
+    "fees": {
+      "protocolFee": "10967292",
+      "creatorFee": "3463356"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=113134",
+    "before": {
+      "virtualQuote": "41704704243",
+      "virtualToken": "771855374254834"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1061790932",
+      "tokenAmount": "20164623326647",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "40642913311",
+      "virtualToken": "792019997581481",
+      "realQuote": "10642913311",
+      "realToken": "512119997581481"
+    },
+    "fees": {
+      "protocolFee": "10087014",
+      "creatorFee": "3185373"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=113140",
+    "before": {
+      "virtualQuote": "40642913311",
+      "virtualToken": "792019997581481"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1070877498",
+      "tokenAmount": "21433226172461",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "39572035813",
+      "virtualToken": "813453223753942",
+      "realQuote": "9572035813",
+      "realToken": "533553223753942"
+    },
+    "fees": {
+      "protocolFee": "10173337",
+      "creatorFee": "3212633"
+    }
+  },
+  {
+    "description": "curve trade real: mint=133KKzzc… recv_seq=113201",
+    "before": {
+      "virtualQuote": "39572035813",
+      "virtualToken": "813453223753942"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "683222627",
+      "tokenAmount": "14291247370621",
+      "ixName": "sell"
+    },
+    "after": {
+      "virtualQuote": "38888813186",
+      "virtualToken": "827744471124563",
+      "realQuote": "8888813186",
+      "realToken": "547844471124563"
+    },
+    "fees": {
+      "protocolFee": "6490615",
+      "creatorFee": "2049668"
+    }
+  }
+]

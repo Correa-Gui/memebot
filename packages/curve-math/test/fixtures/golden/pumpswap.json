@@ -1,0 +1,1442 @@
+[
+  {
+    "description": "pumpswap trade real: pool=DycbAuWK… recv_seq=0",
+    "before": {
+      "base": "70574196524936",
+      "quote": "231911523080"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "215867",
+      "tokenAmount": "61061924",
+      "userQuoteAmount": "213600"
+    },
+    "fees": {
+      "lpFee": "432",
+      "protocolFee": "108",
+      "creatorFee": "1727"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=FgWrp3Pk… recv_seq=1",
+    "before": {
+      "base": "123262026148417",
+      "quote": "129042688267"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "4964810189",
+      "tokenAmount": "3990651806879",
+      "userQuoteAmount": "4905938921"
+    },
+    "fees": {
+      "lpFee": "9811878",
+      "protocolFee": "2452970",
+      "creatorFee": "46606420"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=3UMUTZee… recv_seq=1",
+    "before": {
+      "base": "329090850298085",
+      "quote": "43976525954"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "255142019",
+      "tokenAmount": "1358299928371",
+      "userQuoteAmount": "258331296"
+    },
+    "fees": {
+      "lpFee": "51029",
+      "protocolFee": "2372821",
+      "creatorFee": "765427"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CP8F9L2T… recv_seq=1",
+    "before": {
+      "base": "199862134222470",
+      "quote": "75021017454"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "405960346",
+      "tokenAmount": "872323478856",
+      "userQuoteAmount": "410831872"
+    },
+    "fees": {
+      "lpFee": "811921",
+      "protocolFee": "202981",
+      "creatorFee": "3856624"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=3",
+    "before": {
+      "base": "993569293883778",
+      "quote": "343210577"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1896497",
+      "tokenAmount": "105116647949",
+      "userQuoteAmount": "1872789"
+    },
+    "fees": {
+      "lpFee": "380",
+      "protocolFee": "17638",
+      "creatorFee": "5690"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=F42tZnKP… recv_seq=4",
+    "before": {
+      "base": "96980471499825",
+      "quote": "643866864544"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "36695007",
+      "tokenAmount": "5472040289",
+      "userQuoteAmount": "36331689"
+    },
+    "fees": {
+      "lpFee": "72664",
+      "protocolFee": "18166",
+      "creatorFee": "272488"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=FgWrp3Pk… recv_seq=5",
+    "before": {
+      "base": "167041332343680",
+      "quote": "89355728019"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "49750000",
+      "tokenAmount": "76753071355",
+      "userQuoteAmount": "49160077"
+    },
+    "fees": {
+      "lpFee": "98321",
+      "protocolFee": "24581",
+      "creatorFee": "467021"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GxFBwnqj… recv_seq=6",
+    "before": {
+      "base": "206900000000000",
+      "quote": "67405853768"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "987478891",
+      "tokenAmount": "2376302863257",
+      "userQuoteAmount": "999822378"
+    },
+    "fees": {
+      "lpFee": "197496",
+      "protocolFee": "9183554",
+      "creatorFee": "2962437"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GxFBwnqj… recv_seq=6",
+    "before": {
+      "base": "204523697136743",
+      "quote": "68393530155"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "164909353884",
+      "tokenAmount": "134434300740438",
+      "userQuoteAmount": "166888266131"
+    },
+    "fees": {
+      "lpFee": "329818708",
+      "protocolFee": "82454677",
+      "creatorFee": "1566638862"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=4azQSc3m… recv_seq=7",
+    "before": {
+      "base": "51462371307820",
+      "quote": "325070665463"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "310628",
+      "tokenAmount": "46652406",
+      "userQuoteAmount": "307520"
+    },
+    "fees": {
+      "lpFee": "622",
+      "protocolFee": "156",
+      "creatorFee": "2330"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=4azQSc3m… recv_seq=8",
+    "before": {
+      "base": "51462417960226",
+      "quote": "325070355457"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "346088",
+      "tokenAmount": "51978097",
+      "userQuoteAmount": "342625"
+    },
+    "fees": {
+      "lpFee": "693",
+      "protocolFee": "174",
+      "creatorFee": "2596"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CFvu8C3F… recv_seq=8",
+    "before": {
+      "base": "41008360589080",
+      "quote": "412913425712"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "246795",
+      "tokenAmount": "23509255",
+      "userQuoteAmount": "244449"
+    },
+    "fees": {
+      "lpFee": "494",
+      "protocolFee": "124",
+      "creatorFee": "1728"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CP8F9L2T… recv_seq=8",
+    "before": {
+      "base": "291945466048735",
+      "quote": "45880470601"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1069430008",
+      "tokenAmount": "5003806506457",
+      "userQuoteAmount": "1056062130"
+    },
+    "fees": {
+      "lpFee": "213887",
+      "protocolFee": "9945700",
+      "creatorFee": "3208291"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GsVMiPFB… recv_seq=9",
+    "before": {
+      "base": "425319460853841",
+      "quote": "23863592201"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "19800000",
+      "tokenAmount": "200574582817",
+      "userQuoteAmount": "19555554"
+    },
+    "fees": {
+      "lpFee": "3912",
+      "protocolFee": "181867",
+      "creatorFee": "58667"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CjrE8E81… recv_seq=10",
+    "before": {
+      "base": "145455916393153",
+      "quote": "113602875086"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "15708301",
+      "tokenAmount": "17414721989",
+      "userQuoteAmount": "15896802"
+    },
+    "fees": {
+      "lpFee": "31417",
+      "protocolFee": "7855",
+      "creatorFee": "149229"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=Gf7sXMoP… recv_seq=10",
+    "before": {
+      "base": "3058560787360",
+      "quote": "25596561043735"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "100000000",
+      "tokenAmount": "11913321",
+      "userQuoteAmount": "99700896"
+    },
+    "fees": {
+      "lpFee": "249253",
+      "protocolFee": "49851",
+      "creatorFee": "0"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CFvu8C3F… recv_seq=10",
+    "before": {
+      "base": "41008384098335",
+      "quote": "412913179411"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "481388",
+      "tokenAmount": "45856179",
+      "userQuoteAmount": "476814"
+    },
+    "fees": {
+      "lpFee": "963",
+      "protocolFee": "241",
+      "creatorFee": "3370"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=12",
+    "before": {
+      "base": "34296765318396",
+      "quote": "497179684890"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "178780",
+      "tokenAmount": "11911442",
+      "userQuoteAmount": "177169"
+    },
+    "fees": {
+      "lpFee": "358",
+      "protocolFee": "90",
+      "creatorFee": "1163"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=FgWrp3Pk… recv_seq=13",
+    "before": {
+      "base": "166964579272325",
+      "quote": "89404986417"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "363215",
+      "tokenAmount": "566824684",
+      "userQuoteAmount": "358855"
+    },
+    "fees": {
+      "lpFee": "727",
+      "protocolFee": "182",
+      "creatorFee": "3451"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=13",
+    "before": {
+      "base": "993674410531727",
+      "quote": "341314460"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1809106",
+      "tokenAmount": "100293575979",
+      "userQuoteAmount": "1786491"
+    },
+    "fees": {
+      "lpFee": "362",
+      "protocolFee": "16825",
+      "creatorFee": "5428"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=14",
+    "before": {
+      "base": "34296777229838",
+      "quote": "497179506468"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "278847",
+      "tokenAmount": "18578579",
+      "userQuoteAmount": "276336"
+    },
+    "fees": {
+      "lpFee": "558",
+      "protocolFee": "140",
+      "creatorFee": "1813"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CP8F9L2T… recv_seq=14",
+    "before": {
+      "base": "165778264100259",
+      "quote": "90028942072"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "238586988",
+      "tokenAmount": "368359374889",
+      "userQuoteAmount": "235723943"
+    },
+    "fees": {
+      "lpFee": "477174",
+      "protocolFee": "119294",
+      "creatorFee": "2266577"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=FgWrp3Pk… recv_seq=15",
+    "before": {
+      "base": "166965146097009",
+      "quote": "89404623929"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "17619877",
+      "tokenAmount": "27501765919",
+      "userQuoteAmount": "17408438"
+    },
+    "fees": {
+      "lpFee": "35240",
+      "protocolFee": "8810",
+      "creatorFee": "167389"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=EZ3rPtwH… recv_seq=16",
+    "before": {
+      "base": "9556495665816",
+      "quote": "1829458138506"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "7763837",
+      "tokenAmount": "40169490",
+      "userQuoteAmount": "7787129"
+    },
+    "fees": {
+      "lpFee": "15528",
+      "protocolFee": "3882",
+      "creatorFee": "3882"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=BBE2t5r8… recv_seq=17",
+    "before": {
+      "base": "99164499503040",
+      "quote": "162035879257"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "138408304",
+      "tokenAmount": "76353373182",
+      "userQuoteAmount": "140000001"
+    },
+    "fees": {
+      "lpFee": "276817",
+      "protocolFee": "69205",
+      "creatorFee": "1245675"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GsVMiPFB… recv_seq=17",
+    "before": {
+      "base": "280577609309551",
+      "quote": "45171630977"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "250000000",
+      "tokenAmount": "1099604246515",
+      "userQuoteAmount": "246913579"
+    },
+    "fees": {
+      "lpFee": "49383",
+      "protocolFee": "2296297",
+      "creatorFee": "740741"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=AVR8m56s… recv_seq=18",
+    "before": {
+      "base": "108204100667416",
+      "quote": "145967527045"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "237547",
+      "tokenAmount": "155369804",
+      "userQuoteAmount": "234845"
+    },
+    "fees": {
+      "lpFee": "470",
+      "protocolFee": "118",
+      "creatorFee": "2114"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=3MnuFHGJ… recv_seq=19",
+    "before": {
+      "base": "32867625733761",
+      "quote": "519464165564"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "3967845",
+      "tokenAmount": "240666048",
+      "userQuoteAmount": "3932452"
+    },
+    "fees": {
+      "lpFee": "7865",
+      "protocolFee": "1967",
+      "creatorFee": "25561"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=4qsfwGxr… recv_seq=20",
+    "before": {
+      "base": "144762004135771",
+      "quote": "108741859077"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "151083915",
+      "tokenAmount": "173339899577",
+      "userQuoteAmount": "149270907"
+    },
+    "fees": {
+      "lpFee": "302168",
+      "protocolFee": "75542",
+      "creatorFee": "1435298"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=BkKmNZmu… recv_seq=21",
+    "before": {
+      "base": "5496181341158",
+      "quote": "3188491536609"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1242267701",
+      "tokenAmount": "2130447019",
+      "userQuoteAmount": "1238540897"
+    },
+    "fees": {
+      "lpFee": "2484536",
+      "protocolFee": "621134",
+      "creatorFee": "621134"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=CdEmNR3k… recv_seq=22",
+    "before": {
+      "base": "91802082862226",
+      "quote": "192685885717"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "67570650",
+      "tokenAmount": "29510196322",
+      "userQuoteAmount": "66793586"
+    },
+    "fees": {
+      "lpFee": "135142",
+      "protocolFee": "33786",
+      "creatorFee": "608136"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=9NqGN7vh… recv_seq=23",
+    "before": {
+      "base": "208373164331959",
+      "quote": "74154526352"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "49016074",
+      "tokenAmount": "109955356315",
+      "userQuoteAmount": "48434854"
+    },
+    "fees": {
+      "lpFee": "96870",
+      "protocolFee": "24218",
+      "creatorFee": "460132"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=27",
+    "before": {
+      "base": "921213736177436",
+      "quote": "1622738941"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8249757",
+      "tokenAmount": "395843146318",
+      "userQuoteAmount": "8146634"
+    },
+    "fees": {
+      "lpFee": "1650",
+      "protocolFee": "76723",
+      "creatorFee": "24750"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=8ow3FH5P… recv_seq=28",
+    "before": {
+      "base": "7885208103294",
+      "quote": "2217834047160"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "176192",
+      "tokenAmount": "621502",
+      "userQuoteAmount": "175661"
+    },
+    "fees": {
+      "lpFee": "353",
+      "protocolFee": "89",
+      "creatorFee": "89"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=BkKmNZmu… recv_seq=31",
+    "before": {
+      "base": "5498311788177",
+      "quote": "3187251753444"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "385784",
+      "tokenAmount": "661862",
+      "userQuoteAmount": "386942"
+    },
+    "fees": {
+      "lpFee": "772",
+      "protocolFee": "193",
+      "creatorFee": "193"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=31",
+    "before": {
+      "base": "921609579323754",
+      "quote": "1614490834"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8244498",
+      "tokenAmount": "395930777315",
+      "userQuoteAmount": "8141441"
+    },
+    "fees": {
+      "lpFee": "1649",
+      "protocolFee": "76674",
+      "creatorFee": "24734"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=32",
+    "before": {
+      "base": "922005510101069",
+      "quote": "1606247985"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8233877",
+      "tokenAmount": "395760340584",
+      "userQuoteAmount": "8130952"
+    },
+    "fees": {
+      "lpFee": "1647",
+      "protocolFee": "76576",
+      "creatorFee": "24702"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=Cy35ChAt… recv_seq=33",
+    "before": {
+      "base": "251539328158875",
+      "quote": "102302217736"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "193260305",
+      "tokenAmount": "468445341624",
+      "userQuoteAmount": "190874374"
+    },
+    "fees": {
+      "lpFee": "38175",
+      "protocolFee": "1775132",
+      "creatorFee": "572624"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=33",
+    "before": {
+      "base": "922401270441653",
+      "quote": "1598015755"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8226790",
+      "tokenAmount": "395759118980",
+      "userQuoteAmount": "8123953"
+    },
+    "fees": {
+      "lpFee": "1646",
+      "protocolFee": "76510",
+      "creatorFee": "24681"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=34",
+    "before": {
+      "base": "922797029560633",
+      "quote": "1589790611"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8222518",
+      "tokenAmount": "395893061664",
+      "userQuoteAmount": "8119735"
+    },
+    "fees": {
+      "lpFee": "1645",
+      "protocolFee": "76470",
+      "creatorFee": "24668"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=KPsNmMmx… recv_seq=34",
+    "before": {
+      "base": "3317358310896",
+      "quote": "5294465926769"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "1888193318",
+      "tokenAmount": "1178751626",
+      "userQuoteAmount": "1893857899"
+    },
+    "fees": {
+      "lpFee": "3776387",
+      "protocolFee": "944097",
+      "creatorFee": "944097"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=5q2FuP2g… recv_seq=34",
+    "before": {
+      "base": "184238647586039",
+      "quote": "162297940"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "20000",
+      "tokenAmount": "22418366759",
+      "userQuoteAmount": "19752"
+    },
+    "fees": {
+      "lpFee": "4",
+      "protocolFee": "184",
+      "creatorFee": "60"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=35",
+    "before": {
+      "base": "923192922622297",
+      "quote": "1581569738"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8215561",
+      "tokenAmount": "395897464192",
+      "userQuoteAmount": "8112865"
+    },
+    "fees": {
+      "lpFee": "1644",
+      "protocolFee": "76405",
+      "creatorFee": "24647"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=36",
+    "before": {
+      "base": "923588820086489",
+      "quote": "1573355821"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8208431",
+      "tokenAmount": "395893114858",
+      "userQuoteAmount": "8105824"
+    },
+    "fees": {
+      "lpFee": "1642",
+      "protocolFee": "76339",
+      "creatorFee": "24626"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=2Qg1f64B… recv_seq=36",
+    "before": {
+      "base": "4836587264293",
+      "quote": "3629110314630"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "137864304",
+      "tokenAmount": "182841603",
+      "userQuoteAmount": "138277899"
+    },
+    "fees": {
+      "lpFee": "275729",
+      "protocolFee": "68933",
+      "creatorFee": "68933"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ANSX3SDp… recv_seq=37",
+    "before": {
+      "base": "1901540926495",
+      "quote": "9269104088604"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1147909399",
+      "tokenAmount": "235074809",
+      "userQuoteAmount": "1144465670"
+    },
+    "fees": {
+      "lpFee": "2295819",
+      "protocolFee": "573955",
+      "creatorFee": "573955"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=BtjiS4d9… recv_seq=37",
+    "before": {
+      "base": "90928323931258",
+      "quote": "176306564228"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "268000",
+      "tokenAmount": "124252847",
+      "userQuoteAmount": "264952"
+    },
+    "fees": {
+      "lpFee": "530",
+      "protocolFee": "133",
+      "creatorFee": "2385"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=AVR8m56s… recv_seq=39",
+    "before": {
+      "base": "108203945297612",
+      "quote": "145967762360"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "166750",
+      "tokenAmount": "109063720",
+      "userQuoteAmount": "164853"
+    },
+    "fees": {
+      "lpFee": "330",
+      "protocolFee": "83",
+      "creatorFee": "1484"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=8sKzmW8r… recv_seq=41",
+    "before": {
+      "base": "16467046804457",
+      "quote": "1068889486941"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "318716821",
+      "tokenAmount": "4829186619",
+      "userQuoteAmount": "320246663"
+    },
+    "fees": {
+      "lpFee": "637434",
+      "protocolFee": "159359",
+      "creatorFee": "733049"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=9NqGN7vh… recv_seq=43",
+    "before": {
+      "base": "208263208975644",
+      "quote": "74203058076"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "93028274",
+      "tokenAmount": "208366752876",
+      "userQuoteAmount": "91925170"
+    },
+    "fees": {
+      "lpFee": "183851",
+      "protocolFee": "45963",
+      "creatorFee": "873290"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=2cBFfL2e… recv_seq=45",
+    "before": {
+      "base": "54333500492482",
+      "quote": "307709056358"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "137468562",
+      "tokenAmount": "22951554977",
+      "userQuoteAmount": "138843250"
+    },
+    "fees": {
+      "lpFee": "274938",
+      "protocolFee": "68735",
+      "creatorFee": "1031015"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=DycbAuWK… recv_seq=45",
+    "before": {
+      "base": "64920776961398",
+      "quote": "253827728695"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "293646",
+      "tokenAmount": "69508429",
+      "userQuoteAmount": "290593"
+    },
+    "fees": {
+      "lpFee": "582",
+      "protocolFee": "146",
+      "creatorFee": "2325"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=6LtBM9Gx… recv_seq=45",
+    "before": {
+      "base": "14192415376153",
+      "quote": "2639804946781"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "34301589",
+      "tokenAmount": "183862063",
+      "userQuoteAmount": "34198991"
+    },
+    "fees": {
+      "lpFee": "68398",
+      "protocolFee": "17100",
+      "creatorFee": "17100"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=DycbAuWK… recv_seq=46",
+    "before": {
+      "base": "64920707452969",
+      "quote": "253828019870"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "289166",
+      "tokenAmount": "68447689",
+      "userQuoteAmount": "286159"
+    },
+    "fees": {
+      "lpFee": "573",
+      "protocolFee": "144",
+      "creatorFee": "2290"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=46",
+    "before": {
+      "base": "993774704107706",
+      "quote": "339505716"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1796596",
+      "tokenAmount": "99620065839",
+      "userQuoteAmount": "1774137"
+    },
+    "fees": {
+      "lpFee": "360",
+      "protocolFee": "16709",
+      "creatorFee": "5390"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GHjc7afp… recv_seq=46",
+    "before": {
+      "base": "102179148270461",
+      "quote": "155140101205"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "247858203",
+      "tokenAmount": "146836836849",
+      "userQuoteAmount": "245007832"
+    },
+    "fees": {
+      "lpFee": "495717",
+      "protocolFee": "123930",
+      "creatorFee": "2230724"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=4azQSc3m… recv_seq=47",
+    "before": {
+      "base": "51462469938323",
+      "quote": "325070010062"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "340324",
+      "tokenAmount": "50605972",
+      "userQuoteAmount": "336953"
+    },
+    "fees": {
+      "lpFee": "674",
+      "protocolFee": "169",
+      "creatorFee": "2528"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=6LtBM9Gx… recv_seq=49",
+    "before": {
+      "base": "14192231514090",
+      "quote": "2639839214170"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "34788618",
+      "tokenAmount": "187032085",
+      "userQuoteAmount": "34684250"
+    },
+    "fees": {
+      "lpFee": "69578",
+      "protocolFee": "17395",
+      "creatorFee": "17395"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=50",
+    "before": {
+      "base": "923984713201347",
+      "quote": "1565149032"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8199501",
+      "tokenAmount": "395801369862",
+      "userQuoteAmount": "8097006"
+    },
+    "fees": {
+      "lpFee": "1640",
+      "protocolFee": "76256",
+      "creatorFee": "24599"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=52",
+    "before": {
+      "base": "993874324173545",
+      "quote": "337709480"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1761232",
+      "tokenAmount": "97678533126",
+      "userQuoteAmount": "1739215"
+    },
+    "fees": {
+      "lpFee": "353",
+      "protocolFee": "16380",
+      "creatorFee": "5284"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=4qsfwGxr… recv_seq=52",
+    "before": {
+      "base": "127640032623592",
+      "quote": "125828063257"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "294300176",
+      "tokenAmount": "258303286464",
+      "userQuoteAmount": "290810449"
+    },
+    "fees": {
+      "lpFee": "581621",
+      "protocolFee": "145406",
+      "creatorFee": "2762700"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=53",
+    "before": {
+      "base": "924380514571209",
+      "quote": "1556951171"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8194446",
+      "tokenAmount": "395896230759",
+      "userQuoteAmount": "8092014"
+    },
+    "fees": {
+      "lpFee": "1639",
+      "protocolFee": "76209",
+      "creatorFee": "24584"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=5jhXPqPv… recv_seq=54",
+    "before": {
+      "base": "87235132361108",
+      "quote": "184606322130"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "495000000",
+      "tokenAmount": "210629603658",
+      "userQuoteAmount": "489372218"
+    },
+    "fees": {
+      "lpFee": "978745",
+      "protocolFee": "244687",
+      "creatorFee": "4404350"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=55",
+    "before": {
+      "base": "993972002706671",
+      "quote": "335948601"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1761655",
+      "tokenAmount": "97721219632",
+      "userQuoteAmount": "1739633"
+    },
+    "fees": {
+      "lpFee": "353",
+      "protocolFee": "16384",
+      "creatorFee": "5285"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=EtczASq1… recv_seq=55",
+    "before": {
+      "base": "69528212504539",
+      "quote": "235676454990"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "64203",
+      "tokenAmount": "17625960",
+      "userQuoteAmount": "63527"
+    },
+    "fees": {
+      "lpFee": "129",
+      "protocolFee": "33",
+      "creatorFee": "514"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=5TyJgpRp… recv_seq=56",
+    "before": {
+      "base": "1516351543235",
+      "quote": "11612124530682"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "997002",
+      "tokenAmount": "129995",
+      "userQuoteAmount": "999995"
+    },
+    "fees": {
+      "lpFee": "1995",
+      "protocolFee": "499",
+      "creatorFee": "499"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=62",
+    "before": {
+      "base": "924776410801968",
+      "quote": "1548758364"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8188096",
+      "tokenAmount": "395928274469",
+      "userQuoteAmount": "8085743"
+    },
+    "fees": {
+      "lpFee": "1638",
+      "protocolFee": "76150",
+      "creatorFee": "24565"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=GxFBwnqj… recv_seq=63",
+    "before": {
+      "base": "70089396396305",
+      "quote": "233632702747"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "20000",
+      "tokenAmount": "5521393",
+      "userQuoteAmount": "19791"
+    },
+    "fees": {
+      "lpFee": "40",
+      "protocolFee": "10",
+      "creatorFee": "159"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=5ixW6n1T… recv_seq=69",
+    "before": {
+      "base": "67756596426052",
+      "quote": "242292139187"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "233566",
+      "tokenAmount": "60263109",
+      "userQuoteAmount": "231137"
+    },
+    "fees": {
+      "lpFee": "463",
+      "protocolFee": "116",
+      "creatorFee": "1850"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=8ow3FH5P… recv_seq=69",
+    "before": {
+      "base": "7885208724796",
+      "quote": "2217833871321"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "376896",
+      "tokenAmount": "1325479",
+      "userQuoteAmount": "375768"
+    },
+    "fees": {
+      "lpFee": "752",
+      "protocolFee": "188",
+      "creatorFee": "188"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=73",
+    "before": {
+      "base": "925172339076437",
+      "quote": "1540571906"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8179290",
+      "tokenAmount": "395841048773",
+      "userQuoteAmount": "8077048"
+    },
+    "fees": {
+      "lpFee": "1636",
+      "protocolFee": "76068",
+      "creatorFee": "24538"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=3MnuFHGJ… recv_seq=75",
+    "before": {
+      "base": "32867385067713",
+      "quote": "519468105881"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "3627622",
+      "tokenAmount": "220026990",
+      "userQuoteAmount": "3595263"
+    },
+    "fees": {
+      "lpFee": "7191",
+      "protocolFee": "1798",
+      "creatorFee": "23370"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=76",
+    "before": {
+      "base": "925568180125210",
+      "quote": "1532394252"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8173357",
+      "tokenAmount": "395892423405",
+      "userQuoteAmount": "8071188"
+    },
+    "fees": {
+      "lpFee": "1635",
+      "protocolFee": "76013",
+      "creatorFee": "24521"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=78",
+    "before": {
+      "base": "994069723926303",
+      "quote": "334187299"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1617604",
+      "tokenAmount": "89747441106",
+      "userQuoteAmount": "1597383"
+    },
+    "fees": {
+      "lpFee": "324",
+      "protocolFee": "15044",
+      "creatorFee": "4853"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=9KvmPGor… recv_seq=79",
+    "before": {
+      "base": "207015684568474",
+      "quote": "74173885575"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "1309123",
+      "tokenAmount": "2953462202",
+      "userQuoteAmount": "1325488"
+    },
+    "fees": {
+      "lpFee": "262",
+      "protocolFee": "12175",
+      "creatorFee": "3928"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=80",
+    "before": {
+      "base": "925964072548615",
+      "quote": "1524222530"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8166417",
+      "tokenAmount": "395894595756",
+      "userQuoteAmount": "8064335"
+    },
+    "fees": {
+      "lpFee": "1634",
+      "protocolFee": "75948",
+      "creatorFee": "24500"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=2EVX78qY… recv_seq=81",
+    "before": {
+      "base": "737890087435001",
+      "quote": "6590456249"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "2159417",
+      "tokenAmount": "65917581404",
+      "userQuoteAmount": "2132423"
+    },
+    "fees": {
+      "lpFee": "432",
+      "protocolFee": "20083",
+      "creatorFee": "6479"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=J4bePJKH… recv_seq=83",
+    "before": {
+      "base": "926359967144371",
+      "quote": "1516057747"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "8156642",
+      "tokenAmount": "395758756498",
+      "userQuoteAmount": "8054683"
+    },
+    "fees": {
+      "lpFee": "1632",
+      "protocolFee": "75857",
+      "creatorFee": "24470"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=5q2FuP2g… recv_seq=85",
+    "before": {
+      "base": "184216229219280",
+      "quote": "162317696"
+    },
+    "trade": {
+      "side": "buy",
+      "quoteAmount": "50000",
+      "tokenAmount": "56024888930",
+      "userQuoteAmount": "49381"
+    },
+    "fees": {
+      "lpFee": "10",
+      "protocolFee": "460",
+      "creatorFee": "149"
+    }
+  },
+  {
+    "description": "pumpswap trade real: pool=ENbyeudc… recv_seq=86",
+    "before": {
+      "base": "994159471367409",
+      "quote": "332570019"
+    },
+    "trade": {
+      "side": "sell",
+      "quoteAmount": "1592468",
+      "tokenAmount": "88368682620",
+      "userQuoteAmount": "1572561"
+    },
+    "fees": {
+      "lpFee": "319",
+      "protocolFee": "14810",
+      "creatorFee": "4778"
+    }
+  }
+]
