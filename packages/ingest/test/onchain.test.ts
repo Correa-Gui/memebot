@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LAMPORTS_PER_SIGNATURE, TxCostSampler, txCostFrom } from '../src/onchain.ts';
+import {
+  LAMPORTS_PER_SIGNATURE,
+  OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS,
+  PUMP_TOKEN_ACCOUNT_SIZE,
+  TxCostSampler,
+  fetchTokenAccountRent,
+  txCostFrom,
+} from '../src/onchain.ts';
 import { RpcClient, RpcError, type TransactionResult } from '../src/rpc.ts';
 import { loadFixture } from './fixtures.ts';
 
@@ -93,5 +100,34 @@ describe('RpcClient', () => {
     const down = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
     await expect(new RpcClient('http://x', { fetchFn: down, maxRetries: 2, sleep: () => Promise.resolve() }).call('m', [], z.number())).rejects.toThrow(/3 tentativas/);
     expect(down).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('rent da conta de token (Token-2022, 170 bytes)', () => {
+  it('o tamanho vem do GetAccountDataSize gravado e o rent observado bate com o saldo das ATAs criadas', () => {
+    const fx = loadFixture('curve-create');
+    const ret = fx.notification.logs.find((l) => l.startsWith('Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'));
+    const b64 = ret?.split(' ').pop() ?? '';
+    expect(Buffer.from(b64, 'base64').readBigUInt64LE(0)).toBe(BigInt(PUMP_TOKEN_ACCOUNT_SIZE));
+    const created = fx.tx.postBalances.filter((post, i) => (fx.tx.preBalances[i] ?? -1) === 0 && post > 0);
+    expect(created.filter((b) => BigInt(b) === OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS)).toHaveLength(2);
+  });
+
+  it('lê getMinimumBalanceForRentExemption(170) do RPC; falha → valor observado com a origem marcada', async () => {
+    const bodies: string[] = [];
+    const ok = new RpcClient('http://rpc', {
+      fetchFn: (_url, init) => {
+        bodies.push(typeof init?.body === 'string' ? init.body : '');
+        return Promise.resolve(new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 1_513_840 })));
+      },
+    });
+    expect(await fetchTokenAccountRent(ok)).toEqual({ lamports: 1_513_840n, source: 'rpc', error: null });
+    expect(JSON.parse(bodies[0] ?? '{}')).toMatchObject({ method: 'getMinimumBalanceForRentExemption', params: [170] });
+
+    const down = new RpcClient('http://rpc', { maxRetries: 0, fetchFn: () => Promise.reject(new Error('offline')) });
+    const r = await fetchTokenAccountRent(down);
+    expect(r.source).toBe('observed_fixture');
+    expect(r.lamports).toBe(OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS);
+    expect(r.error).toMatch(/offline/);
   });
 });

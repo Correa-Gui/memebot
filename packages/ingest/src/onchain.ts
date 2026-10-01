@@ -96,6 +96,41 @@ export async function fetchJitoTipAccounts(blockEngineUrl: string, timeoutMs = 5
  */
 export const LAMPORTS_PER_SIGNATURE = 5_000n;
 
+/**
+ * Tamanho em bytes da conta de token (ATA) que a compra cria para a carteira. O mint do Pump.fun é
+ * do programa Token-2022 (`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb` nos logs de
+ * `test/fixtures/curve-trade.json`) e a ATA leva a extensão ImmutableOwner: no `CreateIdempotent` da tx
+ * real `test/fixtures/curve-create.json` (sig 4yS9qwbw…), `GetAccountDataSize` devolve
+ * `qgAAAAAAAAA=` = 170 (u64 LE). Conferido em 2026-10-01.
+ */
+export const PUMP_TOKEN_ACCOUNT_SIZE = 170;
+
+/**
+ * Rent-exempt dessa conta observado on-chain: as duas ATAs Token-2022 criadas na tx real
+ * `test/fixtures/curve-create.json` ficaram com exatamente 1 513 840 lamports (pré 0), igual a
+ * `getMinimumBalanceForRentExemption(170)` na mainnet em 2026-10-01. Só é usado como FALLBACK
+ * quando a leitura por RPC falha (ver `fetchTokenAccountRent`); o caminho normal lê do RPC.
+ */
+export const OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS = 1_513_840n;
+
+const RentResult = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Rent-exempt atual da conta de token (`getMinimumBalanceForRentExemption(PUMP_TOKEN_ACCOUNT_SIZE)`),
+ * lido do RPC (timeout/retry do `RpcClient`). Fallback (nunca trava a partida): o valor observado na
+ * transação real gravada, marcado como `source: 'observed_fixture'` para o log.
+ */
+export async function fetchTokenAccountRent(
+  rpc: RpcClient,
+): Promise<{ lamports: bigint; source: 'rpc' | 'observed_fixture'; error: string | null }> {
+  try {
+    const value = await rpc.call('getMinimumBalanceForRentExemption', [PUMP_TOKEN_ACCOUNT_SIZE], RentResult);
+    return { lamports: BigInt(value), source: 'rpc', error: null };
+  } catch (e) {
+    return { lamports: OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS, source: 'observed_fixture', error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Extrai custos de uma transação. `tipAccounts` vazio → jitoTip null (desconhecido). */
 export function txCostFrom(tx: NonNullable<TransactionResult>, tipAccounts: ReadonlySet<string>): TxCostEvent {
   const keys = [
