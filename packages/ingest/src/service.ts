@@ -115,15 +115,11 @@ export class IngestService implements EventSource {
     }
     const sampler = this.o.sampler;
     if (events.length === 0 || !sampler?.shouldSample()) return;
-    try {
-      const cost = await sampler.sample(n.signature);
-      if (cost) {
-        this.stats.costSamples++;
-        onEvent(cost);
-      }
-    } catch (e) {
-      // amostra de custo é opcional: falha só vai para o log
-      this.o.logger.warn({ err: e instanceof Error ? e.message : String(e), sig: n.signature }, 'amostra de custo falhou');
+    // `sample` nunca lança: sucesso/não encontrada/falha ficam em `sampler.stats` (log por minuto).
+    const cost = await sampler.sample(n.signature);
+    if (cost) {
+      this.stats.costSamples++;
+      onEvent(cost);
     }
   }
 }

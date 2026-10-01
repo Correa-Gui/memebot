@@ -130,18 +130,56 @@ export function txCostFrom(tx: NonNullable<TransactionResult>, tipAccounts: Read
  * Amostra custos de transação com limite de taxa (token bucket por segundo).
  * Amostragem em vez de toda transação: buscar cada uma custaria ~400 GB/dia de RPC (ver ARCHITECTURE §8).
  */
+export interface TxCostSamplerStats {
+  /** Assinaturas aceitas para amostragem (passaram pelo limite por segundo). */
+  attempted: number;
+  /** Amostras extraídas com sucesso (viram evento `tx_cost`). */
+  sampled: number;
+  /** `getTransaction` devolveu `null` em todas as tentativas (tx ainda não indexada no RPC). */
+  notFound: number;
+  /** Erro de RPC/rede (inclui 429 — ver `rpc.stats.rateLimited`). */
+  failed: number;
+  /** Última mensagem de erro vista (diagnóstico no log por minuto). */
+  lastError: string | null;
+}
+
+export interface TxCostSamplerOptions {
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  /**
+   * Esperas antes de cada nova tentativa quando `getTransaction` devolve `null`. Medido em
+   * 2026-10-01: logo após a notificação `confirmed` do logsSubscribe a tx quase sempre ainda não está
+   * disponível para `getTransaction` (o resultado era `null` e era descartado em silêncio — causa de
+   * `tx_costs` ter ficado com 3 linhas em ~77 min de gravação).
+   */
+  notFoundRetryDelaysMs?: readonly number[];
+  /** Espera antes da primeira tentativa (dá tempo de a tx ser indexada). */
+  initialDelayMs?: number;
+}
+
 export class TxCostSampler {
   private readonly rpc: RpcClient;
   private readonly perSecond: number;
   private readonly now: () => number;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly retryDelays: readonly number[];
+  private readonly initialDelayMs: number;
   private windowStart = 0;
   private usedInWindow = 0;
   private tipAccounts: ReadonlySet<string> = new Set();
+  readonly stats: TxCostSamplerStats = { attempted: 0, sampled: 0, notFound: 0, failed: 0, lastError: null };
 
-  constructor(rpc: RpcClient, perSecond: number, now: () => number = Date.now) {
+  constructor(rpc: RpcClient, perSecond: number, opts: TxCostSamplerOptions = {}) {
     this.rpc = rpc;
     this.perSecond = perSecond;
-    this.now = now;
+    this.now = opts.now ?? Date.now;
+    this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.retryDelays = opts.notFoundRetryDelaysMs ?? [2_000, 4_000];
+    this.initialDelayMs = opts.initialDelayMs ?? 1_500;
+  }
+
+  get rateLimited(): number {
+    return this.rpc.stats.rateLimited;
   }
 
   setTipAccounts(accounts: Iterable<string>): void {
@@ -161,12 +199,36 @@ export class TxCostSampler {
     return true;
   }
 
+  /**
+   * Busca a tx e extrai os custos. Nunca descarta em silêncio: todo desfecho cai em `stats`
+   * (`sampled` / `notFound` / `failed`). Erros não são relançados — a amostra é opcional e quem
+   * chama não deve travar por ela; o diagnóstico vai para o log por minuto.
+   */
   async sample(sig: string): Promise<TxCostEvent | null> {
-    const tx = await this.rpc.call(
-      'getTransaction',
-      [sig, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }],
-      TransactionResult,
-    );
-    return tx ? txCostFrom(tx, this.tipAccounts) : null;
+    this.stats.attempted++;
+    try {
+      if (this.initialDelayMs > 0) await this.sleep(this.initialDelayMs);
+      for (let attempt = 0; ; attempt++) {
+        const tx = await this.rpc.call(
+          'getTransaction',
+          [sig, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 1 }],
+          TransactionResult,
+        );
+        if (tx) {
+          this.stats.sampled++;
+          return txCostFrom(tx, this.tipAccounts);
+        }
+        const delay = this.retryDelays[attempt];
+        if (delay === undefined) {
+          this.stats.notFound++;
+          return null;
+        }
+        await this.sleep(delay);
+      }
+    } catch (e) {
+      this.stats.failed++;
+      this.stats.lastError = e instanceof Error ? e.message : String(e);
+      return null;
+    }
   }
 }

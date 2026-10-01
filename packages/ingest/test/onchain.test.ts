@@ -33,10 +33,42 @@ describe('txCostFrom', () => {
 describe('TxCostSampler', () => {
   it('respeita o limite por segundo', () => {
     let t = 0;
-    const s = new TxCostSampler(new RpcClient('http://x'), 2, () => t);
+    const s = new TxCostSampler(new RpcClient('http://x'), 2, { now: () => t });
     expect([s.shouldSample(), s.shouldSample(), s.shouldSample()]).toEqual([true, true, false]);
     t = 1_000;
     expect(s.shouldSample()).toBe(true);
+  });
+
+  const rpcReturning = (...results: unknown[]): RpcClient => {
+    const fetchFn = vi.fn();
+    for (const r of results) {
+      fetchFn.mockResolvedValueOnce(
+        r === 429 ? new Response('', { status: 429 }) : new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: r }), { status: 200 }),
+      );
+    }
+    return new RpcClient('http://x', { fetchFn, maxRetries: 0, sleep: () => Promise.resolve() });
+  };
+  const noSleep = { sleep: () => Promise.resolve(), initialDelayMs: 0, notFoundRetryDelaysMs: [10, 20] };
+
+  it('tx ainda não indexada (null) é tentada de novo e, se aparecer, vira amostra', async () => {
+    const s = new TxCostSampler(rpcReturning(null, null, txOf('curve-trade')), 2, noSleep);
+    const cost = await s.sample('sig');
+    expect(cost?.kind).toBe('tx_cost');
+    expect(s.stats).toMatchObject({ attempted: 1, sampled: 1, notFound: 0, failed: 0 });
+  });
+
+  it('null em todas as tentativas é contado como notFound (nunca descartado em silêncio)', async () => {
+    const s = new TxCostSampler(rpcReturning(null, null, null), 2, noSleep);
+    expect(await s.sample('sig')).toBeNull();
+    expect(s.stats).toMatchObject({ attempted: 1, sampled: 0, notFound: 1, failed: 0 });
+  });
+
+  it('429 é contado como falha, guarda o erro e não lança', async () => {
+    const s = new TxCostSampler(rpcReturning(429), 2, noSleep);
+    expect(await s.sample('sig')).toBeNull();
+    expect(s.stats.failed).toBe(1);
+    expect(s.stats.lastError).toMatch(/429/);
+    expect(s.rateLimited).toBe(1);
   });
 });
 

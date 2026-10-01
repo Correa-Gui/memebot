@@ -133,8 +133,10 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
     if (e.kind !== 'social_post') onEvent(e);
   });
 
+  log.info({ costSamplesPerSec: cfg.INGEST_COST_SAMPLES_PER_SEC }, 'amostragem de custos (tx_costs)');
   let last = { ...ingest.stats };
   let lastRpc = { ...rpc.stats };
+  let lastCost = { ...sampler.stats, rateLimited: sampler.rateLimited };
   const statsTimer = setInterval(() => {
     const s = ingest.stats;
     const pools = ingest.poolCacheStats();
@@ -151,11 +153,20 @@ async function runRecord(cfg: AppConfig, log: Logger): Promise<void> {
         writer: recorder.stats,
         metadataQueue: metadataQueue.size,
         heapMb: Math.round(mem.heapUsed / 1_048_576),
+        costSamples: {
+          attemptedPerMin: sampler.stats.attempted - lastCost.attempted,
+          recordedPerMin: sampler.stats.sampled - lastCost.sampled,
+          notFoundPerMin: sampler.stats.notFound - lastCost.notFound,
+          failedPerMin: sampler.stats.failed - lastCost.failed,
+          rpc429PerMin: sampler.rateLimited - lastCost.rateLimited,
+          lastError: sampler.stats.lastError,
+        },
       },
       'ingest',
     );
     last = { ...s };
     lastRpc = { ...rpc.stats };
+    lastCost = { ...sampler.stats, rateLimited: sampler.rateLimited };
     ingest.retryPendingPools();
   }, 60_000);
 
