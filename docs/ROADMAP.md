@@ -7,11 +7,13 @@ Os dias são estimativas para quem trabalha diariamente no projeto com o Claude 
 
 | Marco | Dia estimado | O que você tem |
 |---|---|---|
-| M1 — Dados em stream gravando | **dia 2–3** | Eventos do Pump.fun chegando e salvos no ClickHouse 24h |
-| M2 — Primeiro paper trading ao vivo | **dia 7–10** | Estratégia por regras simples operando em simulação, com custos reais |
-| M3 — Backtest confiável | dia 12–15 | Replay determinístico + relatório de PnL líquido |
-| M4 — Modelo de risco + sinais | dia 15–21 | XGBoost, smart money e (opcional) Jev como features |
-| M5 — Live em micro-tamanho | dia 21+ | Só se M2–M4 mostrarem expectativa positiva após taxas |
+| M1 — Dados em stream gravando (local) | **dia 2–3** | Eventos do Pump.fun chegando e salvos no ClickHouse local 24h, via pm2 |
+| M2 — Primeiro paper trading ao vivo | **≈ dia 8** | Estratégia por regras simples operando em simulação, com custos reais |
+| Ponto de decisão — ≈ 200 operações em paper | **≈ dia 15** | Critério de sucesso da `docs/STRATEGY.md` §7 avaliado; decide se segue para backtest/sinais/VPS |
+| VPS + live mínimo | **≈ dia 20** (condicional) | Só se o ponto de decisão acima for aprovado |
+| M3 — Backtest confiável | condicional (Fase 4) | Replay determinístico + relatório de PnL líquido — só se o paper indicar |
+| M4 — Modelo de risco + sinais | condicional (Fase 5) | XGBoost, smart money e (opcional) Jev como features — só se o paper indicar |
+| M5 — Live em micro-tamanho | dia 21+ | Só se M2 e o ponto de decisão mostrarem expectativa positiva após taxas |
 
 ---
 
@@ -43,28 +45,55 @@ Os dias são estimativas para quem trabalha diariamente no projeto com o Claude 
 
 ## Fase 2 — Matemática exata e estado (dias 3–6)
 
-- [ ] `packages/curve-math`: buy/sell na bonding curve e no PumpSwap, com taxas vindas da config lida.
-- [ ] Fixtures "golden": 50+ trades reais gravados; teste que reproduz os valores **exatos**.
-- [ ] Testes de propriedade (comprar e vender em seguida sempre perde as taxas; preço cresce com o supply vendido).
-- [ ] `packages/state`: estado em memória por token (reservas, holders e saldos, fluxo de compra/venda por janela, primeiros compradores, carteiras do criador).
-- [ ] Coleta de **rugs rotulados** (queda de TVL / inatividade, conforme a literatura) para treino futuro.
+- [~] `packages/curve-math`: buy/sell na bonding curve e no PumpSwap, com taxas vindas da config lida.
+  **PARCIAL**: curva: exato (fixtures golden, 0 de diferença); PumpSwap: só as taxas batem, o valor do swap
+  está pendente. *(Bonding curve: fórmula constant-product com ceiling, confirmada exata contra dados reais.
+  PumpSwap: taxas confirmadas exatas; `baseOut`/reservas pós-swap é best-effort — ver limitação documentada
+  abaixo e em `packages/curve-math/src/pumpswap.ts`.)*
+  **Divergência registrada** (fixture real `pumpswap.json[0]`, pool `DycbAuWK…`, sell): reservas antes
+  `base=70574196524936`, `quote=231911523080`; `tokenAmountIn=61061924`. Esperado por constant-product puro
+  sobre esses dois campos: `quoteOutGross=200653`. Real gravado on-chain: `quoteAmount(gross)=215867`,
+  `userQuoteAmount(net)=213600` — diferença de ~7,6%, não é arredondamento. Resolver é pré-requisito para
+  incluir tokens graduados no universo (ver tarefa "Resolver swap exato do PumpSwap" abaixo e em
+  `docs/STRATEGY.md`).
+- [x] Fixtures "golden": 50+ trades reais gravados; teste que reproduz os valores **exatos**.
+  *(120 fixtures da bonding curve, extraídas de `memebot.events_trade` — `packages/curve-math/scripts/extract-golden-fixtures.ts`
+  — 0 de diferença em `tokenOut`/`quoteOutGross`/taxas/reservas. 80 fixtures do PumpSwap: 0 de diferença no
+  bookkeeping de taxas; o valor do swap em si não tem teste golden, ver limitação.)*
+- [x] Testes de propriedade (comprar e vender em seguida sempre perde as taxas; preço cresce com o supply vendido).
+- [x] `packages/state`: estado em memória por token (reservas, holders e saldos, fluxo de compra/venda por janela, primeiros compradores, carteiras do criador).
 
-**Aceite:** 100% dos fixtures golden batem com 0 de diferença na matemática da curva.
+**Aceite:** 100% dos fixtures golden batem com 0 de diferença na matemática da curva. *(Cumprido para a bonding
+curve — 120/120 fixtures reais com 0 de diferença. O PumpSwap tem uma limitação conhecida e documentada: o
+cálculo de taxas bate exato, mas o valor do swap (quanto token/quote efetivamente sai) não foi reproduzido com
+exatidão a partir de `pool_base_token_reserves`/`pool_quote_token_reserves` — provável uso de reservas virtuais
+não expostas nesses dois campos do evento. Por isso a v0 segue para a Fase 3 restrita à bonding curve
+(`filters.allowedVenues: [curve]` em `docs/STRATEGY.md`/`config/strategy.v0.yaml`); retomar quando a tarefa
+abaixo for resolvida.)*
+
+- [ ] **Resolver swap exato do PumpSwap** (pré-requisito para incluir tokens graduados no universo, v1): ler a
+  conta `Pool` on-chain do PumpSwap para encontrar as reservas (virtuais?) que realmente alimentam o constant
+  product, e reproduzir `baseOut`/`quoteOutGross` com 0 de diferença nos mesmos moldes da bonding curve. Ver
+  divergência registrada acima.
 
 ## Fase 3 — Estratégia por regras + paper executor (dias 5–10) → M2
 
-- [ ] `packages/features` v0 (só regras, sem ML): idade do token, progresso da curva, holders únicos, % do top 10, % dos primeiros compradores do mesmo bloco (proxy de bundle), razão buy/sell 60 s, volume 60 s, se o criador já tem tokens anteriores.
-- [ ] `packages/strategy` v0 conforme `docs/STRATEGY.md` (filtros duros + gatilho de momentum + saídas).
-- [ ] `packages/risk`: `hard-limits.ts`, sizing fixo, máximo de posições simultâneas, limite de perda diária, kill switch.
-- [ ] `packages/execution/paper.ts` pessimista (latência, custos, falhas) conforme `ARCHITECTURE.md` §5.
-- [ ] `packages/positions`: take profit escalonado, stop, time stop.
+- [x] `packages/features` v0 (só regras, sem ML): idade do token, progresso da curva, holders únicos, % do top 10, % dos primeiros compradores do mesmo bloco (proxy de bundle), razão buy/sell 60 s, volume 60 s, se o criador já tem tokens anteriores. *(2026-10-01. `tokenAgeSec`, `curveProgress`, `uniqueHolderCount`, `top10HolderPct`, `sameSlotBuyPct`, `buySellVolumeRatio60s`, `uniqueBuyers60s`, `volume60sSol`, `largestSingleSellPctSupply60s`, `priceAboveMean120s`, `creatorHoldingPct`, `creatorTokensCreated24h`, `riskScore` — ver `packages/features/src/index.ts`, cada uma com fórmula/janela/aproximação documentada no comentário. Correção de 2026-10-01: `curveProgress` usa `initial_real_token_reserves` da conta `Global` (`parseCurveInitialParams`) como denominador; `priceAboveMean120s` usa só preço marginal (`virtualQuote/virtualToken` após cada trade, gravado no `TradeRecord`).)*
+- [x] `packages/strategy` v0 conforme `docs/STRATEGY.md` (filtros duros + gatilho de momentum). Decide só `enter`/`reject` (motivo = chave do filtro); saídas (§6) são responsabilidade de `packages/positions` e sizing/risco de `packages/risk` (ver `ARCHITECTURE.md` §4). Testado com config sintética (um teste por filtro) e com o `config/strategy.v0.yaml` real (um aprovado, um rejeitado). *(2026-10-01, `packages/strategy/src/evaluate.ts`.)*
+- [x] `packages/risk`: `hard-limits.ts`, sizing fixo, máximo de posições simultâneas, limite de perda diária, kill switch. *(2026-10-01. Config acima do hard limit = erro explícito; `sizing.sizeSol` reduzido de 0,1 para 0,05 SOL. Sizing com teto de impacto (busca binária, rejeita abaixo de 50% do tamanho). Kill switch com os 5 gatilhos de RISK §3 — divergência de saldo só ativa no live; `data/STOP` via adaptador `isStopFilePresent`. `decisionId` determinístico. Ver `packages/risk/src/`.)*
+- [x] `packages/execution/paper.ts` pessimista (latência, custos, falhas) conforme `ARCHITECTURE.md` §5. *(2026-10-01. Máquina de estados pura; custos = mediana de `tx_costs` × 1,5 com mínimo de 30 amostras e fallback marcado no fill (`cost_estimate_source`); hard limits conferidos de novo; PumpSwap → `PumpSwapSimulationNotValidatedError`; graduação → `venue_unverified`. Migração `006_fills_venue_unverified.sql` criada, **não aplicada** — aplicar com `pnpm migrate` é decisão do usuário.)*
+  **Regra (até o swap exato do PumpSwap ser resolvido, ver Fase 2):** nunca simular um swap no PumpSwap — se
+  uma posição aberta na curva graduar, fechar no último preço conhecido da bonding curve e marcar o fill com
+  `venue_unverified: true`, sem calcular venda no PumpSwap. Qualquer código que tentar simular um swap
+  PumpSwap enquanto essa limitação existir deve **lançar erro explícito**, nunca silenciar ou aproximar.
+- [x] `packages/positions`: take profit escalonado, trailing stop, stop loss, time stop e saídas de emergência (venda individual > 5% do supply, criador vendendo) e graduação; percentuais líquidos de taxas de saída. *(2026-10-01, `packages/positions/src/exits.ts` — fórmula do PnL líquido e precedência documentadas ali e em `docs/STRATEGY.md` §6.)*
 - [ ] `pnpm bot --mode=paper` gravando `decisions` e `fills`.
 - [ ] `packages/monitor`: alerta Telegram a cada entrada/saída e resumo a cada hora.
 - [ ] `pnpm report --run=<id>`: nº de trades, taxa de acerto, PnL bruto e **líquido**, custos por categoria, distribuição de retornos, drawdown.
 
 **Aceite:** paper rodando 24 h sem travar; cada fill tem custos detalhados; relatório gerado.
 
-## Fase 4 — Backtest determinístico (dias 9–15) → M3
+## Fase 4 — Backtest determinístico (dias 9–15) → M3 **(condicional: só se o paper trading da v0 mostrar resultado — ver `docs/STRATEGY.md` §7)**
 
 - [ ] `EventSource` de replay a partir do ClickHouse, `Clock` simulado.
 - [ ] `apps/backtest` com config versionada; resultado gravado em `runs` com hash da config e commit git.
@@ -74,9 +103,10 @@ Os dias são estimativas para quem trabalha diariamente no projeto com o Claude 
 
 **Aceite:** divergência backtest × paper < 10% no PnL líquido do mesmo período; replay determinístico.
 
-## Fase 5 — Sinais (dias 12–21) → M4
+## Fase 5 — Sinais (dias 12–21) → M4 **(condicional: só se o paper trading da v0 mostrar resultado — ver `docs/STRATEGY.md` §7)**
 
 Cada item só entra na estratégia se o backtest fora da amostra melhorar o PnL líquido.
+- [ ] Coleta de **rugs rotulados** (queda de TVL / inatividade, conforme a literatura) para treino futuro. *(Movido da Fase 2: não é bloqueante para curve-math/estado; só importa se chegarmos ao modelo de risco.)*
 - [ ] `research/`: dataset de features aos N minutos de vida + rótulo (rug / sobreviveu / retorno futuro).
 - [ ] XGBoost de risco; export ONNX; `signals/risk-model` com o mesmo cálculo de features do TS (teste de paridade Python × TS).
 - [ ] `wallets/`: métricas por carteira (PnL, acerto, tempo médio de posição, se vende tudo de uma vez); lista de smart money recalculada diariamente; feature "n de smart wallets comprando".
@@ -99,8 +129,8 @@ Pré-requisitos: ≥ 200 operações em paper com PnL líquido positivo **e** ba
 
 ## Migração para VPS
 
-Por enquanto o bot roda na máquina local (pm2). A migração pode acontecer a qualquer momento depois da Fase 1
-e é **pré-requisito da Fase 6** (live não roda em máquina pessoal).
+Por enquanto o bot roda na máquina local (pm2). A migração **acontece somente depois que o paper trading da v0
+atingir o critério de sucesso de `docs/STRATEGY.md` §7**, e antes da Fase 6 — até lá, tudo roda localmente com pm2.
 
 - [ ] VPS Linux (Ubuntu 24.04) na mesma região do RPC pago; ClickHouse via `docker compose` com dados migrados da máquina local (export/import Parquet).
 - [ ] **systemd:** instalar `infra/systemd/memebot-record.service` seguindo `infra/systemd/README.md` (usuário `memebot`, `.env` com permissão 600, `Restart=always`); conferir parada limpa com `systemctl stop` (buffer gravado).
@@ -110,7 +140,7 @@ e é **pré-requisito da Fase 6** (live não roda em máquina pessoal).
 
 **Aceite:** os cinco itens acima; a partir daí o systemd substitui o pm2 e a VPS vira o ambiente padrão de gravação.
 
-## Backlog (avaliar depois da Fase 5, só com evidência nos dados)
+## Backlog — estacionado (avaliar depois da Fase 5, só com evidência nos dados)
 
 - [ ] **Grafo de financiamento de holders** (estilo "bubble map"): agrupar carteiras que receberam SOL da mesma origem nas últimas N horas; feature "% do supply em clusters ligados". Complementa o proxy de bundle da Fase 3.
 - [ ] **Canais de "call" do Telegram como fonte social (só leitura):** registrar cada call (canal, mint, horário) e medir o que acontece com o preço depois. Gera um score por canal: quem chama cedo e bem × quem chama para vender em cima dos seguidores. Entra como feature, nunca como gatilho.

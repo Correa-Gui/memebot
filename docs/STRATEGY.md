@@ -9,8 +9,16 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 
 ## 2. Universo
 
-- Tokens do Pump.fun ainda na bonding curve **ou** recém-graduados no PumpSwap.
+- **Por enquanto, só tokens ainda na bonding curve** (`filters.allowedVenues: [curve]`). Tokens recém-graduados
+  no PumpSwap ficam de fora do universo de entrada até a matemática do swap do PumpSwap bater exato (ver
+  `docs/ROADMAP.md` Fase 2, tarefa "Resolver swap exato do PumpSwap" — hoje só as taxas do PumpSwap foram
+  confirmadas, o valor do swap em si (`baseOut`/`quoteOutGross`) não).
+  - Se uma posição aberta na curva **graduar para o PumpSwap enquanto está aberta**, o paper executor fecha a
+    posição no último preço conhecido da bonding curve (não simula venda no PumpSwap) e marca o fill com
+    `venue_unverified: true`. Qualquer tentativa de simular um swap no PumpSwap antes dessa limitação ser
+    resolvida deve lançar erro explícito, nunca aproximar silenciosamente.
 - Idade entre `entry.minAgeSec` (60) e `entry.maxAgeSec` (600).
+- Quote mint permitido: só SOL (`filters.allowedQuoteMints`) — placeholder nativo da curva (`11111111111111111111111111111111`) e WSOL (`So11111111111111111111111111111111111111112`). Outros quote mints são rejeitados.
 
 ## 3. Filtros duros (qualquer um falha → `reject`)
 
@@ -19,7 +27,7 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 | % do supply no top 10 holders (excluindo curva/pool) | ≤ 30% |
 | % comprado no mesmo slot da criação (proxy de bundle) | ≤ 10% |
 | Criador ainda segura | ≤ 5% |
-| Criador com ≥ 3 tokens anteriores que "ruguaram" | rejeita |
+| Criador criou ≥ 3 tokens nas últimas 24h | rejeita |
 | Holders únicos | ≥ 40 |
 | Volume últimos 60 s | ≥ 5 SOL |
 | Score do modelo de risco (quando existir) | ≤ 0,3 |
@@ -34,8 +42,14 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 
 ## 5. Tamanho
 
-- Valor fixo por operação: `risk.sizeLamports` (paper: 0,1 SOL fictício; live inicial: o mínimo de `hard-limits.ts`).
-- Impacto de preço estimado da própria compra ≤ 2%; se maior, reduz o tamanho ou rejeita.
+- Valor fixo por operação: `sizing.sizeSol` = **0,05 SOL** (paper e live inicial), total pago à curva já com as
+  taxas da curva (priority fee, tip e rent são custos à parte). Era 0,1 SOL fictício no paper; reduzido em
+  2026-10-01 (Fase 3/parte B) porque o hard limit `maxPositionLamports` (0,05 SOL, `packages/risk/src/hard-limits.ts`)
+  vale também no paper — assim o paper mede o que o live faria. A config só pode reduzir esse valor; acima dele
+  o bot não sobe (erro explícito).
+- Impacto de preço estimado da própria compra ≤ 2% (`sizing.maxOwnPriceImpactPct`), medido como preço médio de
+  execução (sem taxas) ÷ preço marginal antes da compra − 1. Se maior, reduz o tamanho (busca binária) até caber;
+  se o tamanho que cabe ficar abaixo de 50% do valor fixo, rejeita (os custos fixos por transação não encolhem).
 
 ## 6. Saídas (a primeira que acontecer)
 
@@ -48,15 +62,26 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 | Time stop | 10 min sem atingir TP1 → vende tudo |
 | Saída de emergência | venda individual > 5% do supply ou criador vendendo → vende tudo |
 
-Todos os percentuais são **líquidos de taxas estimadas de saída**.
+Todos os percentuais são **líquidos de taxas estimadas de saída**:
+`pnl = (realizadoLíquido + L − custoEntrada) / custoEntrada`, com `custoEntrada` = SOL pago à curva (com taxas) +
+priority fee + tip + rent da compra, e `L` = líquido de vender o restante agora (`bondingCurveSell`, já sem as taxas
+da curva) − priority fee − tip estimados da saída + rent devolvido ao fechar a conta.
+
+Detalhes de implementação (`packages/positions`): `sellFraction` dos take profits é fração da quantidade
+**inicial** (50% + 30% → sobram 20%); o trailing só vale depois do TP1 e mede o valor líquido do restante (a
+máxima recomeça após cada venda parcial); emergência considera só trades com `ts` posterior à entrada. Se várias
+regras disparam no mesmo instante, vale a primeira em: graduação > criador vendendo > venda > 5% do supply >
+stop loss > trailing > time stop > take profit. Graduação (curva completou / migrou) fecha tudo no último preço da
+curva (§2).
 
 ## 7. Métrica de sucesso
 
-A estratégia só avança se, no período fora da amostra:
+Para a v0, o critério de sucesso é avaliado **em paper trading** (o backtest fora da amostra passa a valer
+critério quando a Fase 4 do `docs/ROADMAP.md` existir):
+- ≥ 200 operações.
 - PnL líquido > 0 depois de **todas** as taxas, tips, rent e slippage simulados.
-- Expectativa por operação > 0 com intervalo de confiança (bootstrap) que não cruze zero de forma relevante.
+- Continua positivo mesmo removendo as 3 melhores operações.
 - Drawdown máximo ≤ 30% do capital alocado.
-- Resultado não depende de 1 ou 2 operações extremas (testar removendo as 3 melhores).
 
 ## 8. Registro de versões
 

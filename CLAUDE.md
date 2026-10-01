@@ -19,7 +19,7 @@ O mesmo código roda em três modos:
 
 O backtest reproduz eventos gravados na mesma lógica (`replay`).
 
-Fontes de sinal (todas entram como **features**, nunca como gatilho automático sozinhas):
+Fontes de sinal (todas entram como **features**, nunca como gatilho automático sozinhas) — **estacionadas até o paper trading da v0 mostrar resultado** (ver `docs/STRATEGY.md` §7 e `docs/ROADMAP.md` Fase 5):
 - **Risco on-chain** (`signals/risk-model`): XGBoost exportado em ONNX, treinado em `research/`.
 - **Narrativa** (`social/` + `signals/narrative`): posts de contas monitoradas; o Jev (TypeSafe) classifica se um token corresponde a uma narrativa e se parece o original.
 - **Smart money** (`wallets/`): compras de carteiras com bom histórico calculado pelos nossos próprios dados.
@@ -84,7 +84,7 @@ Fontes de sinal (todas entram como **features**, nunca como gatilho automático 
   - Validação: `zod`. Logs: `pino`. Testes: `vitest`. Banco: `@clickhouse/client`. Modelo: `onnxruntime-node`.
   - Jev: API HTTP da TypeSafe via `fetch` nativo, atrás da interface `NarrativeClassifier` (confirme endpoint e formato na documentação oficial antes de implementar).
 - **Pesquisa (offline):** Python 3.12 em `research/`, gerenciado com `uv`. `polars`, `xgboost`, `scikit-learn`, `onnxmltools`, `jupyter`.
-- **Infra:** Docker Compose para ClickHouse. Processo do bot gerenciado por `systemd`.
+- **Infra:** Docker Compose para ClickHouse. Processo do bot gerenciado por **pm2 no ambiente local** (até a migração para VPS, ver `docs/ROADMAP.md` "Migração para VPS") e por **systemd na VPS** (`infra/systemd/`).
 
 ## 5. Comandos
 
@@ -98,6 +98,15 @@ pnpm backtest --from=... --to=... --config=config/strategy.v0.yaml
 pnpm report --run=<id>    # relatório de uma execução paper/backtest
 docker compose up -d      # sobe ClickHouse
 cd research && uv run jupyter lab
+
+# Local (pm2) — enquanto não migra para VPS
+pm2 start pnpm --name memebot-record -- bot --mode=record
+pm2 logs memebot-record
+pm2 stop memebot-record
+
+# VPS (systemd) — depois da migração, ver infra/systemd/README.md
+systemctl status memebot-record
+journalctl -u memebot-record -f
 ```
 
 ## 6. Convenções de código
