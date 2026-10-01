@@ -63,6 +63,26 @@ pnpm sanity --hours=1             # checagem rápida
 Com o RPC público, o modo debug pode não conectar enquanto o pm2 estiver gravando (o endpoint parece limitar
 conexões WebSocket por IP): pare o pm2 antes (`pm2 stop memebot-record`) ou use o RPC pago.
 
+### Paper trading e relatório (Fase 3)
+
+```bash
+pnpm migrate                      # obrigatório antes do 1º paper: aplica a 006 (colunas de fills); o paper recusa iniciar sem ela
+pnpm bot --mode=paper             # grava os eventos (como o record) + decisions + fills simulados
+pnpm report --run=<run_id>        # relatório em texto (tabelas); --json para saída JSON; --config=<yaml> para outro capital
+```
+
+- O modo paper **já grava tudo o que o record grava**: não rode `record` e `paper` ao mesmo tempo (eventos duplicados).
+  Com pm2: troque `args: '--mode=record'` por `args: '--mode=paper'` (e o `name`/arquivos de log) no `ecosystem.config.cjs`,
+  mantendo `shutdown_with_message: true` — no Windows é o que garante a parada limpa (mensagem `shutdown` por IPC).
+- O `run_id` aparece no log de partida (`run iniciado`) e na tabela `runs` (`mode = 'paper'`).
+- Kill switch manual: crie o arquivo `data/STOP` (bloqueia novas entradas; posições abertas continuam sendo geridas).
+- Parada limpa (Ctrl+C, `pm2 stop`): não abre novas posições, grava o que estiver no buffer; posições ainda abertas
+  ficam como abertas no run (o relatório as lista à parte, fora do PnL).
+- Telegram: preencha `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` no `.env` (vazios = alertas desligados, só log).
+  Mensagens a cada entrada e saída e um resumo por hora; só dados públicos.
+- Log por minuto `paper`: posições abertas, entradas/saídas no minuto, tokens rejeitados por motivo, PnL líquido do run
+  e a origem da estimativa de custo (`tx_costs_median` ou `fallback`).
+
 ## Prompts iniciais para o Claude Code
 
 Abra o Claude Code na pasta do projeto e use um prompt por vez, esperando cada um terminar.

@@ -60,9 +60,9 @@ memebot/
 │   ├── risk/                  # limites, sizing, kill switch, hard-limits.ts
 │   ├── execution/             # Executor: paper.ts, live.ts (Jito + RPC), cleanup de contas
 │   ├── positions/             # posições abertas, gatilhos de saída
-│   └── monitor/               # alertas Telegram, métricas, health check
+│   └── monitor/               # alertas Telegram (entrada/saída/resumo por hora)
 ├── apps/
-│   ├── bot/                   # entrypoint: --mode=record|paper|live
+│   ├── bot/                   # entrypoint: --mode=record|paper|live; src/paper/ (orquestrador), src/report.ts (pnpm report)
 │   ├── backtest/              # replay de intervalos gravados
 │   └── report/                # relatórios de execuções
 ├── research/                  # Python: notebooks, treino, export ONNX
@@ -225,7 +225,7 @@ export type ApprovalResult =
       maxSlippageBps: number; priceImpactPct: number; sizeReduced: boolean }
   | { approved: false; decisionId: string; mint: string; reason: string }; // 'kill_switch:<gatilho>', 'maxOpenPositions', ...
 
-// execução (packages/execution). Fill espelha a tabela `fills` + migração 006.
+// execução (packages/execution). Fill espelha a tabela `fills` + migração 006 (006_fills_paper_columns.sql).
 export interface Fill {
   runId: string; ts: number; decisionId: string; mint: string; side: 'buy' | 'sell';
   solIn: Lamports;        // compra: quoteAmountIn + taxas da curva
@@ -233,14 +233,22 @@ export interface Fill {
   tokenDelta: TokenAmount; protocolFee: Lamports; creatorFee: Lamports; priorityFee: Lamports; jitoTip: Lamports;
   rent: Lamports;         // cobrado na 1ª compra do mint
   rentRefund: Lamports;   // devolvido na venda que zera a posição
-  expectedPriceSol: number; realizedPriceSol: number; // lamports por unidade mínima de token, líquidos das taxas da curva
+  baseFee: Lamports;      // taxa base por assinatura × 1 assinatura; cobrada em filled, failed E expired
+  // lamports por unidade mínima de token (mesma unidade de marginalPrice), líquidos das taxas da curva.
+  // Antes chamados expectedPriceSol/realizedPriceSol (renomeados em 2026-10-01: nunca foram SOL).
+  expectedPriceLamportsPerUnit: number; realizedPriceLamportsPerUnit: number;
   slippageBps: number; landedSlot: bigint | null /* null no paper */; status: 'filled' | 'failed' | 'expired'; error: string | null;
   venueUnverified: boolean;                            // fechado no último preço da curva por graduação
   costEstimateSource: 'tx_costs_median' | 'fallback'; costCappedByHardLimit: boolean;
+  virtualQuoteBefore: bigint | null; virtualTokenBefore: TokenAmount | null; // reservas usadas no preenchimento
 }
+// fluxo de caixa do fill: solOut + rentRefund − solIn − priorityFee − jitoTip − baseFee − rent
+export function fillCashFlow(fill: Fill): Lamports;
 // Custos: mediana de tx_costs × 1,5 (tip: só amostras com tip > 0); < PAPER_COST_MIN_SAMPLES → fallback configurável.
 export function estimateTxCosts(samples: readonly TxCostSample[], params: TxCostEstimateParams): TxCostEstimate;
-// Paper executor: máquina de estados pura (ver §5). Sem timers; o orquestrador chama:
+// Paper executor: máquina de estados pura (ver §5). Sem timers. `PaperExecutorParams` inclui
+// `baseFeeLamportsPerSignature` (o orquestrador passa LAMPORTS_PER_SIGNATURE de packages/ingest — o
+// número não é duplicado em execution) e `tokenAccountRentLamports` (lido por RPC na partida). O orquestrador chama:
 export function submitOrder(s: PaperExecutorState, p: PaperExecutorParams, order: BuyOrder | SellOrder, market: MarketState, nowMs: number): PaperExecutorState;
 export function settleBeforeEvent(s, p, marketBeforeEvent: MarketState, eventTs: number): { state; fills: Fill[] }; // vencimento < eventTs
 export function settleOnTick(s, p, market: MarketState, nowMs: number): { state; fills: Fill[] };                    // vencimento <= nowMs
@@ -253,11 +261,45 @@ export function openPosition(buyFill: Fill): Position;
 export function evaluateExits(position: Position, token: TokenState, nowMs: number, exits: StrategyV0Config['exits'], ctx: ExitContext):
   { position: Position; orders: { mint: string; fraction: number /* da quantidade atual */; reason: ExitReason; takeProfitStep: number | null }[] };
 // PnL líquido = (realizadoLíquido + L − custoEntrada) / custoEntrada, com
-//   custoEntrada = solIn + priority + tip + rent da compra;
-//   L = netQuoteOut(bondingCurveSell(reservas atuais, quantidade)) − priority − tip estimados da saída + rent (volta ao fechar).
+//   custoEntrada = solIn + priority + tip + taxa base + rent da compra;
+//   L = netQuoteOut(bondingCurveSell(reservas atuais, quantidade)) − priority − tip − taxa base estimados da saída
+//       + rent (volta ao fechar). ExitContext = { fees, exitPriorityFeeLamports, exitJitoTipLamports, exitBaseFeeLamports }.
 // Precedência: graduated > emergency_creator_sell > emergency_large_sell > stop_loss > trailing_stop > time_stop > take_profit_N.
 // Trailing só depois do TP1, sobre L do restante (a máxima recomeça a cada venda parcial). sellFraction do TP = fração da quantidade INICIAL.
 export function applyExitFill(position: Position, sellFill: Fill): { position: Position | null; realizedPnlDelta: Lamports };
+
+// estado ao vivo (packages/state, Fase 3): MarketStore = mesmo núcleo puro de applyEvent (tokenUpdateFor),
+// mapas mutáveis (sem copiar o Map de todos os tokens a cada evento); equivalência testada.
+export class MarketStore { readonly state: MarketState; apply(e: PumpEvent): string | null; seedSkeleton(s: TokenSkeleton): boolean;
+  compact(nowMs: number, policy: CompactionPolicy, isProtected: (mint: string) => boolean): { compacted: number; dropped: number } }
+// Compactação: posição/ordem pendente → mantém; sem createdAtMs → remove; idade > skeletonRetentionMs (24 h) → remove;
+// idade > fullStateMaxAgeMs (maxAgeSec + 60 s) ou graduado → esqueleto (sem trades/holderBalances/firstBuyers,
+// mantém creator/createdAtMs/slot/reservas, necessários para creatorTokensCreated24h).
+
+// orquestrador do paper (apps/bot/src/paper/engine.ts, Fase 3). Sem I/O; efeitos por callbacks.
+export class PaperEngine {
+  constructor(o: { runId; config: StrategyV0Config; limits: EffectiveRiskLimits; curveParams; fees: CurveFeeBps; costs: TxCostEstimate;
+    latencyMs; failRate; tokenAccountRentLamports; baseFeeLamportsPerSignature; seed; startMs;
+    sinks: { decision(d: DecisionRecord): void; fill(f: Fill): void; notify(text: string): void; log: Logger } });
+  onEvent(e: PumpEvent, nowMs: number): void; // settleBeforeEvent → MarketStore.apply → saídas do mint → avaliação de entrada
+  onTick(nowMs: number): void;                // settleOnTick → saídas de todas as posições → compactação (1×/min)
+  setCosts / setFees / setCurveParams / setStopFile; stopEntries(); seedSkeletons(); takeMinuteStats(); takeHourlySummary(nowMs);
+}
+// Volume (~15–20 mil eventos/min): avalia só `trade` de curva de mint cuja criação foi vista AO VIVO no run
+// (pré-carregados do banco não têm histórico), sem posição/ordem pendente, idade em [minAgeSec, maxAgeSec],
+// no máximo 1×/s por mint. `decisions` grava uma linha só quando o resultado do mint muda (primeiro reject,
+// mudança de motivo, enter, cada exit) — o report conta tokens (mints distintos) por motivo.
+// Relógio: PaperClock.nowMs = max(maior ts de evento, parede − 2 s, último valor) — monotônico; ticks de 1 s.
+// Adaptador: apps/bot/src/paper/run-paper.ts (ClickHouse, RPC, Telegram, data/STOP, sinais/IPC de parada).
+
+// monitor (packages/monitor, Fase 3): depende só de core.
+export class TelegramNotifier { // sendMessage via fetch; timeout 5 s; 3 retries com backoff; 429 → retry_after (≤ 30 s);
+  constructor(o: { botToken; chatId; logger; fetchFn?; maxQueue? /* 100, descarta a mais antiga */ });
+  readonly enabled: boolean; // false (com aviso) se token/chat vazios
+  send(text: string): void;  // nunca lança nem bloqueia; erros só no log, com o token removido (redactToken)
+  close(timeoutMs?: number): Promise<void>;
+}
+export function formatEntryAlert(a: EntryAlert): string; formatExitAlert(a: ExitAlert): string; formatHourlySummary(s: HourlySummary): string;
 
 // sinais
 export interface RiskModel { score(features: Record<string, number>): number } // 0..1, prob. de rug
@@ -272,9 +314,9 @@ export interface NarrativeClassifier {
 Deve ser **pessimista por padrão** (implementado em `packages/execution/src/paper.ts`, Fase 3/parte B):
 1. **Latência simulada:** a ordem é preenchida no estado da curva `N` ms depois da decisão (`PAPER_LATENCY_MS`, padrão 800 ms) — usa-se o estado após todos os eventos com `ts ≤ decisão + N` (o orquestrador chama `settleBeforeEvent` antes de aplicar cada evento e `settleOnTick` em ticks sem evento). A nossa própria ordem **não** é injetada no `MarketState` (pessimista: a venda posterior não se beneficia do preço que a nossa compra empurrou).
 2. **Preço exato** via `curve-math` sobre as reservas daquele instante, incluindo taxas lidas da configuração on-chain (passadas como parâmetro).
-3. **Custos:** priority fee e tip de Jito = mediana de `tx_costs` × 1,5 (tip só sobre amostras com tip > 0, porque o live vai usar Jito). Com menos de `PAPER_COST_MIN_SAMPLES` (30) amostras usa `PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS` / `PAPER_FALLBACK_JITO_TIP_LAMPORTS` (500 000 cada) e o fill sai com `cost_estimate_source = 'fallback'`. Nunca acima de `maxPriorityFeeLamports`/`maxJitoTipLamports`: se passar, usa o limite e marca `cost_capped`. Rent da conta de token é injetado (o adaptador lê `getMinimumBalanceForRentExemption`), cobrado na 1ª compra do mint e devolvido (`rent_refund`) só na venda que zera a posição. A taxa base por assinatura (fee não-priority) ainda **não** é cobrada (ver relatório da parte B).
-4. **Falhas:** taxa configurável (`PAPER_FAIL_RATE`, 10%) sorteada com PRNG semeado (mulberry32; seed derivada do run) — um sorteio por ordem, sempre, para o replay ser estável. `failed` e `expired` (slippage acima do `maxSlippageBps` aprovado) pagam a priority fee e **não** pagam tip (o tip do Jito reverte com o bundle); posição intacta. Compra pendente cuja curva completou durante a latência → `failed` (`curve_unavailable_at_fill`).
-5. Registrar `expectedPrice` × `realizedPrice` em todo fill para depois calibrar contra o live.
+3. **Custos:** priority fee e tip de Jito = mediana de `tx_costs` × 1,5 (tip só sobre amostras com tip > 0, porque o live vai usar Jito). Com menos de `PAPER_COST_MIN_SAMPLES` (30) amostras usa `PAPER_FALLBACK_PRIORITY_FEE_LAMPORTS` / `PAPER_FALLBACK_JITO_TIP_LAMPORTS` (500 000 cada) e o fill sai com `cost_estimate_source = 'fallback'`. Nunca acima de `maxPriorityFeeLamports`/`maxJitoTipLamports`: se passar, usa o limite e marca `cost_capped`. Rent da conta de token é injetado e cobrado na 1ª compra do mint e devolvido (`rent_refund`) só na venda que zera a posição. A conta é a ATA **Token-2022** do mint (o mint do Pump.fun é do programa `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`): tamanho **170 bytes** — `GetAccountDataSize` devolve 170 (`qgAAAAAAAAA=`) no `CreateIdempotent` da tx real `packages/ingest/test/fixtures/curve-create.json`, cujas ATAs criadas ficaram com 1 513 840 lamports, o mesmo valor de `getMinimumBalanceForRentExemption(170)` na mainnet em 2026-10-01. O orquestrador lê o rent por RPC na partida (`fetchTokenAccountRent`, `packages/ingest/src/onchain.ts`); se o RPC falhar, usa o valor observado nessa transação e registra no log. A **taxa base** por assinatura (`LAMPORTS_PER_SIGNATURE` = 5000, https://solana.com/docs/core/fees; 1 assinatura por tx) é cobrada em toda transação que entra no bloco — `filled`, `failed` e `expired` — e entra no custo de entrada e no valor de liquidação de `packages/positions`.
+4. **Falhas:** taxa configurável (`PAPER_FAIL_RATE`, 10%) sorteada com PRNG semeado (mulberry32; seed derivada do run) — um sorteio por ordem, sempre, para o replay ser estável. `failed` e `expired` (slippage acima do `maxSlippageBps` aprovado) pagam a priority fee e a taxa base e **não** pagam tip (o tip do Jito reverte com o bundle); posição intacta. Compra pendente cuja curva completou durante a latência → `failed` (`curve_unavailable_at_fill`).
+5. Registrar `expectedPriceLamportsPerUnit` × `realizedPriceLamportsPerUnit` em todo fill para depois calibrar contra o live, e as reservas virtuais usadas no preenchimento (`virtualQuoteBefore`/`virtualTokenBefore`, para a tabela de sensibilidade do `pnpm report`).
 6. **PumpSwap:** nunca simulado (`PumpSwapSimulationNotValidatedError`). Graduação com posição aberta → vende tudo no último preço da curva, `venue_unverified = 1`, sem sorteio de falha/slippage.
 7. **Hard limits** conferidos de novo no executor (tamanho, slippage, nº de posições, custos): violação = erro, nunca fill.
 
@@ -297,7 +339,7 @@ nunca edite uma migração aplicada, crie outra). Toda linha de evento tem `raw_
 | `protocol_config` | snapshots de Global, GlobalConfig e FeeConfig (taxas por faixa) lidos on-chain | `(ts)` |
 | `runs` | cada execução (modo, config hash, commit git) | `(run_id)` |
 | `decisions` | decisões com snapshot de features | `(run_id, ts)` |
-| `fills` | fills simulados/reais com custos detalhados (+ `venue_unverified`, `cost_estimate_source`, `cost_capped`, `rent_refund` — migração 006, ainda não aplicada) | `(run_id, ts)` |
+| `fills` | fills simulados/reais com custos detalhados. Migração 006 (`006_fills_paper_columns.sql`, **ainda não aplicada** — aplicar com `pnpm migrate` é decisão do usuário): `venue_unverified`, `cost_estimate_source`, `cost_capped`, `rent_refund`, `base_fee`, `virtual_quote_before`, `virtual_token_before` (0 = sem reservas) e `expected/realized_price_sol` renomeados para `expected/realized_price_lamports_per_unit` (sempre foram lamports por unidade mínima) | `(run_id, ts)` |
 | `signals_log` | respostas do modelo de risco e do Jev | `(run_id, ts)` |
 | `wallet_stats` | métricas por carteira (recalculadas offline) | `(wallet)` |
 
