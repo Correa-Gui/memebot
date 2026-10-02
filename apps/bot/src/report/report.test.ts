@@ -254,3 +254,16 @@ describe('lacunas do stream e qualidade medida', () => {
     expect(text).toContain('lacunas do stream');
   });
 });
+
+describe('run descartado', () => {
+  it('aviso no topo com o motivo; relatório continua sendo gerado', () => {
+    const r = computeReport({
+      runId: 'r', mode: 'paper', startedAtMs: 0, decisions: [], fills: [], fees: FEES, sizeLamports: 50_000_000n, maxOpenPositions: 3,
+      hardLimitPositionLamports: 50_000_000n, sensitivitySizesLamports: [], discardReason: 'reiniciado por mudança de config',
+    });
+    const text = formatReportText(r);
+    expect(text.split('\n')[1]).toBe('!!! RUN DESCARTADO — motivo: reiniciado por mudança de config');
+    expect(text).toContain('Relatório do run r');
+    expect(formatReportText({ ...r, discardReason: null })).not.toContain('DESCARTADO');
+  });
+});

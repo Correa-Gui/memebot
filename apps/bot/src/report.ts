@@ -6,7 +6,20 @@ import { HARD_LIMITS, buildEffectiveRiskLimits, solToLamports } from '@memebot/r
 import { loadStrategyConfig } from '@memebot/strategy';
 import { computeReport, realMedianCostsFrom, runEndMs } from './report/compute.ts';
 import { formatReportJson, formatReportText } from './report/format.ts';
-import { parseCostRows, parseDecisionRows, parseFillRows, parseGapRows, parseRunHealthRow, parseRunRow } from './report/rows.ts';
+import {
+  parseCompletedRows,
+  parseCostRows,
+  parseDecisionRows,
+  parseFillRows,
+  parseGapRows,
+  parseMinuteRows,
+  parseRunHealthRow,
+  parseRunRow,
+  parseTradePointRows,
+} from './report/rows.ts';
+
+/** Horizonte das análises pós-saída / moonbag (janelas de 15 min, 1 h e 4 h). */
+const ANALYSIS_HORIZON_MS = 4 * 3_600_000;
 
 /**
  * `pnpm report --run=<id> [--json] [--config=config/strategy.v0.yaml]`
@@ -36,7 +49,7 @@ async function main(): Promise<void> {
       const rs = await client.query({ query, query_params: { runId, ...extra }, format: 'JSONEachRow' });
       return rs.json<unknown>();
     };
-    const runRows = await q('SELECT run_id, mode, toUnixTimestamp64Milli(started_at) AS started_ms FROM runs WHERE run_id = {runId:String} LIMIT 1');
+    const runRows = await q('SELECT run_id, mode, toUnixTimestamp64Milli(started_at) AS started_ms, discarded, discard_reason FROM runs WHERE run_id = {runId:String} LIMIT 1');
     const run = runRows.length > 0 ? parseRunRow(runRows[0]) : null;
     if (!run) throw new Error(`run ${runId} não encontrado em runs`);
     const decisions = parseDecisionRows(
@@ -61,6 +74,39 @@ async function main(): Promise<void> {
       await q('SELECT priority_fee, jito_tip FROM tx_costs WHERE sampled_at <= fromUnixTimestamp64Milli({endMs:Int64})', { endMs }),
     );
     const realMedianCosts = realMedianCostsFrom(costSamples, limits);
+    // dados de mercado dos mints operados (para as análises de saída/stop/vida): trades de curva e PumpSwap,
+    // curve_completed e cobertura de gravação (minutos com algum trade de qualquer mint)
+    const entryFills = fills.filter((f) => f.side === 'buy' && f.status === 'filled');
+    const mints = [...new Set(entryFills.map((f) => f.mint))];
+    let market = null;
+    if (mints.length > 0) {
+      const from = Math.min(...entryFills.map((f) => f.ts)) - 10 * 60_000;
+      const to = Math.max(...fills.map((f) => f.ts)) + ANALYSIS_HORIZON_MS + 5 * 60_000;
+      const range = { from, to, mints };
+      const points = parseTradePointRows(await q(
+        'SELECT mint, toUnixTimestamp64Milli(ts) AS ts_ms, venue, virtual_quote_reserves AS vq, virtual_token_reserves AS vt FROM v_trades ' +
+          'WHERE mint IN {mints:Array(String)} AND ts >= fromUnixTimestamp64Milli({from:Int64}) AND ts <= fromUnixTimestamp64Milli({to:Int64}) ' +
+          'ORDER BY mint, ts, slot, recv_seq',
+        range,
+      ));
+      const completedAt = parseCompletedRows(await q(
+        "SELECT mint, toUnixTimestamp64Milli(min(ts)) AS ts_ms FROM events_lifecycle WHERE kind = 'curve_completed' AND mint IN {mints:Array(String)} GROUP BY mint",
+        range,
+      ));
+      const minutes = parseMinuteRows(await q(
+        'SELECT toUnixTimestamp(toStartOfMinute(ts)) * 1000 AS m FROM events_trade WHERE ts >= fromUnixTimestamp64Milli({from:Int64}) ' +
+          'AND ts <= fromUnixTimestamp64Milli({to:Int64}) GROUP BY m',
+        range,
+      ));
+      const dataEnd = parseMinuteRows(await q('SELECT toUnixTimestamp64Milli(max(ts)) AS m FROM events_trade'));
+      market = { points, completedAt, coverage: { minutes, endMs: Math.max(0, ...dataEnd) } };
+    }
+    const enterFeatures = new Map(
+      decisions.decisions.filter((d) => d.type === 'enter').flatMap((d) => {
+        const f = decisions.features.get(d.decisionId);
+        return f ? [[d.decisionId, f] as [string, Record<string, unknown>]] : [];
+      }),
+    );
     const firstEnter = decisions.decisions.find((d) => d.type === 'enter');
     const feeFeatures = firstEnter ? decisions.features.get(firstEnter.decisionId) : undefined;
     const fees: CurveFeeBps = {
@@ -71,6 +117,7 @@ async function main(): Promise<void> {
       runId,
       mode: run.mode,
       startedAtMs: run.startedMs,
+      discardReason: run.discardReason,
       decisions: decisions.decisions,
       fills,
       fees,
@@ -79,6 +126,11 @@ async function main(): Promise<void> {
       hardLimitPositionLamports: HARD_LIMITS.maxPositionLamports,
       sensitivitySizesLamports: SENSITIVITY_SIZES_SOL.map((s) => solToLamports(s, 'sensitivity')),
       stopLossPct: strategy.exits.stopLossPct,
+      market,
+      enterFeatures,
+      exitsConfig: strategy.exits,
+      latencyMs: cfg.PAPER_LATENCY_MS,
+      horizonMs: ANALYSIS_HORIZON_MS,
       gaps,
       runHealth,
       realMedianCosts,

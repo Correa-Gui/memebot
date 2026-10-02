@@ -3,6 +3,8 @@ import { bondingCurveBuy, bondingCurveSell } from '@memebot/curve-math';
 import type { CurveFeeBps } from '@memebot/curve-math';
 import { estimateOneCost } from '@memebot/execution';
 import { quoteInForBudget } from '@memebot/risk';
+import { computeAnalysis } from './analysis.ts';
+import type { Analysis, MintMarketData } from './analysis.ts';
 import { gapInterval, overlaps, runQuality } from './quality.ts';
 import type { ReportGap, RunQuality } from './quality.ts';
 
@@ -322,12 +324,16 @@ export interface GapOperations {
 
 export interface ReportResult {
   runId: string;
+  /** Motivo do descarte do run (runs.discarded = 1), ou null. */
+  discardReason: string | null;
   endMs: number;
   quality: RunQuality;
   expectancyLamports: Lamports;
   costSources: CostSourceCounts;
   realMedianComparison: RealMedianComparison | null;
   gapOperations: GapOperations;
+  /** Análises de "por que perde" (stops, vida do token, faixas, bootstrap, slippage por lado). */
+  analysis: Analysis | null;
   mode: string;
   startedAtMs: number | null;
   capitalLamports: Lamports;
@@ -385,6 +391,18 @@ export interface ReportInput {
    * de custo; `null` por tipo = sem amostras. Ausente = não recalcula.
    */
   realMedianCosts?: { priorityFeeLamports: Lamports | null; jitoTipLamports: Lamports | null } | null;
+  /** Trades dos mints operados + cobertura de gravação (para as análises de stop e vida do token). */
+  market?: MintMarketData | null;
+  /** Snapshot de features do `enter` por decision_id (ageSec, volume60sSol...). */
+  enterFeatures?: ReadonlyMap<string, Readonly<Record<string, unknown>>>;
+  /** Run marcado como descartado em `runs` (migração 009): motivo; null/ausente = válido. */
+  discardReason?: string | null;
+  /** Saídas da config (regras alternativas); padrão = strategy.v0.yaml. */
+  exitsConfig?: { takeProfit: readonly { gainPct: number; sellFraction: number }[]; trailingStopPct: number; stopLossPct: number; timeStopSec: number };
+  /** Latência simulada nas regras alternativas (PAPER_LATENCY_MS; padrão 800). */
+  latencyMs?: number;
+  /** Horizonte das janelas pós-saída/moonbag (padrão 4 h). */
+  horizonMs?: number;
 }
 
 /**
@@ -446,7 +464,7 @@ function countSources(fills: readonly ReportFill[]): CostSourceCounts {
   return { priority, tip };
 }
 
-function summary(r: Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs'>): ComparableSummary {
+function summary(r: Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs' | 'analysis' | 'discardReason'>): ComparableSummary {
   return { netLamports: r.netLamports, expectancyLamports: r.expectancyLamports, costs: r.costs, criteria: r.criteria };
 }
 
@@ -457,7 +475,7 @@ export function computeReport(input: ReportInput): ReportResult {
   const quality = runQuality(input.runHealth ?? null, gaps, input.startedAtMs ?? endMs, endMs);
 
   // operações abertas durante alguma lacuna do stream
-  const exitReasonByDecision = new Map<string, string>();
+  const exitReasonByDecision = new Map(input.decisions.filter((d) => d.type === 'exit').map((d) => [d.decisionId, d.reason]));
   const { operations } = buildOperations(input.fills, exitReasonByDecision);
   const intervals = gaps.map(gapInterval);
   const flagged = operations.filter((o) => intervals.some((g) => overlaps({ fromMs: o.entry.ts, toMs: o.closeTs ?? endMs }, g)));
@@ -483,7 +501,24 @@ export function computeReport(input: ReportInput): ReportResult {
       realMedian: summary(alt),
     };
   }
-  return { ...core, endMs, quality, costSources: countSources(input.fills), realMedianComparison, gapOperations };
+  const analysis = input.market
+    ? computeAnalysis(
+        operations.map((op) => ({ op, metrics: op.closed ? operationMetrics(op) : null })),
+        input.fills,
+        input.enterFeatures ?? new Map(),
+        input.market,
+        input.fees,
+        {
+          exits: input.exitsConfig ?? {
+            takeProfit: [{ gainPct: 0.4, sellFraction: 0.5 }, { gainPct: 1, sellFraction: 0.3 }], trailingStopPct: 0.25, stopLossPct: input.stopLossPct ?? 0.2, timeStopSec: 600,
+          },
+          latencyMs: input.latencyMs ?? 800,
+          horizonMs: input.horizonMs ?? 4 * 3_600_000,
+          exitReasonByDecision,
+        },
+      )
+    : null;
+  return { ...core, discardReason: input.discardReason ?? null, endMs, quality, costSources: countSources(input.fills), realMedianComparison, gapOperations, analysis };
 }
 
 function countBy<T>(items: readonly T[], key: (t: T) => string): { key: string; count: number }[] {
@@ -492,7 +527,7 @@ function countBy<T>(items: readonly T[], key: (t: T) => string): { key: string; 
   return [...m].map(([k, count]) => ({ key: k, count })).sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
 }
 
-function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs'> {
+function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSources' | 'realMedianComparison' | 'gapOperations' | 'endMs' | 'analysis' | 'discardReason'> {
   const exitReasonByDecision = new Map(input.decisions.filter((d) => d.type === 'exit').map((d) => [d.decisionId, d.reason]));
   const { operations, failedEntries, orphanSells } = buildOperations(input.fills, exitReasonByDecision);
   const closed = operations.filter((o) => o.closed);
@@ -541,7 +576,7 @@ function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSo
     line('tip Jito', sum((m) => m.jitoTip)),
     line('taxa base (assinatura)', sum((m) => m.baseFee)),
     line('rent líquido (rent − devolvido)', sum((m) => m.rentNet)),
-    line('slippage (esperado × realizado; já dentro do PnL)', sum((m) => m.slippage)),
+    line('slippage (positivo = pior que o esperado; já dentro do PnL)', sum((m) => m.slippage)),
   ];
 
   const rejects = input.decisions.filter((d) => d.type === 'reject');

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { MintTradePoint } from './analysis.ts';
 import type { ReportDecision, ReportFill } from './compute.ts';
 
 /** Parse (zod) das linhas lidas do ClickHouse para o relatório. u64/Int64 chegam como string. */
@@ -6,11 +7,18 @@ import type { ReportDecision, ReportFill } from './compute.ts';
 const big = z.union([z.string().regex(/^-?\d+$/), z.number().int()]).transform((v) => BigInt(v));
 const ms = big.transform((v) => Number(v));
 
-const RunRow = z.object({ run_id: z.string(), mode: z.string(), started_ms: ms });
+const RunRow = z.object({
+  run_id: z.string(),
+  mode: z.string(),
+  started_ms: ms,
+  // migração 009 (ausentes antes dela)
+  discarded: z.number().optional(),
+  discard_reason: z.string().optional(),
+});
 
-export function parseRunRow(row: unknown): { runId: string; mode: string; startedMs: number } {
+export function parseRunRow(row: unknown): { runId: string; mode: string; startedMs: number; discardReason: string | null } {
   const p = RunRow.parse(row);
-  return { runId: p.run_id, mode: p.mode, startedMs: p.started_ms };
+  return { runId: p.run_id, mode: p.mode, startedMs: p.started_ms, discardReason: p.discarded === 1 ? (p.discard_reason ?? '') : null };
 }
 
 const DecisionRow = z.object({
@@ -122,4 +130,39 @@ export function parseCostRows(rows: unknown[]): { priorityFee: bigint; jitoTip: 
     const p = CostRow.parse(r);
     return { priorityFee: p.priority_fee, jitoTip: p.jito_tip };
   });
+}
+
+const TradePointRow = z.object({
+  mint: z.string(),
+  ts_ms: ms,
+  venue: z.enum(['curve', 'pumpswap']),
+  vq: big.nullable(),
+  vt: big.nullable(),
+});
+
+/** Trades por mint, na ordem recebida (a query ordena por mint, ts, slot, recv_seq). */
+export function parseTradePointRows(rows: unknown[]): Map<string, MintTradePoint[]> {
+  const out = new Map<string, MintTradePoint[]>();
+  for (const r of rows) {
+    const p = TradePointRow.parse(r);
+    const list = out.get(p.mint) ?? [];
+    list.push({ ts: p.ts_ms, venue: p.venue, virtualQuote: p.vq, virtualToken: p.vt });
+    out.set(p.mint, list);
+  }
+  return out;
+}
+
+const CompletedRow = z.object({ mint: z.string(), ts_ms: ms });
+
+export function parseCompletedRows(rows: unknown[]): Map<string, number> {
+  return new Map(rows.map((r) => {
+    const p = CompletedRow.parse(r);
+    return [p.mint, p.ts_ms] as [string, number];
+  }));
+}
+
+const MinuteRow = z.object({ m: ms });
+
+export function parseMinuteRows(rows: unknown[]): Set<number> {
+  return new Set(rows.map((r) => MinuteRow.parse(r).m));
 }
