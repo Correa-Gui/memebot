@@ -138,6 +138,11 @@ describe('computeReport', () => {
     expect(r.netWithoutTop3Lamports).toBe(fillCash(failed));
     expect(r.capitalLamports).toBe(150_000_000n);
     expect(r.exitReasons).toEqual([{ reason: 'stop_loss', count: 1 }, { reason: 'take_profit_1', count: 1 }]);
+    expect(r.stopLosses).toMatchObject({ count: 1, losingCount: 1, overOneAndHalfConfiguredStop: 1, configuredStopPct: 0.2 });
+    expect(r.stopLosses.averageLossLamports).toBe(netLoss);
+    const stopOperation = buildOperations(loss, new Map([['l-out', 'stop_loss']])).operations[0];
+    if (!stopOperation) throw new Error('operação de stop ausente');
+    expect(r.stopLosses.averageLossPct).toBe(operationMetrics(stopOperation).returnRatio);
     expect(r.rejectedTokensByReason).toEqual([{ reason: 'minUniqueHolders', tokens: 2 }, { reason: 'minVolume60sSol', tokens: 1 }]);
     expect(r.criteria.map((c) => c.ok)).toEqual([false, r.netLamports > 0n, false, r.maxDrawdownPct <= 0.3]);
     expect(r.fallbackFills).toBe(1);
@@ -154,6 +159,9 @@ describe('computeReport', () => {
     expect(text).toContain('Critério de sucesso');
     expect(text).toMatch(/✗ +≥ 200 operações/);
     expect(text).toContain('HIPOTÉTICO');
+    expect(text).toContain('2.1 Stops');
+    expect(text).toContain('perda média nos stops');
+    expect(text).toContain('1,5× stop configurado');
     expect(text).toContain('NÃO modela o efeito');
     const json = JSON.parse(formatReportJson(r)) as { netLamports: string };
     expect(json.netLamports).toBe(r.netLamports.toString());

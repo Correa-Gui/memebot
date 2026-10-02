@@ -78,6 +78,7 @@ async function main(): Promise<void> {
       maxOpenPositions: limits.maxOpenPositions,
       hardLimitPositionLamports: HARD_LIMITS.maxPositionLamports,
       sensitivitySizesLamports: SENSITIVITY_SIZES_SOL.map((s) => solToLamports(s, 'sensitivity')),
+      stopLossPct: strategy.exits.stopLossPct,
       gaps,
       runHealth,
       realMedianCosts,

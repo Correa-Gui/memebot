@@ -48,6 +48,13 @@ export function formatReportText(r: ReportResult): string {
   out.push('== Motivo de saída (operações fechadas) ==');
   out.push(r.exitReasons.length > 0 ? table(['motivo', 'n'], r.exitReasons.map((e) => [e.reason, String(e.count)]), ['l', 'r']) : '(nenhuma)');
   out.push('');
+  out.push('== 2.1 Stops ==');
+  out.push(table(['métrica', 'valor'], [
+    ['stops acionados', String(r.stopLosses.count)],
+    ['perda média nos stops', r.stopLosses.losingCount > 0 ? `${sol(r.stopLosses.averageLossLamports)} SOL (${pct(r.stopLosses.averageLossPct)})` : 'n/d'],
+    [`nº de stops com perda > 1,5× stop configurado (${pct(r.stopLosses.configuredStopPct)}; limite ${pct(r.stopLosses.configuredStopPct * 1.5)})`, String(r.stopLosses.overOneAndHalfConfiguredStop)],
+  ], ['l', 'r']));
+  out.push('');
   out.push('== Tokens rejeitados por filtro (mints distintos) ==');
   out.push(r.rejectedTokensByReason.length > 0 ? table(['motivo', 'tokens'], r.rejectedTokensByReason.map((e) => [e.reason, String(e.tokens)]), ['l', 'r']) : '(nenhum)');
   out.push('');

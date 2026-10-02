@@ -343,6 +343,14 @@ export interface ReportResult {
   maxDrawdownLamports: Lamports;
   maxDrawdownPct: number;
   exitReasons: { reason: string; count: number }[];
+  stopLosses: {
+    count: number;
+    losingCount: number;
+    averageLossLamports: Lamports;
+    averageLossPct: number;
+    overOneAndHalfConfiguredStop: number;
+    configuredStopPct: number;
+  };
   rejectedTokensByReason: { reason: string; tokens: number }[];
   costs: CostBreakdownLine[];
   avgEntrySizeLamports: Lamports;
@@ -366,6 +374,8 @@ export interface ReportInput {
   sensitivitySizesLamports: readonly Lamports[];
   minOperations?: number;
   maxDrawdownPct?: number;
+  /** Stop loss da estratégia usada neste run; padrão compatível com strategy.v0.yaml. */
+  stopLossPct?: number;
   /** Lacunas `reconnect` do run (ingest_gaps). */
   gaps?: readonly ReportGap[];
   /** Linha de `v_run_quality` do run, se houver run_health. */
@@ -487,6 +497,21 @@ function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSo
   const { operations, failedEntries, orphanSells } = buildOperations(input.fills, exitReasonByDecision);
   const closed = operations.filter((o) => o.closed);
   const metrics = closed.map(operationMetrics);
+  const configuredStopPct = input.stopLossPct ?? 0.2;
+  const stopLossRows = closed.flatMap((op, i) => op.exitReason === 'stop_loss' && metrics[i] ? [{ metrics: metrics[i] }] : []);
+  const losingStops = stopLossRows.filter(({ metrics: m }) => m.net < 0n);
+  const stopLosses = {
+    count: stopLossRows.length,
+    losingCount: losingStops.length,
+    averageLossLamports: losingStops.length > 0
+      ? losingStops.reduce((sum, { metrics: m }) => sum + m.net, 0n) / BigInt(losingStops.length)
+      : 0n,
+    averageLossPct: losingStops.length > 0
+      ? losingStops.reduce((sum, { metrics: m }) => sum + m.returnRatio, 0) / losingStops.length
+      : Number.NaN,
+    overOneAndHalfConfiguredStop: stopLossRows.filter(({ metrics: m }) => m.returnRatio < -(configuredStopPct * 1.5)).length,
+    configuredStopPct,
+  };
 
   const sum = (f: (m: OperationMetrics) => Lamports): Lamports => metrics.reduce((acc, m) => acc + f(m), 0n);
   const netClosed = sum((m) => m.net);
@@ -550,6 +575,7 @@ function computeCore(input: ReportInput): Omit<ReportResult, 'quality' | 'costSo
     maxDrawdownLamports: dd,
     maxDrawdownPct: ddPct,
     exitReasons: countBy(closed, (o) => o.exitReason ?? 'unknown').map((r) => ({ reason: r.key, count: r.count })),
+    stopLosses,
     rejectedTokensByReason: [...rejectSets].map(([reason, s]) => ({ reason, tokens: s.size })).sort((a, b) => b.tokens - a.tokens || a.reason.localeCompare(b.reason)),
     costs,
     avgEntrySizeLamports: avgSize,
