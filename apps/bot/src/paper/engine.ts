@@ -1,4 +1,5 @@
 import type { Clock, Lamports, Logger, PumpEvent } from '@memebot/core';
+import { marginalPrice } from '@memebot/curve-math';
 import type { CurveFeeBps, CurveInitialParams } from '@memebot/curve-math';
 import {
   SIGNATURES_PER_TX,
@@ -20,8 +21,8 @@ import { approveEntry, createRiskState, nextDecisionId, recordRealizedPnl, recor
 import type { EffectiveRiskLimits, RiskState } from '@memebot/risk';
 import { MarketStore } from '@memebot/state';
 import type { CompactionPolicy, TokenSkeleton, TokenState } from '@memebot/state';
-import { evaluate } from '@memebot/strategy';
-import type { StrategyV0Config } from '@memebot/strategy';
+import { confirmPendingEntry, createPendingSignal, decidePendingSignal, entryMode, evaluate, observePendingPrice } from '@memebot/strategy';
+import type { EnterDecision, EntryMode, PendingSignal, StrategyV0Config } from '@memebot/strategy';
 
 /**
  * Orquestrador do paper trading (ROADMAP Fase 3), sem I/O: recebe eventos e ticks com o instante
@@ -40,6 +41,16 @@ import type { StrategyV0Config } from '@memebot/strategy';
  * (b) `decisions` só recebe uma linha quando o resultado do mint MUDA (primeiro reject, mudança de
  *     motivo, enter, saída) — não uma por avaliação. As contagens "tokens por motivo" do log/resumo
  *     contam mints distintos (Set), não avaliações.
+ *
+ * Experimento de 2026-10-02 (Fase 4, replay — docs/STRATEGY.md §8), DESLIGADO por padrão:
+ * - `entry.confirmation` / `entry.pullback` na config: o `enter` da strategy vira um SINAL PENDENTE
+ *   (`PendingSignal`, lógica pura em `packages/strategy/src/pending.ts`); o mint não é reavaliado
+ *   enquanto pendente; cada trade do mint atualiza o preço observado e cada evento/tick decide
+ *   (esperar / cancelar / disparar); no disparo, `confirmPendingEntry` reavalia e segue o caminho
+ *   normal (risco → executor). Mints com sinal pendente ficam protegidos da compactação.
+ * - `killSwitchEnabled: false` (só o replay de pesquisa passa isto): o kill switch não bloqueia entradas.
+ * Com a config v0.1 e as opções ausentes, o fluxo é exatamente o anterior (teste de equivalência em
+ * engine.test.ts).
  */
 
 export interface PaperSinks {
@@ -76,6 +87,11 @@ export interface PaperEngineOptions {
    * só o resumo por hora e os alertas imediatos (kill switch etc.). Padrão `true`.
    */
   tradeAlerts?: boolean;
+  /**
+   * Kill switch nas entradas (RISK §3). Padrão `true`. `false` só no replay de pesquisa (Fase 4), para a
+   * amostra das hipóteses não ser cortada pelo limite de perda diária — nunca no paper/live ao vivo.
+   */
+  killSwitchEnabled?: boolean;
 }
 
 /** Saúde do ingest na hora (vem do adaptador de gravação; o engine não vê WS/HTTP). */
@@ -140,6 +156,9 @@ export class PaperEngine {
   private completedOperations = 0;
   private tradePnlBatch: ClosedTradePnl[] = [];
   private readonly policy: CompactionPolicy;
+  /** Sinais pendentes (hipóteses de confirmação/recuo); sempre vazio com a v0.1. */
+  private readonly pendingSignals = new Map<string, PendingSignal>();
+  private readonly mode: EntryMode;
 
   constructor(opts: PaperEngineOptions) {
     this.o = {
@@ -147,6 +166,7 @@ export class PaperEngine {
       compactionIntervalMs: 60_000,
       skeletonRetentionMs: 24 * 60 * 60 * 1000,
       tradeAlerts: true,
+      killSwitchEnabled: true,
       ...opts,
     };
     this.curveParams = opts.curveParams;
@@ -166,6 +186,7 @@ export class PaperEngine {
     this.hourStartMs = opts.startMs;
     // Estado completo até a idade máxima de entrada + 1 min de folga; depois só o esqueleto.
     this.policy = { fullStateMaxAgeMs: opts.config.entry.maxAgeSec * 1000 + 60_000, skeletonRetentionMs: this.o.skeletonRetentionMs };
+    this.mode = entryMode(opts.config);
   }
 
   // ---- entradas externas (adaptadores atualizam periodicamente) ----
@@ -205,6 +226,11 @@ export class PaperEngine {
 
   get pendingOrders(): number {
     return this.exec.pending.length;
+  }
+
+  /** Sinais de entrada pendentes (só com as hipóteses de confirmação/recuo ligadas). */
+  get pendingSignalCount(): number {
+    return this.pendingSignals.size;
   }
 
   tokenState(mint: string): TokenState | undefined {
@@ -295,6 +321,7 @@ export class PaperEngine {
     if (mint === null) return;
     if (event.kind === 'token_created') this.liveCreated.set(mint, { symbol: event.symbol, name: event.name });
     if (this.positions.has(mint)) this.runExits(mint, nowMs);
+    if (this.pendingSignals.has(mint)) this.handlePending(mint, nowMs, event.kind === 'trade' && event.venue === 'curve');
     if (event.kind === 'trade' && event.venue === 'curve') this.maybeEvaluate(mint, nowMs);
   }
 
@@ -303,6 +330,7 @@ export class PaperEngine {
     this.exec = settled.state;
     this.handleFills(settled.fills);
     for (const mint of [...this.positions.keys()]) this.runExits(mint, nowMs);
+    for (const mint of [...this.pendingSignals.keys()]) this.handlePending(mint, nowMs, false);
     if (nowMs - this.lastCompactionMs >= this.o.compactionIntervalMs) {
       this.compact(nowMs);
       this.lastCompactionMs = nowMs;
@@ -314,6 +342,7 @@ export class PaperEngine {
   private maybeEvaluate(mint: string, nowMs: number): void {
     if (!this.entriesEnabled || !this.liveCreated.has(mint)) return;
     if (this.positions.has(mint) || openMints(this.exec).has(mint)) return;
+    if (this.pendingSignals.has(mint)) return;
     const token = this.market.state.tokens.get(mint);
     if (!token || token.createdAtMs === null || token.curveCompleted || token.venue !== 'curve') return;
     const ageSec = (nowMs - token.createdAtMs) / 1000;
@@ -330,7 +359,49 @@ export class PaperEngine {
       this.recordReject(mint, decision.reason, nowMs, null);
       return;
     }
+    if (this.mode !== 'immediate') {
+      const signal = createPendingSignal(decision, this.market.state, nowMs, this.o.config);
+      if (signal) this.pendingSignals.set(mint, signal);
+      return;
+    }
+    this.tryEnter(mint, decision, nowMs);
+  }
 
+  /**
+   * Sinal pendente (hipóteses a/c): `observe` = houve trade de curva deste mint (atualiza o preço).
+   * Cancela também se a curva completou, se as entradas foram encerradas ou se o mint já tem posição.
+   */
+  private handlePending(mint: string, nowMs: number, observe: boolean): void {
+    let signal = this.pendingSignals.get(mint);
+    if (!signal) return;
+    const token = this.market.state.tokens.get(mint);
+    if (!this.entriesEnabled || !token || token.curveCompleted || token.venue !== 'curve' || this.positions.has(mint)) {
+      this.pendingSignals.delete(mint);
+      if (this.entriesEnabled) this.recordReject(mint, `${signal.mode}:curve_unavailable`, nowMs, null);
+      return;
+    }
+    if (observe && token.curveReserves) {
+      signal = observePendingPrice(signal, marginalPrice({ virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken }));
+      this.pendingSignals.set(mint, signal);
+    }
+    const action = decidePendingSignal(signal, nowMs, this.o.config);
+    if (action.action === 'wait') return;
+    this.pendingSignals.delete(mint);
+    if (action.action === 'cancel') {
+      this.recordReject(mint, action.reason, nowMs, null);
+      return;
+    }
+    const decision = confirmPendingEntry(this.market.state, signal, nowMs, this.o.config, this.curveParams);
+    if (decision.outcome === 'reject') {
+      this.recordReject(mint, decision.reason, nowMs, null);
+      return;
+    }
+    this.tryEnter(mint, decision, nowMs);
+  }
+
+  /** Risco → executor → decisão `enter` (o caminho da v0.1, compartilhado com o disparo de sinal pendente). */
+  private tryEnter(mint: string, decision: EnterDecision, nowMs: number): void {
+    const token = this.market.state.tokens.get(mint);
     const open = openMints(this.exec);
     let exposure = pendingBuyExposure(this.exec);
     for (const p of this.positions.values()) exposure += p.entryCostLamports;
@@ -344,6 +415,7 @@ export class PaperEngine {
         riskState: this.risk,
         portfolio: { openMints: open, openExposureLamports: exposure },
         killSwitch: { lastStreamEventMs: this.lastStreamEventMs, balance: null, stopFilePresent: this.stopFilePresent },
+        ...(this.o.killSwitchEnabled ? {} : { killSwitchEnabled: false }),
       },
       fixedClock(nowMs),
     );
@@ -604,7 +676,7 @@ export class PaperEngine {
 
   private compact(nowMs: number): void {
     const busy = openMints(this.exec);
-    const isProtected = (mint: string): boolean => this.positions.has(mint) || busy.has(mint);
+    const isProtected = (mint: string): boolean => this.positions.has(mint) || busy.has(mint) || this.pendingSignals.has(mint);
     const r = this.market.compact(nowMs, this.policy, isProtected);
     // Mapas auxiliares por mint: só para tokens ainda dentro da janela de estado completo.
     const stale = (mint: string): boolean => {

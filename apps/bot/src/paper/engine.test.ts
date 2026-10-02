@@ -9,6 +9,7 @@ import { LAMPORTS_PER_SIGNATURE } from '@memebot/ingest';
 import type { DecisionRecord } from '@memebot/recorder';
 import { HARD_LIMITS, buildEffectiveRiskLimits } from '@memebot/risk';
 import { loadStrategyConfig } from '@memebot/strategy';
+import type { StrategyV0Config } from '@memebot/strategy';
 import { describe, expect, it } from 'vitest';
 import { PaperClock } from './clock.ts';
 import { PaperEngine } from './engine.ts';
@@ -51,14 +52,14 @@ interface Harness {
   notes: string[];
 }
 
-function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean } = {}): Harness {
+function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean; config?: StrategyV0Config; killSwitchEnabled?: boolean } = {}): Harness {
   const decisions: DecisionRecord[] = [];
   const fills: Fill[] = [];
   const notes: string[] = [];
   const engine = new PaperEngine({
     runId: 'paper-test',
-    config: CONFIG,
-    limits: buildEffectiveRiskLimits(CONFIG),
+    config: overrides.config ?? CONFIG,
+    limits: buildEffectiveRiskLimits(overrides.config ?? CONFIG),
     curveParams: CURVE,
     fees: { protocolFeeBps: 95n, creatorFeeBps: 30n },
     costs: estimateTxCosts([], { minSamples: 30, fallbackPriorityFeeLamports: 500_000n, fallbackJitoTipLamports: 500_000n }),
@@ -70,6 +71,7 @@ function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: bo
     startMs: T0,
     sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: (m) => notes.push(m.text), log: silent },
     ...(overrides.tradeAlerts === undefined ? {} : { tradeAlerts: overrides.tradeAlerts }),
+    ...(overrides.killSwitchEnabled === undefined ? {} : { killSwitchEnabled: overrides.killSwitchEnabled }),
   });
   return { engine, decisions, fills, notes };
 }
@@ -225,6 +227,60 @@ describe('PaperEngine — saídas, PnL e memória', () => {
     expect(a.fills.length).toBeGreaterThan(0);
     expect(b.decisions).toEqual(a.decisions);
     expect(b.fills).toEqual(a.fills);
+  });
+});
+
+describe('PaperEngine — hipóteses do replay (desligadas por padrão)', () => {
+  const withEntry = (patch: Partial<StrategyV0Config['entry']>): StrategyV0Config => ({ ...CONFIG, entry: { ...CONFIG.entry, ...patch } });
+  /** Depois do token saudável (70 s subindo), trades de outros compradores levando `vq` até `toVq` em `n` passos de 1 s. */
+  const tail = (mint: string, fromVq: bigint, toVq: bigint, n: number, side: 'buy' | 'sell'): PumpEvent[] =>
+    Array.from({ length: n }, (_, k) => trade(mint, T0 + 71_000 + k * 1_000, fromVq + ((toVq - fromVq) * BigInt(k + 1)) / BigInt(n), `${mint}-t${String(k)}`, side));
+
+  it('opções ausentes ≡ v0.1 explícita: mesmas decisões e fills, nenhum sinal pendente', () => {
+    const events = [...healthyToken('P', T0), ...healthyToken('Q', T0 + 500)].sort((a, b) => (a.kind === 'tx_cost' || b.kind === 'tx_cost' ? 0 : a.ts - b.ts));
+    const a = harness({ failRate: 0.3, seed: 3 });
+    const b = harness({ failRate: 0.3, seed: 3, killSwitchEnabled: true, config: { ...CONFIG, entry: { ...CONFIG.entry } } });
+    run(a, events, T0 + 800_000);
+    run(b, events, T0 + 800_000);
+    expect(a.decisions.some((d) => d.type === 'enter')).toBe(true);
+    expect(b.decisions).toEqual(a.decisions);
+    expect(b.fills).toEqual(a.fills);
+    expect(a.engine.pendingSignalCount).toBe(0);
+  });
+
+  it('(a) confirmação: sinal aos 60 s, entra quando a janela fecha acima do preço do sinal', () => {
+    const h = harness({ config: withEntry({ confirmation: { windowSec: 30, maxDipPct: 0.1 } }) });
+    run(h, healthyToken('R', T0), T0 + 89_000);
+    expect(h.engine.pendingSignalCount).toBe(1);
+    expect(h.decisions.filter((d) => d.type === 'enter')).toHaveLength(0);
+    h.engine.onTick(T0 + 90_000);
+    const enter = h.decisions.find((d) => d.type === 'enter');
+    expect(enter?.reason).toBe('momentum_confirmed');
+    expect(enter?.features).toMatchObject({ signalWaitMs: 30_000, signal_ageSec: 60 });
+    h.engine.onTick(T0 + 91_000);
+    expect(h.fills.find((f) => f.side === 'buy')?.status).toBe('filled');
+  });
+
+  it('(a) confirmação: queda > maxDipPct cancela (reject confirmation_dip), sem compra', () => {
+    const h = harness({ config: withEntry({ confirmation: { windowSec: 30, maxDipPct: 0.1 } }) });
+    run(h, [...healthyToken('S', T0), ...tail('S', 44_000_000_000n, 36_000_000_000n, 5, 'sell')], T0 + 120_000);
+    expect(h.decisions.filter((d) => d.mint === 'S').map((d) => d.reason)).toContain('confirmation_dip');
+    expect(h.fills).toHaveLength(0);
+  });
+
+  it('(c) recuo: entra quando o preço recua retracePct do máximo desde o sinal', () => {
+    const h = harness({ config: withEntry({ pullback: { retracePct: 0.25, windowSec: 180, minUniqueBuyers60s: 15 } }) });
+    run(h, [...healthyToken('U', T0), ...tail('U', 44_000_000_000n, 37_000_000_000n, 5, 'sell')], T0 + 80_000);
+    const enter = h.decisions.find((d) => d.type === 'enter');
+    expect(enter?.reason).toBe('momentum_pullback');
+    expect(Number(enter?.features['firePrice'])).toBeLessThanOrEqual(Number(enter?.features['signalMaxPrice']) * 0.75);
+  });
+
+  it('killSwitchEnabled: false ignora o kill switch (só replay de pesquisa)', () => {
+    const h = harness({ killSwitchEnabled: false });
+    h.engine.setStopFile(true);
+    run(h, healthyToken('V', T0), T0 + 75_000);
+    expect(h.decisions.filter((d) => d.type === 'enter')).toHaveLength(1);
   });
 });
 
