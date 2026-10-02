@@ -12,8 +12,9 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 - **Por enquanto, só tokens ainda na bonding curve** (`filters.allowedVenues: [curve]`). Tokens recém-graduados
   no PumpSwap ficam de fora do universo de entrada. O pré-requisito técnico — a matemática do swap do PumpSwap
   bater exato — foi cumprido em 2026-10-02 (ver `docs/ROADMAP.md` Fase 2, tarefa "Resolver swap exato do
-  PumpSwap"); incluir graduados continua sendo **decisão do usuário** e ainda exige gravar
-  `virtual_quote_reserves` por trade no ingest/estado. Custo de ida e volta medido no PumpSwap (0,1 SOL,
+  PumpSwap"); incluir graduados continua sendo **decisão do usuário**. Os dados necessários
+  (`virtual_quote_reserves`, bps por trade) já são lidos pelo ingest/estado; a persistência depende da
+  migração 011 e do backfill (ROADMAP Fase 2). Custo de ida e volta medido no PumpSwap (0,1 SOL,
   quote WSOL): ~2,2–2,5% (≈ 218–247 bps conforme o tier de taxa), contra ~2,5% na curva (2 × 125 bps).
   - Se uma posição aberta na curva **graduar para o PumpSwap enquanto está aberta**, o paper executor fecha a
     posição no último preço conhecido da bonding curve (não simula venda no PumpSwap) e marca o fill com

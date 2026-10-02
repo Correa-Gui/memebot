@@ -83,10 +83,19 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
   compras a vault ganha `líquido + lp`. O tier de taxa usa market cap com `Qe` (99,0% de acerto contra 88,3%
   com o saldo real; exceções são pools fora da regra de tiers). Custo de ida e volta medido nos fixtures
   (compra + venda imediata, 0,1 SOL, quote WSOL): ~237 bps no tier 20/5/95, ~247 bps no tier 2/93/30, ~218 bps
-  no 20/5/85. **Pendente fora deste pacote:** o `normalize` (`packages/ingest`) ainda não grava
+  no 20/5/85. **Pendente fora deste pacote (resolvido no item seguinte):** o `normalize` (`packages/ingest`) ainda não gravava
   `virtual_quote_reserves`/`cashback`/bps por trade do PumpSwap; o estado (`pumpSwapReserves`) precisa desse
   campo antes de qualquer simulação. O paper executor continua lançando `PumpSwapSimulationNotValidatedError`
   até o usuário decidir incluir graduados.)*
+- [x] **Dados do PumpSwap completos e persistentes** (pré-requisito para testar o universo graduado no replay).
+  *(2026-10-02. `PumpSwapTradeEvent.swapDetails` (offset virtual, bps por componente, cashback, variante da
+  instrução, `base_supply`) preenchido pelo normalize; `TokenState.pumpSwapReserves` agora é o estado DEPOIS do
+  trade (antes guardava o ANTES, defasado em um trade) com `virtualQuote`/`feeBps`/`baseSupply`; tabela lateral
+  `pumpswap_trade_extra` + view parametrizada `v_pumpswap_trades` na migração `011_pumpswap_trade_extra.sql`
+  (**não aplicada** — aplicar é do usuário/orquestrador); recorder grava a tabela se ela existir; backfill
+  `packages/ingest/scripts/backfill-pumpswap-trade-extra.ts` (streaming, lotes, retomável por fatia de mint,
+  idempotente) pronto e testado com fixture, **não executado** — urgente após aplicar a 011, porque `raw_b64`
+  expira em 30 dias. Ver ARCHITECTURE §4/§6.)*
 
 ## Fase 3 — Estratégia por regras + paper executor (dias 5–10) → M2
 

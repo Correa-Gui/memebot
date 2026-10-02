@@ -92,7 +92,8 @@ export type PumpEvent =
   | { kind: 'trade'; venue: 'curve'; mint; trader; side; quoteMint; quoteAmount; tokenAmount;
       virtualQuoteReserves; virtualTokenReserves; realQuoteReserves; realTokenReserves; protocolFee; creatorFee; ixName }
   | { kind: 'trade'; venue: 'pumpswap'; pool; mint /* base da pool */; quoteMint; trader; side /* do base */;
-      tokenAmount; quoteAmount; userQuoteAmount; poolBaseReserves; poolQuoteReserves; lpFee; protocolFee; creatorFee; ixName }
+      tokenAmount; quoteAmount; userQuoteAmount; poolBaseReserves; poolQuoteReserves; lpFee; protocolFee; creatorFee; ixName;
+      swapDetails?: PumpSwapSwapDetails }
   | { kind: 'curve_completed'; mint; bondingCurve }
   | { kind: 'pool_created'; pool; mint; quoteMint; creator }
   | { kind: 'tx_cost'; slot; sig; feeLamports; priorityFee; jitoTip: Lamports | null; computeUnits; numSignatures };
@@ -102,6 +103,15 @@ export type PumpEvent =
 //   ser cotada em outro mint. SOL = quote_mint `1111…1111` (curva) ou WSOL (PumpSwap); ver SOL_QUOTE_MINTS.
 // - PumpSwap: `mint`/`quoteMint` são base/quote da pool como estão on-chain (há pools com base = WSOL).
 //   Semântica exata dos valores (com/sem taxa) fica para a Fase 2, com fixtures golden; `rawB64` preserva tudo.
+// - PumpSwap (2026-10-02): `poolBaseReserves`/`poolQuoteReserves` são o estado ANTES do swap (= saldos das
+//   vaults antes da tx, confirmado via RPC). `swapDetails` traz o que a matemática exata exige
+//   (packages/curve-math/src/pumpswap.ts): `{ instruction: 'buy' | 'buy_exact_quote_in' | 'sell';
+//   virtualQuoteReserves (i128); lpFeeBps; protocolFeeBps; creatorFeeBps; cashbackFeeBps; cashbackFee;
+//   buybackFeeBps; buybackFee; holderRewardsBps; holderRewards; baseSupply }`. O normalize SEMPRE preenche
+//   (exceto `ix_name` desconhecido num BuyEvent: trade gravado sem detalhes, não chutamos a variante); é
+//   opcional no tipo porque eventos reconstruídos de `events_trade` só o têm via `pumpswap_trade_extra`
+//   (§6). Significado dos campos por instrução: em `buy` `quoteAmount` = líquido e `userQuoteAmount` = total
+//   pago; em `buy_exact_quote_in` `quoteAmount` = gastável e `userQuoteAmount` = líquido; venda: bruto/líquido.
 // - `txIndexInSlot`, `priorityFee`, `jitoTip` saíram do trade: o logsSubscribe não os fornece (ver §8).
 //   Custos viram eventos `tx_cost` amostrados; ordem dentro do slot = ordem de chegada.
 
@@ -147,9 +157,9 @@ export function pumpSwapBuyExactQuoteIn(r: PumpSwapReserves, spendableQuoteIn: L
 export function pumpSwapSell(r: PumpSwapReserves, baseIn: TokenAmount, fees: PumpSwapFeeBps):
   PumpSwapFees & { quoteOutGross; netQuoteOut; reservesAfter: PumpSwapReserves };
 export function marketCapLamports(r: PumpSwapReserves, tokenTotalSupply: TokenAmount): bigint; // Qe·supply/B, para o tier
-// Ainda não ligado ao estado: o normalize do ingest não grava `virtual_quote_reserves` por trade do
-// PumpSwap (o `TokenState.pumpSwapReserves` abaixo não tem o campo). O paper executor segue recusando
-// simular PumpSwap (PumpSwapSimulationNotValidatedError) enquanto o universo for só curva.
+// Dados ligados (2026-10-02): normalize → `swapDetails`; estado → `pumpSwapReserves` (DEPOIS do trade, com
+// `virtualQuote`/`feeBps`/`baseSupply`); persistência → `pumpswap_trade_extra` (§6). O paper executor segue
+// recusando simular PumpSwap (PumpSwapSimulationNotValidatedError) enquanto o universo for só curva.
 
 // state (Fase 2, 2026-10-01): estado em memória por token, só a partir dos eventos observados
 // (ver §8 "Holders e concentração são aproximações" — vale integralmente aqui). Função pura
@@ -163,7 +173,12 @@ export interface TokenState {
   createdAtMs: number | null; createdAtSlot: bigint | null; bondingCurve: string | null; venue: 'curve' | 'pumpswap' | 'unknown';
   curveCompleted: boolean;               // true após `curve_completed` (Fase 3/parte B): curva encerrada mesmo com venue 'curve'
   curveReserves: { virtualQuote: bigint; virtualToken: TokenAmount; realQuote: bigint; realToken: TokenAmount } | null;
-  pumpSwapReserves: { pool: string; base: TokenAmount; quote: bigint } | null;
+  // PumpSwap: estado DEPOIS do último trade (o evento traz o ANTES; aplica-se o delta do próprio trade:
+  // venda base+in / quote−(bruto−lp); compra base−out / quote+(líquido+lp), líquido = min(quoteAmount,
+  // userQuoteAmount)). virtualQuote/feeBps/baseSupply = null se o trade veio sem swapDetails → não precificar.
+  // `pumpSwapReservesAfter(event)` exportada; validada nas 99 fixtures golden (= reservas do próximo evento).
+  pumpSwapReserves: { pool: string; base: TokenAmount; quote: bigint; virtualQuote: bigint | null;
+    feeBps: { lpFeeBps; protocolFeeBps; creatorFeeBps; cashbackFeeBps } | null; baseSupply: TokenAmount | null; lastSlot: bigint } | null;
   /** Saldo por carteira inferido só de trades observados nos dois programas (nunca negativo). */
   holderBalances: ReadonlyMap<string, TokenAmount>;
   firstBuyers: readonly string[];        // carteiras únicas que compraram, na ordem de chegada
@@ -358,6 +373,8 @@ nunca edite uma migração aplicada, crie outra). Toda linha de evento tem `raw_
 |---|---|---|
 | `events_trade` | todos os trades (curva e PumpSwap) | `(mint, slot, sig, event_index)` |
 | `v_trades` (view) | `events_trade` com `mint` preenchido via `pools` quando a pool não estava resolvida na gravação — **ler desta** | — |
+| `pumpswap_trade_extra` | (migração 011, **não aplicada até o usuário aplicar**) tabela LATERAL de `events_trade` para trades do PumpSwap: `instruction`, `virtual_quote_reserves` (Int128), bps de lp/protocolo/criador/cashback, `cashback_fee`, buyback e holder rewards, `base_supply`, `source` (`recorder`/`backfill`). ReplacingMergeTree(`inserted_at`) — ler com `FINAL`. Gravada pelo recorder ao vivo (só se a tabela existir: conferido em `Recorder.start()`, senão avisa e segue) e preenchida para o passado por `packages/ingest/scripts/backfill-pumpswap-trade-extra.ts` a partir de `raw_b64` (TTL 30 dias, migração 008 — rodar logo). Não altera `events_trade` (11M+ linhas, sem mutação) | `(sig, event_index)` |
+| `v_pumpswap_trades(from_slot, to_slot)` (view parametrizada) | `v_trades` do PumpSwap no intervalo `[from_slot, to_slot)` + campos de `pumpswap_trade_extra` (`has_extra = 0` → sem linha lateral; campos extras com 0 e **não confiáveis**). Parametrizada para o JOIN montar só o intervalo (ClickHouse ~1,8 GiB) | — |
 | `events_token` | criações de token | `(mint)` |
 | `token_metadata` | JSON da `uri` (descrição, imagem, links sociais) ou erro da busca | `(mint, fetched_at)` |
 | `events_lifecycle` | curve_completed, pool_created | `(mint, slot)` |
