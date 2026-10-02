@@ -1,5 +1,6 @@
 import type { Logger } from '@memebot/core';
 import { z } from 'zod';
+import type { TelegramMessage } from './messages.ts';
 
 /**
  * Cliente mínimo da Bot API do Telegram (`sendMessage`) via `fetch` nativo. Regras (CLAUDE.md §3):
@@ -56,7 +57,7 @@ export class TelegramNotifier {
   readonly enabled: boolean;
   readonly stats: TelegramStats = { sent: 0, failed: 0, dropped: 0 };
   private readonly o: Required<Omit<TelegramOptions, 'logger'>> & { logger: Logger };
-  private readonly queue: string[] = [];
+  private readonly queue: TelegramMessage[] = [];
   private worker: Promise<void> | null = null;
 
   constructor(opts: TelegramOptions) {
@@ -78,9 +79,12 @@ export class TelegramNotifier {
   }
 
   /** Enfileira (nunca lança, nunca bloqueia). */
-  send(text: string): void {
+  send(message: string | TelegramMessage): void {
     if (!this.enabled) return;
-    const body = text.length > TELEGRAM_MAX_TEXT ? `${text.slice(0, TELEGRAM_MAX_TEXT - 1)}…` : text;
+    const normalized = typeof message === 'string' ? { text: message } : message;
+    const body = normalized.text.length > TELEGRAM_MAX_TEXT
+      ? { ...normalized, text: `${normalized.text.slice(0, TELEGRAM_MAX_TEXT - 1)}…` }
+      : normalized;
     this.queue.push(body);
     while (this.queue.length > this.o.maxQueue) {
       this.queue.shift();
@@ -108,9 +112,9 @@ export class TelegramNotifier {
   }
 
   private async drain(): Promise<void> {
-    for (let text = this.queue.shift(); text !== undefined; text = this.queue.shift()) {
+    for (let message = this.queue.shift(); message !== undefined; message = this.queue.shift()) {
       try {
-        await this.sendWithRetry(text);
+        await this.sendWithRetry(message);
         this.stats.sent++;
       } catch (e) {
         this.stats.failed++;
@@ -120,11 +124,11 @@ export class TelegramNotifier {
     }
   }
 
-  private async sendWithRetry(text: string): Promise<void> {
+  private async sendWithRetry(message: TelegramMessage): Promise<void> {
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= this.o.maxRetries; attempt++) {
       try {
-        const waitMs = await this.sendOnce(text);
+        const waitMs = await this.sendOnce(message);
         if (waitMs === null) return;
         lastError = new Error('HTTP 429 (rate limit)');
         await this.o.sleep(waitMs);
@@ -139,12 +143,18 @@ export class TelegramNotifier {
   }
 
   /** `null` = enviado; número = esperar (429). Lança em erro transitório ou `PermanentError`. */
-  private async sendOnce(text: string): Promise<number | null> {
+  private async sendOnce(message: TelegramMessage): Promise<number | null> {
     const url = `${this.o.apiBaseUrl}/bot${this.o.botToken}/sendMessage`;
     const res = await this.o.fetchFn(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: this.o.chatId, text, disable_web_page_preview: true }),
+      body: JSON.stringify({
+        chat_id: this.o.chatId,
+        text: message.text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        ...(message.reply_markup ? { reply_markup: message.reply_markup } : {}),
+      }),
       signal: AbortSignal.timeout(this.o.timeoutMs),
     });
     let parsed: z.infer<typeof ApiResponse> | null = null;

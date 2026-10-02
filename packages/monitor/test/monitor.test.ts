@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { createLogger } from '@memebot/core';
 import { describe, expect, it } from 'vitest';
-import { TelegramNotifier, formatEntryAlert, formatExitAlert, formatHourlySummary, formatSol, redactToken } from '../src/index.ts';
+import { TelegramNotifier, formatAlertMessage, formatEntryAlert, formatExitAlert, formatHourlySummary, formatSol, redactToken } from '../src/index.ts';
 
 const TOKEN = '123456:SEGREDO-abc_DEF';
 
@@ -24,8 +24,8 @@ function ok(): Response {
   return new Response(JSON.stringify({ ok: true, result: {} }), { status: 200 });
 }
 
-function bodyOf(init: RequestInit | undefined): { chat_id?: string; text?: string } {
-  return JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as { chat_id?: string; text?: string };
+function bodyOf(init: RequestInit | undefined): { chat_id?: string; text?: string; parse_mode?: string; disable_web_page_preview?: boolean; reply_markup?: unknown } {
+  return JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as { chat_id?: string; text?: string; parse_mode?: string; disable_web_page_preview?: boolean; reply_markup?: unknown };
 }
 
 describe('TelegramNotifier', () => {
@@ -55,11 +55,14 @@ describe('TelegramNotifier', () => {
         return Promise.resolve(ok());
       },
     });
-    n.send('olá');
+    n.send({ text: '<b>olá</b>', reply_markup: { inline_keyboard: [[{ text: 'Pump.fun', url: 'https://pump.fun/coin/mint' }, { text: 'Solscan', url: 'https://solscan.io/token/mint' }]] } });
     await n.close(1_000);
     expect(reqs).toHaveLength(1);
     expect(reqs[0]?.url).toBe(`https://api.telegram.org/bot${TOKEN}/sendMessage`);
-    expect(reqs[0]?.body).toMatchObject({ chat_id: '42', text: 'olá' });
+    expect(reqs[0]?.body).toMatchObject({
+      chat_id: '42', text: '<b>olá</b>', parse_mode: 'HTML', disable_web_page_preview: true,
+      reply_markup: { inline_keyboard: [[{ text: 'Pump.fun', url: 'https://pump.fun/coin/mint' }, { text: 'Solscan', url: 'https://solscan.io/token/mint' }]] },
+    });
     expect(n.stats).toEqual({ sent: 1, failed: 0, dropped: 0 });
   });
 
@@ -146,32 +149,102 @@ describe('TelegramNotifier', () => {
 });
 
 describe('mensagens', () => {
-  it('formatSol sem float', () => {
-    expect(formatSol(50_000_000n)).toBe('0.050000 SOL');
-    expect(formatSol(-1_234_567_890n)).toBe('-1.234567 SOL');
+  it('formatSol arredonda sem float, com quatro casas e vírgula', () => {
+    expect(formatSol(50_000_000n)).toBe('0,0500 SOL');
+    expect(formatSol(-1_234_567_890n)).toBe('-1,2346 SOL');
   });
 
-  it('entrada, saída e resumo trazem os campos pedidos e links públicos', () => {
-    const entry = formatEntryAlert({ mint: 'Mint1', symbol: 'DOG', priceLamportsPerUnit: 0.0312, sizeLamports: 50_000_000n, costLamports: 2_664_840n, costSource: 'fallback', mode: 'paper' });
-    expect(entry).toContain('ENTRADA DOG (Mint1)');
-    expect(entry).toContain('https://pump.fun/coin/Mint1');
-    expect(entry).toContain('https://solscan.io/token/Mint1');
-    expect(entry).toContain('0.050000 SOL');
+  const mint = '7ZyApMyXTsiCCC9kESbFCPgk2m6nBksDvKGybRRZpump';
 
-    const exit = formatExitAlert({
-      mint: 'Mint1', symbol: null, reason: 'stop_loss', fraction: 1, priceLamportsPerUnit: 0.02, pnlLamports: -10_000_000n, pnlRatio: -0.2,
-      closed: true, operationPnlLamports: -10_000_000n, operationPnlRatio: -0.2, mode: 'paper',
+  it('compra: cabeçalho, custo, rent, idade, preço compacto, escape HTML e botões', () => {
+    const entry = formatEntryAlert({
+      mint, symbol: '<A&B>', name: 'token <script> & nome', priceLamportsPerUnit: 0.0000959, sizeLamports: 50_000_000n,
+      curveFeeLamports: 500_000n, priorityFeeLamports: 100_000n, jitoTipLamports: 200_000n, baseFeeLamports: 5_000n,
+      rentLamports: 1_513_840n, tokenAgeMs: 65_000, mode: 'paper',
     });
-    expect(exit).toContain('stop_loss');
-    expect(exit).toContain('-20.0%');
-    expect(exit).toContain('posição fechada');
+    expect(entry.text).toContain('<b>🟢 COMPRA · &lt;A&amp;B&gt; [paper]</b>');
+    expect(entry.text).toContain('<b>Mint:</b> <code>7ZyA…RRZpump</code>');
+    expect(entry.text).toContain('<b>Nome:</b> <code>token &lt;script&gt; &amp; nome</code>');
+    expect(entry.text).toContain('<b>ENTRADA</b>');
+    expect(entry.text).toContain('• <b>Tamanho:</b> 0,0500 SOL');
+    expect(entry.text).toContain('• <b>Preço:</b> 0,0₇959 SOL/token');
+    expect(entry.text).toContain('• <b>Idade do token:</b> 1m 5s');
+    expect(entry.text).toContain('<b>CUSTOS</b>');
+    expect(entry.text).toContain('• <b>Compra:</b> 0,0008 SOL (1,6% do tamanho)');
+    expect(entry.text).toContain('• <b>Rent:</b> 0,0015 SOL (volta ao fechar)');
+    expect(entry.text).not.toContain('https://');
+    expect(entry.reply_markup?.inline_keyboard[0]).toEqual([
+      { text: 'Pump.fun', url: `https://pump.fun/coin/${mint}` },
+      { text: 'Solscan', url: `https://solscan.io/token/${mint}` },
+    ]);
+  });
+
+  it('venda com prejuízo e stop: motivo traduzido, fração/tempo, PnL e aviso acima de 1,5×', () => {
+    const exit = formatExitAlert({
+      mint, symbol: 'AYT', name: 'AYT & name', reason: 'stop_loss', fraction: 1, remainingFraction: 0,
+      priceLamportsPerUnit: 0.0000484, pnlLamports: -24_300_000n, pnlRatio: -0.486,
+      closed: true, operationPnlLamports: -24_300_000n, operationPnlRatio: -0.486, heldMs: 5_688, stopLossPct: 0.2, mode: 'paper',
+    });
+    expect(exit.text).toContain('<b>🔴 VENDA (prejuízo) · AYT [paper]</b>');
+    expect(exit.text).toContain('<b>Mint:</b> <code>7ZyA…RRZpump</code>');
+    expect(exit.text).toContain('• <b>Motivo:</b> stop loss');
+    expect(exit.text).toContain('• <b>PnL desta venda:</b> -0,0243 SOL (-48,6%)');
+    expect(exit.text).toContain('• <b>Vendida agora:</b> 100,0% da posição atual');
+    expect(exit.text).toContain('• <b>Restante:</b> 0,0% da posição inicial');
+    expect(exit.text).toContain('• <b>Tempo:</b> 5s');
+    expect(exit.text).toContain('<b>RESULTADO TOTAL DA OPERAÇÃO</b>');
+    expect(exit.text).toContain('⚠️ <b>Perda acima de 1,5× o stop:</b> configurado 20,0%; resultado -48,6%.');
+    expect(exit.text).toContain('<b>Nome:</b> <code>AYT &amp; name</code>');
+  });
+
+  it('venda parcial e venda lucrativa usam cabeçalhos próprios e motivos em português', () => {
+    const partial = formatExitAlert({
+      mint, symbol: 'AYT', name: null, reason: 'take_profit_1', fraction: 0.5, remainingFraction: 0.5,
+      priceLamportsPerUnit: 0.0002, pnlLamports: 5_000_000n, pnlRatio: 0.2, closed: false,
+      operationPnlLamports: null, operationPnlRatio: null, heldMs: 61_000, stopLossPct: 0.2, mode: 'paper',
+    });
+    expect(partial.text).toContain('<b>🟡 VENDA PARCIAL · AYT [paper]</b>');
+    expect(partial.text).toContain('• <b>Motivo:</b> alvo 1');
+    expect(partial.text).toContain('• <b>Vendida agora:</b> 50,0% da posição atual');
+    expect(partial.text).toContain('• <b>Restante:</b> 50,0% da posição inicial');
+
+    const profit = formatExitAlert({
+      mint, symbol: 'AYT', name: null, reason: 'take_profit_2', fraction: 1, remainingFraction: 0,
+      priceLamportsPerUnit: 0.0003, pnlLamports: 50_000_000n, pnlRatio: 1, closed: true,
+      operationPnlLamports: 50_000_000n, operationPnlRatio: 1, heldMs: 121_000, stopLossPct: 0.2, mode: 'paper',
+    });
+    expect(profit.text).toContain('<b>🟢 VENDA (lucro) · AYT [paper]</b>');
+    expect(profit.text).toContain('• <b>Motivo:</b> alvo 2');
+    expect(profit.text).toContain('• <b>Tempo:</b> 2m 1s');
+  });
+
+  it('traduz todos os motivos de saída e formata alerta e resumo horário', () => {
+    const reasonLabels = [
+      ['trailing_stop', 'trailing stop'], ['time_stop', 'tempo esgotado'], ['emergency_creator_sell', 'criador vendeu'],
+      ['emergency_large_sell', 'venda grande'], ['graduated', 'token graduou'],
+    ] as const;
+    for (const [reason, label] of reasonLabels) {
+      const message = formatExitAlert({
+        mint, symbol: null, name: null, reason, fraction: 1, remainingFraction: 0, priceLamportsPerUnit: 0.1,
+        pnlLamports: -1n, pnlRatio: -0.01, closed: true, operationPnlLamports: -1n, operationPnlRatio: -0.01,
+        heldMs: 1_000, stopLossPct: 0.2, mode: 'paper',
+      });
+      expect(message.text).toContain(`• <b>Motivo:</b> ${label}`);
+    }
+    expect(formatAlertMessage('TESTE', ['a < b & c']).text).toContain('<b>⚠️ ALERTA · TESTE [paper]</b>');
+    expect(formatAlertMessage('TESTE', ['a < b & c']).text).toContain('• a &lt; b &amp; c');
 
     const summary = formatHourlySummary({
       mode: 'paper', runId: 'r', fromMs: 0, toMs: 3_600_000, entries: 2, closedOperations: 2, winningOperations: 1,
       netPnlLamports: 1_000_000n, runNetPnlLamports: 2_000_000n, openPositions: 1,
-      rejectionsByReason: new Map([['minUniqueHolders', 30], ['maxAgeSec', 2]]),
+      rejectionsByReason: new Map([['minUniqueHolders', 30], ['maxAgeSec', 2]]), streamStatus: 'ativo', streamGaps: 1,
     });
-    expect(summary).toContain('acerto: 50%');
-    expect(summary).toContain('minUniqueHolders: 30');
+    expect(summary.text).toContain('<b>📊 RESUMO · [paper] ·');
+    expect(summary.text).toContain('<b>RESULTADO DA HORA</b>');
+    expect(summary.text).toContain('• <b>Fechadas:</b> 2 (1 acerto · 1 erro)');
+    expect(summary.text).toContain('• <b>PnL da hora:</b> 0,0010 SOL');
+    expect(summary.text).toContain('• <b>PnL acumulado:</b> 0,0020 SOL');
+    expect(summary.text).toContain('• <b>Filtro que mais rejeitou:</b> minUniqueHolders (30)');
+    expect(summary.text).toContain('• <b>Stream:</b> ativo · <b>lacunas:</b> 1');
   });
 });
