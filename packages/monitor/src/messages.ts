@@ -204,20 +204,39 @@ export function formatAlertMessage(title: string, body: readonly string[], mode 
   };
 }
 
+export interface HourlyOperation {
+  symbol: string | null;
+  /** PnL líquido da operação / custo de entrada. */
+  pnlRatio: number;
+}
+
+/** Resumo da última hora (enviado na virada de hora em BRT). Valores monetários em lamports. */
 export interface HourlySummary {
   mode: string;
   runId: string;
   fromMs: number;
   toMs: number;
-  entries: number;
+  openedOperations: number;
   closedOperations: number;
   winningOperations: number;
   netPnlLamports: bigint;
   runNetPnlLamports: bigint;
+  /** Capital alocado (maxOpenPositions × tamanho) — base do PnL em %. */
+  capitalLamports: bigint;
+  best: HourlyOperation | null;
+  worst: HourlyOperation | null;
   openPositions: number;
+  /** Fills de venda da hora por motivo de saída. */
+  exitsByReason: ReadonlyMap<string, number>;
+  evaluatedTokens: number;
   rejectionsByReason: ReadonlyMap<string, number>;
-  streamStatus: string;
-  streamGaps: number;
+  health: {
+    streamGapMs: number;
+    http429PerMin: number;
+    priorityFeeLamports: bigint;
+    jitoTipLamports: bigint;
+    costSource: string;
+  };
 }
 
 export interface ClosedTradePnl {
@@ -271,26 +290,56 @@ export function formatTradeBatchSummary(s: TradeBatchSummary): TelegramMessage {
   };
 }
 
+const EXIT_LABELS: Record<string, string> = {
+  stop_loss: 'stop',
+  take_profit_1: 'alvo 1',
+  take_profit_2: 'alvo 2',
+  trailing_stop: 'trailing',
+  time_stop: 'tempo',
+  emergency_large_sell: 'emergência',
+  emergency_creator_sell: 'emergência',
+  graduated: 'graduou',
+};
+
+/** HH:MM em Brasília (UTC−3 fixo; o Brasil não tem horário de verão desde 2019). */
+export function formatBrtHourMinute(ms: number): string {
+  const d = new Date(ms - 3 * 3_600_000);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+function pctOf(lamports: bigint, base: bigint): string {
+  return base > 0n ? formatPct(Number(lamports) / Number(base)) : 'n/d';
+}
+
+function opLabel(op: HourlyOperation | null): string {
+  if (!op) return '—';
+  const sym = op.symbol ? escapeHtml(Array.from(op.symbol).slice(0, 12).join('')) : 'token';
+  return `${sym} ${formatPct(op.pnlRatio)}`;
+}
+
+/** Curto (cabe numa tela de celular). Só dados públicos; símbolos/motivos escapados. */
 export function formatHourlySummary(s: HourlySummary): TelegramMessage {
   const losses = s.closedOperations - s.winningOperations;
-  const rejects = [...s.rejectionsByReason.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const topReject = rejects[0] ? `${escapeHtml(rejects[0][0])} (${String(rejects[0][1])})` : 'nenhum';
-  const from = new Date(s.fromMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-  const to = new Date(s.toMs).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  const exits = new Map<string, number>();
+  for (const [reason, n] of s.exitsByReason) {
+    const label = EXIT_LABELS[reason] ?? reason;
+    exits.set(label, (exits.get(label) ?? 0) + n);
+  }
+  const exitText = exits.size > 0 ? [...exits].sort((x, y) => y[1] - x[1]).map(([k, n]) => `${escapeHtml(k)} ${String(n)}`).join(' · ') : '—';
+  const top = [...s.rejectionsByReason].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))[0];
+  const topText = top ? `${escapeHtml(top[0])} (${String(top[1])})` : '—';
+  const gapS = Math.round(s.health.streamGapMs / 1_000);
   return {
     text: [
-      `<b>📊 RESUMO · ${modeTag(s.mode)} · ${from}–${to} UTC</b>`,
-      '',
-      '<b>RESULTADO DA HORA</b>',
-      `• <b>Entradas:</b> ${String(s.entries)}`,
-      `• <b>Fechadas:</b> ${String(s.closedOperations)} (${String(s.winningOperations)} acerto${s.winningOperations === 1 ? '' : 's'} · ${String(losses)} erro${losses === 1 ? '' : 's'})`,
-      `• <b>PnL da hora:</b> ${formatSol(s.netPnlLamports)}`,
-      `• <b>PnL acumulado:</b> ${formatSol(s.runNetPnlLamports)}`,
-      '',
-      '<b>ESTADO DO BOT</b>',
-      `• <b>Posições abertas:</b> ${String(s.openPositions)}`,
-      `• <b>Filtro que mais rejeitou:</b> ${topReject}`,
-      `• <b>Stream:</b> ${escapeHtml(s.streamStatus)} · <b>lacunas:</b> ${String(s.streamGaps)}`,
+      `<b>📊 RESUMO ${formatBrtHourMinute(s.fromMs)}–${formatBrtHourMinute(s.toMs)} BRT ${modeTag(s.mode)}</b>`,
+      `• <b>Operações:</b> ${String(s.openedOperations)} abertas · ${String(s.closedOperations)} fechadas (${String(s.winningOperations)}✅ ${String(losses)}❌)`,
+      `• <b>PnL hora:</b> ${formatSol(s.netPnlLamports)} (${pctOf(s.netPnlLamports, s.capitalLamports)})`,
+      `• <b>PnL run:</b> ${formatSol(s.runNetPnlLamports)} (${pctOf(s.runNetPnlLamports, s.capitalLamports)})`,
+      `• <b>Melhor/pior:</b> ${opLabel(s.best)} / ${opLabel(s.worst)}`,
+      `• <b>Saídas:</b> ${exitText}`,
+      `• <b>Abertas agora:</b> ${String(s.openPositions)}`,
+      `• <b>Avaliados:</b> ${String(s.evaluatedTokens)} · <b>mais rejeitou:</b> ${topText}`,
+      `• <b>Saúde:</b> sem stream ${String(gapS)}s · 429 ${s.health.http429PerMin.toFixed(1).replace('.', ',')}/min · custo ${formatSol(s.health.priorityFeeLamports + s.health.jitoTipLamports)}/tx (${escapeHtml(s.health.costSource)})`,
     ].join('\n'),
   };
 }

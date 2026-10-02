@@ -35,6 +35,8 @@ const ConfigSchema = z.object({
 
   TELEGRAM_BOT_TOKEN: z.string().default(''),
   TELEGRAM_CHAT_ID: z.string().default(''),
+  /** hourly = só resumo na virada de hora (BRT) + alertas imediatos; all = também cada entrada/saída. */
+  TELEGRAM_MODE: z.enum(['hourly', 'all']).default('hourly'),
 
   PAPER_LATENCY_MS: z.coerce.number().int().nonnegative().default(800),
   PAPER_FAIL_RATE: z.coerce.number().min(0).max(1).default(0.1),

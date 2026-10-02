@@ -51,7 +51,7 @@ interface Harness {
   notes: string[];
 }
 
-function harness(overrides: { failRate?: number; seed?: number } = {}): Harness {
+function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean } = {}): Harness {
   const decisions: DecisionRecord[] = [];
   const fills: Fill[] = [];
   const notes: string[] = [];
@@ -69,6 +69,7 @@ function harness(overrides: { failRate?: number; seed?: number } = {}): Harness 
     seed: overrides.seed ?? 1,
     startMs: T0,
     sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: (m) => notes.push(m.text), log: silent },
+    ...(overrides.tradeAlerts === undefined ? {} : { tradeAlerts: overrides.tradeAlerts }),
   });
   return { engine, decisions, fills, notes };
 }
@@ -134,6 +135,23 @@ describe('PaperEngine — entrada', () => {
     run(h, healthyToken('E', T0), T0 + 75_000);
     expect(h.decisions.map((d) => d.reason)).toEqual(['kill_switch:stop_file']);
     expect(h.fills).toHaveLength(0);
+    // alerta imediato uma única vez, mesmo com várias avaliações bloqueadas
+    expect(h.notes.filter((n) => n.includes('kill switch acionado'))).toHaveLength(1);
+    expect(h.notes.find((n) => n.includes('kill switch acionado'))).toContain('kill_switch:stop_file');
+  });
+
+  it('TELEGRAM_MODE=hourly (tradeAlerts=false): nenhuma mensagem por entrada/saída, mas o resumo da hora conta tudo', () => {
+    const h = harness({ tradeAlerts: false });
+    run(h, healthyToken('G', T0), T0 + 75_000 + CONFIG.exits.timeStopSec * 1000);
+    expect(h.fills.some((f) => f.side === 'buy' && f.status === 'filled')).toBe(true);
+    expect(h.fills.some((f) => f.side === 'sell' && f.status === 'filled')).toBe(true);
+    expect(h.notes).toEqual([]);
+    const s = h.engine.takeHourlySummary(T0 + 3_600_000, { streamGapMs: 1_500, http429PerMin: 0.5 });
+    expect(s).toMatchObject({ openedOperations: 1, closedOperations: 1, evaluatedTokens: 1, health: { streamGapMs: 1_500, http429PerMin: 0.5 } });
+    expect(s.exitsByReason.get('time_stop')).toBe(1);
+    expect(s.best?.symbol).toBeDefined();
+    expect(s.worst).toBeNull(); // uma operação só: não repete como "pior"
+    expect(s.capitalLamports).toBe(CONFIG.risk.maxOpenPositions > 0 ? 50_000_000n * BigInt(CONFIG.risk.maxOpenPositions) : 0n);
   });
 
   it('stopEntries: nenhuma nova posição', () => {
@@ -168,8 +186,8 @@ describe('PaperEngine — saídas, PnL e memória', () => {
     expect(sell).toMatchObject({ baseFee: LAMPORTS_PER_SIGNATURE, rentRefund: 1_513_840n });
     const cash = h.fills.reduce((acc, f) => acc + fillCashFlow(f), 0n);
     expect(h.engine.runNetPnlLamports).toBe(cash);
-    const summary = h.engine.takeHourlySummary(T0 + 3_600_000);
-    expect(summary).toMatchObject({ entries: 1, closedOperations: 1, openPositions: 0, runNetPnlLamports: cash });
+    const summary = h.engine.takeHourlySummary(T0 + 3_600_000, { streamGapMs: 0, http429PerMin: 0 });
+    expect(summary).toMatchObject({ openedOperations: 1, closedOperations: 1, openPositions: 0, runNetPnlLamports: cash });
     expect(summary.winningOperations).toBe(cash > 0n ? 1 : 0);
     expect(h.notes.some((n) => n.includes('VENDA') && n.includes('tempo esgotado'))).toBe(true);
   });

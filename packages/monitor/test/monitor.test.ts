@@ -234,17 +234,27 @@ describe('mensagens', () => {
     expect(formatAlertMessage('TESTE', ['a < b & c']).text).toContain('<b>⚠️ ALERTA · TESTE [paper]</b>');
     expect(formatAlertMessage('TESTE', ['a < b & c']).text).toContain('• a &lt; b &amp; c');
 
+    // 2026-10-02 01:00–02:00 BRT = 04:00–05:00 UTC
+    const from = Date.UTC(2026, 9, 2, 4, 0, 0);
     const summary = formatHourlySummary({
-      mode: 'paper', runId: 'r', fromMs: 0, toMs: 3_600_000, entries: 2, closedOperations: 2, winningOperations: 1,
-      netPnlLamports: 1_000_000n, runNetPnlLamports: 2_000_000n, openPositions: 1,
-      rejectionsByReason: new Map([['minUniqueHolders', 30], ['maxAgeSec', 2]]), streamStatus: 'ativo', streamGaps: 1,
+      mode: 'paper', runId: 'r', fromMs: from, toMs: from + 3_600_000, openedOperations: 3, closedOperations: 2, winningOperations: 1,
+      netPnlLamports: -1_500_000n, runNetPnlLamports: 3_000_000n, capitalLamports: 150_000_000n,
+      best: { symbol: 'GOOD<x>', pnlRatio: 0.42 }, worst: { symbol: 'BAD', pnlRatio: -0.21 }, openPositions: 1,
+      exitsByReason: new Map([['stop_loss', 2], ['take_profit_1', 1], ['take_profit_2', 1], ['trailing_stop', 1]]),
+      evaluatedTokens: 310, rejectionsByReason: new Map([['minUniqueHolders', 30], ['maxAgeSec', 2]]),
+      health: { streamGapMs: 34_200, http429PerMin: 0, priorityFeeLamports: 43_347n, jitoTipLamports: 97_500n, costSource: 'tx_costs_median' },
     });
-    expect(summary.text).toContain('<b>📊 RESUMO · [paper] ·');
-    expect(summary.text).toContain('<b>RESULTADO DA HORA</b>');
-    expect(summary.text).toContain('• <b>Fechadas:</b> 2 (1 acerto · 1 erro)');
-    expect(summary.text).toContain('• <b>PnL da hora:</b> 0,0010 SOL');
-    expect(summary.text).toContain('• <b>PnL acumulado:</b> 0,0020 SOL');
-    expect(summary.text).toContain('• <b>Filtro que mais rejeitou:</b> minUniqueHolders (30)');
-    expect(summary.text).toContain('• <b>Stream:</b> ativo · <b>lacunas:</b> 1');
+    const t = summary.text;
+    expect(t).toContain('<b>📊 RESUMO 01:00–02:00 BRT [paper]</b>');
+    expect(t).toContain('• <b>Operações:</b> 3 abertas · 2 fechadas (1✅ 1❌)');
+    expect(t).toContain('• <b>PnL hora:</b> -0,0015 SOL (-1,0%)');
+    expect(t).toContain('• <b>PnL run:</b> 0,0030 SOL (+2,0%)');
+    expect(t).toContain('• <b>Melhor/pior:</b> GOOD&lt;x&gt; +42,0% / BAD -21,0%');
+    expect(t).toContain('• <b>Saídas:</b> stop 2 · alvo 1 1 · alvo 2 1 · trailing 1');
+    expect(t).toContain('• <b>Abertas agora:</b> 1');
+    expect(t).toContain('• <b>Avaliados:</b> 310 · <b>mais rejeitou:</b> minUniqueHolders (30)');
+    expect(t).toContain('sem stream 34s · 429 0,0/min · custo 0,0001 SOL/tx (tx_costs_median)');
+    // cabe numa tela de celular: poucas linhas
+    expect(t.split('\n').length).toBeLessThanOrEqual(10);
   });
 });

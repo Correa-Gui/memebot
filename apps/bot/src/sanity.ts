@@ -52,7 +52,8 @@ const nowStr = String((await rows('SELECT now64(3) AS t'))[0]?.['t']);
 const runsRaw = await rows('SELECT r.run_id AS run_id, r.started_at AS started_at, ' +
     // qualidade MEDIDA (v_run_quality, migração 007) quando existe; runs antigos sem run_health usam runs.quality
     "if(q.run_id = '', toString(r.quality), q.measured_quality) AS quality " +
-    'FROM runs AS r LEFT JOIN v_run_quality AS q ON q.run_id = r.run_id ORDER BY started_at');
+    // runs descartados (migração 009: ex. reiniciados por mudança de config) não entram em nenhuma janela
+    'FROM runs AS r LEFT JOIN v_run_quality AS q ON q.run_id = r.run_id WHERE r.discarded = 0 ORDER BY started_at');
 const runRanges: RunRange[] = runsRaw.map((r, i) => ({
   runId: String(r['run_id']),
   quality: r['quality'] === 'production' ? 'production' : 'provisional',

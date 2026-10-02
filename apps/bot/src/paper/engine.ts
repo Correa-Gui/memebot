@@ -11,7 +11,7 @@ import {
   submitOrder,
 } from '@memebot/execution';
 import type { Fill, PaperExecutorParams, PaperExecutorState, PaperOrder, TxCostEstimate } from '@memebot/execution';
-import { formatEntryAlert, formatExitAlert, formatTradeBatchSummary } from '@memebot/monitor';
+import { formatAlertMessage, formatEntryAlert, formatExitAlert, formatTradeBatchSummary } from '@memebot/monitor';
 import type { ClosedTradePnl, HourlySummary, TelegramMessage } from '@memebot/monitor';
 import { applyExitFill, evaluateExits, markExitSubmitted, netPnlRatio, openPosition } from '@memebot/positions';
 import type { ExitContext, ExitOrder, Position } from '@memebot/positions';
@@ -71,6 +71,17 @@ export interface PaperEngineOptions {
   compactionIntervalMs?: number;
   /** Retenção do esqueleto (criador/horário) para o filtro de criador (padrão 24 h). */
   skeletonRetentionMs?: number;
+  /**
+   * Alertas por entrada/saída (e lotes de 10 operações) no Telegram. `false` = TELEGRAM_MODE=hourly:
+   * só o resumo por hora e os alertas imediatos (kill switch etc.). Padrão `true`.
+   */
+  tradeAlerts?: boolean;
+}
+
+/** Saúde do ingest na hora (vem do adaptador de gravação; o engine não vê WS/HTTP). */
+export interface HourlyHealthInput {
+  streamGapMs: number;
+  http429PerMin: number;
 }
 
 export interface PeriodStats {
@@ -83,10 +94,19 @@ export interface PeriodStats {
   streamGaps: number;
   /** reason → mints distintos rejeitados no período (strategy e risco). */
   rejectedMintsByReason: Map<string, Set<string>>;
+  /** Mints avaliados (passaram pela strategy) no período. */
+  evaluatedMints: Set<string>;
+  /** Fills de venda executados no período, por motivo de saída. */
+  exitsByReason: Map<string, number>;
+  /** Operações fechadas no período (símbolo + PnL líquido / custo de entrada). */
+  closedOps: { symbol: string | null; pnlRatio: number }[];
 }
 
 function emptyPeriod(): PeriodStats {
-  return { entries: 0, exits: 0, closedOperations: 0, winningOperations: 0, failedEntries: 0, netPnlLamports: 0n, streamGaps: 0, rejectedMintsByReason: new Map() };
+  return {
+    entries: 0, exits: 0, closedOperations: 0, winningOperations: 0, failedEntries: 0, netPnlLamports: 0n, streamGaps: 0,
+    rejectedMintsByReason: new Map(), evaluatedMints: new Set(), exitsByReason: new Map(), closedOps: [],
+  };
 }
 
 const fixedClock = (ms: number): Clock => ({ nowMs: () => ms, slot: () => 0n });
@@ -97,6 +117,7 @@ function minBig(a: bigint, b: bigint): bigint {
 
 export class PaperEngine {
   private readonly o: Required<Omit<PaperEngineOptions, 'fees' | 'costs' | 'curveParams'>>;
+  private killSwitchAlerted: string | null = null;
   private readonly market = new MarketStore();
   private exec: PaperExecutorState;
   private risk: RiskState;
@@ -125,6 +146,7 @@ export class PaperEngine {
       evalIntervalMs: 1_000,
       compactionIntervalMs: 60_000,
       skeletonRetentionMs: 24 * 60 * 60 * 1000,
+      tradeAlerts: true,
       ...opts,
     };
     this.curveParams = opts.curveParams;
@@ -193,8 +215,17 @@ export class PaperEngine {
     return this.market.size;
   }
 
+  get closedOperationsCount(): number {
+    return this.completedOperations;
+  }
+
   get runNetPnlLamports(): Lamports {
     return this.runNetPnl;
+  }
+
+  /** `receivedAtMs` do último evento do stream (null antes do primeiro). */
+  get lastStreamReceivedAt(): number | null {
+    return this.lastStreamReceivedAtMs;
   }
 
   get currentCosts(): TxCostEstimate {
@@ -208,26 +239,38 @@ export class PaperEngine {
     return s;
   }
 
-  /** Resumo da hora para o Telegram (e zera). */
-  takeHourlySummary(nowMs: number): HourlySummary {
+  /** Resumo da hora para o Telegram (e zera). `health` vem do adaptador (WS/HTTP). */
+  takeHourlySummary(nowMs: number, health: HourlyHealthInput): HourlySummary {
     const s = this.hour;
     const from = this.hourStartMs;
     this.hour = emptyPeriod();
     this.hourStartMs = nowMs;
+    const byRatio = [...s.closedOps].sort((x, y) => y.pnlRatio - x.pnlRatio);
+    const c = this.params.costs;
     return {
       mode: 'paper',
       runId: this.o.runId,
       fromMs: from,
       toMs: nowMs,
-      entries: s.entries,
+      openedOperations: s.entries,
       closedOperations: s.closedOperations,
       winningOperations: s.winningOperations,
       netPnlLamports: s.netPnlLamports,
       runNetPnlLamports: this.runNetPnl,
+      capitalLamports: this.o.limits.sizeLamports * BigInt(this.o.limits.maxOpenPositions),
+      best: byRatio[0] ?? null,
+      worst: byRatio.length > 1 ? (byRatio.at(-1) ?? null) : null,
       openPositions: this.positions.size,
+      exitsByReason: new Map(s.exitsByReason),
+      evaluatedTokens: s.evaluatedMints.size,
       rejectionsByReason: new Map([...s.rejectedMintsByReason].map(([r, m]) => [r, m.size])),
-      streamStatus: this.streamStatus(nowMs),
-      streamGaps: s.streamGaps,
+      health: {
+        streamGapMs: health.streamGapMs,
+        http429PerMin: health.http429PerMin,
+        priorityFeeLamports: c.priorityFeeLamports,
+        jitoTipLamports: c.jitoTipLamports,
+        costSource: c.priorityFeeSource === c.jitoTipSource ? c.priorityFeeSource : `${c.priorityFeeSource}/${c.jitoTipSource}`,
+      },
     };
   }
 
@@ -277,6 +320,8 @@ export class PaperEngine {
     const last = this.lastEvalMs.get(mint);
     if (last !== undefined && nowMs - last < this.o.evalIntervalMs) return;
     this.lastEvalMs.set(mint, nowMs);
+    this.minute.evaluatedMints.add(mint);
+    this.hour.evaluatedMints.add(mint);
 
     const decision = evaluate(this.market.state, mint, fixedClock(nowMs), this.o.config, this.curveParams)[0];
     if (!decision) return;
@@ -303,9 +348,14 @@ export class PaperEngine {
     );
     this.risk = riskState;
     if (!result.approved) {
+      if (result.reason.startsWith('kill_switch') && this.killSwitchAlerted !== result.reason) {
+        this.killSwitchAlerted = result.reason;
+        this.o.sinks.notify(formatAlertMessage('kill switch acionado', [`motivo: ${result.reason}`, 'novas entradas bloqueadas; posições abertas continuam sendo geridas']));
+      }
       this.recordReject(mint, result.reason, nowMs, result.decisionId);
       return;
     }
+    this.killSwitchAlerted = null;
     const order: PaperOrder = { side: 'buy', decisionId: result.decisionId, mint, sizeLamports: result.sizeLamports, maxSlippageBps: result.maxSlippageBps };
     if (!this.trySubmit(order, nowMs)) {
       this.recordReject(mint, 'executor_refused', nowMs, result.decisionId);
@@ -455,6 +505,7 @@ export class PaperEngine {
     this.positions.set(fill.mint, openPosition(fill));
     this.minute.entries++;
     this.hour.entries++;
+    if (!this.o.tradeAlerts) return;
     this.o.sinks.notify(
       formatEntryAlert({
         mode: 'paper',
@@ -492,6 +543,8 @@ export class PaperEngine {
 
     this.minute.exits++;
     this.hour.exits++;
+    this.minute.exitsByReason.set(reason, (this.minute.exitsByReason.get(reason) ?? 0) + 1);
+    this.hour.exitsByReason.set(reason, (this.hour.exitsByReason.get(reason) ?? 0) + 1);
     const sold = -fill.tokenDelta;
     const netProceeds = fill.solOut + fill.rentRefund - fill.priorityFee - fill.jitoTip - fill.baseFee;
     const allocated = netProceeds - realizedPnlDelta;
@@ -505,10 +558,14 @@ export class PaperEngine {
         this.minute.winningOperations++;
         this.hour.winningOperations++;
       }
-      this.tradePnlBatch.push({
+      const closedOp = {
         symbol: this.liveCreated.get(fill.mint)?.symbol ?? null,
-        pnlLamports: operationPnl,
-      });
+        pnlRatio: position.entryCostLamports > 0n ? Number(operationPnl) / Number(position.entryCostLamports) : Number.NaN,
+      };
+      this.minute.closedOps.push(closedOp);
+      this.hour.closedOps.push(closedOp);
+      // só acumula o lote no modo `all` (no `hourly` ele nunca seria esvaziado)
+      if (this.o.tradeAlerts) this.tradePnlBatch.push({ symbol: closedOp.symbol, pnlLamports: operationPnl });
       if (this.tradePnlBatch.length === 10) {
         const batch = this.tradePnlBatch;
         this.tradePnlBatch = [];
@@ -520,6 +577,7 @@ export class PaperEngine {
         }));
       }
     }
+    if (!this.o.tradeAlerts) return;
     this.o.sinks.notify(
       formatExitAlert({
         mode: 'paper',

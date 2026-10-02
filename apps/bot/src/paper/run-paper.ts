@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { AppConfig, Logger } from '@memebot/core';
 import { parseCurveInitialParams, parseFeeConfigAccount, worstCaseCurveFees } from '@memebot/curve-math';
 import type { CurveFeeBps, CurveInitialParams } from '@memebot/curve-math';
@@ -7,20 +8,32 @@ import { estimateTxCosts, seedFromString } from '@memebot/execution';
 import type { TxCostEstimate } from '@memebot/execution';
 import { LAMPORTS_PER_SIGNATURE, fetchTokenAccountRent } from '@memebot/ingest';
 import type { ProtocolConfigSnapshot } from '@memebot/ingest';
-import { TelegramNotifier, formatHourlySummary } from '@memebot/monitor';
+import { TelegramNotifier, formatAlertMessage, formatHourlySummary, formatSol } from '@memebot/monitor';
 import type { TelegramMessage } from '@memebot/monitor';
 import type { Recorder } from '@memebot/recorder';
 import { DEFAULT_STOP_FILE_PATH, buildEffectiveRiskLimits, isStopFilePresent } from '@memebot/risk';
 import { loadStrategyConfig } from '@memebot/strategy';
 import { PUMP_FUN_PROGRAM_ID } from '../../../../config/protocol.ts';
 import { openRecordingSession, waitForShutdown } from '../recording.ts';
+import { HourlyScheduler, StreamWatch, parseRunMarker, restartAlertLines, type RunMarker } from './alerts.ts';
 import { PaperClock } from './clock.ts';
 import { PaperEngine } from './engine.ts';
-import { formatPaperStarted } from './start-message.ts';
+import { formatBrasiliaTime, formatPaperStarted } from './start-message.ts';
 
 export const STRATEGY_CONFIG_PATH = 'config/strategy.v0.yaml';
 /** Pré-carga de `token_created` para o filtro de criador (24 h, como a feature). */
 const CREATOR_LOOKBACK_HOURS = 24;
+/** Marcador local para detectar queda/reinício entre runs (fica em data/, fora do git). */
+const RUN_MARKER_PATH = 'data/paper-run.json';
+
+function readRunMarker(): RunMarker | null {
+  return existsSync(RUN_MARKER_PATH) ? parseRunMarker(readFileSync(RUN_MARKER_PATH, 'utf8')) : null;
+}
+
+function writeRunMarker(m: RunMarker): void {
+  mkdirSync(dirname(RUN_MARKER_PATH), { recursive: true });
+  writeFileSync(RUN_MARKER_PATH, JSON.stringify(m));
+}
 
 /**
  * Adaptador do `pnpm bot --mode=paper`: liga o `PaperEngine` (puro) ao ingest ao vivo, ao
@@ -131,9 +144,13 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
       runId, config, limits, curveParams: protocol.curveParams, fees: protocol.fees, costs,
       latencyMs: cfg.PAPER_LATENCY_MS, failRate: cfg.PAPER_FAIL_RATE,
       tokenAccountRentLamports: rent.lamports, baseFeeLamportsPerSignature: LAMPORTS_PER_SIGNATURE,
-      seed, startMs, sinks,
+      seed, startMs, sinks, tradeAlerts: cfg.TELEGRAM_MODE === 'all',
     });
     engine = e;
+    const restart = restartAlertLines(readRunMarker(), Date.now());
+    if (restart) telegram.send(formatAlertMessage('bot reiniciou após queda', restart));
+    const runStartedWallMs = Date.now();
+    writeRunMarker({ runId, startedAtMs: runStartedWallMs, cleanExit: false });
     telegram.send(formatPaperStarted({
       runId, startedAtMs: Date.now(), configVersion: config.version, configHash: strategyHash, sizeLamports: limits.sizeLamports,
       maxOpenPositions: limits.maxOpenPositions, costs, latencyMs: cfg.PAPER_LATENCY_MS, failRate: cfg.PAPER_FAIL_RATE,
@@ -195,13 +212,45 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
         'paper',
       );
     }, 60_000));
+    // Resumo na virada de cada hora em BRT (01:00, 02:00…); alertas imediatos de stream (> 60 s sem eventos).
+    const hourly = new HourlyScheduler(Date.now());
+    const streamWatch = new StreamWatch(60_000);
+    let lastHealth = session.healthCounters();
+    let lastHealthMs = Date.now();
     timers.push(setInterval(() => {
-      telegram.send(formatHourlySummary(e.takeHourlySummary(clock.nowMs())));
-    }, 3_600_000));
+      try {
+        const now = Date.now();
+        const st = streamWatch.check(now, e.lastStreamReceivedAt);
+        if (st?.kind === 'down') telegram.send(formatAlertMessage('stream sem eventos', [`sem eventos há: ${String(Math.round(st.silentMs / 1_000))} s`, 'entradas: bloqueadas pelo kill switch de stream parado']));
+        if (st?.kind === 'up') telegram.send(formatAlertMessage('stream voltou', [`tempo sem eventos: ${String(Math.round(st.silentMs / 1_000))} s`]));
+        if (hourly.due(now)) {
+          const h = session.healthCounters();
+          const minutes = Math.max(1, (now - lastHealthMs) / 60_000);
+          telegram.send(formatHourlySummary(e.takeHourlySummary(clock.nowMs(), {
+            streamGapMs: Math.max(0, h.streamGapMs - lastHealth.streamGapMs),
+            http429PerMin: Math.max(0, h.http429 - lastHealth.http429) / minutes,
+          })));
+          lastHealth = h;
+          lastHealthMs = now;
+        }
+      } catch (err) {
+        log.error({ err: err instanceof Error ? `${err.name}: ${err.message}` : String(err) }, 'erro nos alertas do paper');
+      }
+    }, 1_000));
 
-    await waitForShutdown(log);
+    const signal = await waitForShutdown(log);
     e.stopEntries();
     for (const t of timers) clearInterval(t);
+    writeRunMarker({ runId, startedAtMs: runStartedWallMs, cleanExit: true });
+    telegram.send(formatAlertMessage('paper finalizado', [
+      `run: ${runId}`,
+      `hora: ${formatBrasiliaTime(Date.now())}`,
+      `duração: ${(Math.max(0, Date.now() - runStartedWallMs) / 3_600_000).toFixed(2).replace('.', ',')} h`,
+      `operações fechadas: ${String(e.closedOperationsCount)}`,
+      `PnL líquido do run: ${formatSol(e.runNetPnlLamports)}`,
+      `posições abertas: ${String(e.openPositions.length)}`,
+      `motivo: ${signal}`,
+    ]));
     log.info(
       {
         openPositions: e.openPositions.map((p) => ({ mint: p.mint, tokenAmount: p.tokenAmount.toString(), entryDecisionId: p.entryDecisionId })),

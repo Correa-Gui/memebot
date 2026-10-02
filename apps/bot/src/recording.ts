@@ -47,6 +47,8 @@ export interface RecordingSession {
   /** Snapshots da primeira leitura de protocol_config (vazio se o RPC falhou). */
   initialProtocolConfig: ProtocolConfigSnapshot[];
   startIngest(onEvent?: (e: PumpEvent) => void): Promise<void>;
+  /** Contadores cumulativos desde o início do ingest: tempo sem stream (inclui lacuna aberta) e 429 de todo HTTP. */
+  healthCounters(): { streamGapMs: number; http429: number };
   close(): Promise<void>;
 }
 
@@ -113,6 +115,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
   const timers: ReturnType<typeof setInterval>[] = [setInterval(() => void snapshotProtocol(), cfg.PROTOCOL_CONFIG_INTERVAL_MS)];
 
   let ingest: IngestService | null = null;
+  let healthCounters = (): { streamGapMs: number; http429: number } => ({ streamGapMs: 0, http429: 0 });
   const metadataQueue = new BoundedQueue(cfg.METADATA_CONCURRENCY, 5_000);
 
   const startIngest = async (consumer?: (e: PumpEvent) => void): Promise<void> => {
@@ -175,6 +178,13 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
       logger: log,
     });
     ingest = service;
+    healthCounters = () => {
+      const w = service.wsStats();
+      return {
+        streamGapMs: w.closedGapMs + (w.openGapSince === null ? 0 : Date.now() - w.openGapSince),
+        http429: rpc.stats.rateLimited + samplerRpc.stats.rateLimited + poolRpc.stats.rateLimited,
+      };
+    };
     await service.start((e) => {
       if (e.kind !== 'social_post') onEvent(e);
     });
@@ -258,7 +268,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
     log.info({ stats: ingest?.stats ?? null, writer: recorder.stats }, 'encerrado');
   };
 
-  return { runId, rpc, recorder, initialProtocolConfig, startIngest, close };
+  return { runId, rpc, recorder, initialProtocolConfig, startIngest, healthCounters: () => healthCounters(), close };
 }
 
 /** Espera SIGINT/SIGTERM ou a mensagem 'shutdown' do pm2 por IPC (Windows não tem sinais). */
