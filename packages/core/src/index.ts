@@ -4,6 +4,7 @@ export type {
   TokenCreatedEvent,
   CurveTradeEvent,
   PumpSwapTradeEvent,
+  PumpSwapSwapDetails,
   CurveCompletedEvent,
   PoolCreatedEvent,
   TxCostEvent,

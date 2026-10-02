@@ -1,4 +1,4 @@
-import type { IngestGap, PumpEvent, PumpSwapTradeEvent } from '@memebot/core';
+import type { IngestGap, PumpEvent, PumpSwapSwapDetails, PumpSwapTradeEvent } from '@memebot/core';
 import type { Decoded } from './borsh.ts';
 import type { ParsedLogs, ParsedProgramEvent } from './log-parser.ts';
 
@@ -33,6 +33,36 @@ const big = (d: { [k: string]: Decoded }, k: string) =>
   field(d, k, (v): v is bigint => typeof v === 'bigint', 'bigint');
 const bool = (d: { [k: string]: Decoded }, k: string) =>
   field(d, k, (v): v is boolean => typeof v === 'boolean', 'bool');
+
+/**
+ * Campos extras de um `BuyEvent`/`SellEvent` do PumpSwap (IDL `pump_amm.json`) usados pela
+ * matemática exata do swap. Lança `NormalizeError` se faltar campo (layout diferente do IDL).
+ * Devolve `null` para um `ix_name` desconhecido num BuyEvent (instrução nova do programa): o trade
+ * continua sendo gravado, só sem os detalhes — não arriscamos rotular a variante errada.
+ */
+export function pumpSwapSwapDetails(eventName: string, d: { [k: string]: Decoded }): PumpSwapSwapDetails | null {
+  let instruction: PumpSwapSwapDetails['instruction'];
+  if (eventName === 'SellEvent') instruction = 'sell';
+  else if (eventName === 'BuyEvent') {
+    const ix = str(d, 'ix_name');
+    if (ix !== 'buy' && ix !== 'buy_exact_quote_in') return null;
+    instruction = ix;
+  } else throw new NormalizeError(`${eventName} não é evento de swap do PumpSwap`);
+  return {
+    instruction,
+    virtualQuoteReserves: big(d, 'virtual_quote_reserves'),
+    lpFeeBps: big(d, 'lp_fee_basis_points'),
+    protocolFeeBps: big(d, 'protocol_fee_basis_points'),
+    creatorFeeBps: big(d, 'coin_creator_fee_basis_points'),
+    cashbackFeeBps: big(d, 'cashback_fee_basis_points'),
+    cashbackFee: big(d, 'cashback'),
+    buybackFeeBps: big(d, 'buyback_fee_basis_points'),
+    buybackFee: big(d, 'buyback_fee'),
+    holderRewardsBps: big(d, 'holder_rewards_bps'),
+    holderRewards: big(d, 'holder_rewards'),
+    baseSupply: big(d, 'base_supply'),
+  };
+}
 
 interface Ctx {
   slot: bigint;
@@ -224,6 +254,7 @@ export class Normalizer {
     const pool = str(d, 'pool');
     const info = this.lookupPoolNonBlocking(pool);
     const isBuy = ev.name === 'BuyEvent';
+    const details = pumpSwapSwapDetails(ev.name, d);
     return {
       kind: 'trade',
       venue: 'pumpswap',
@@ -244,6 +275,7 @@ export class Normalizer {
       creatorFee: big(d, 'coin_creator_fee'),
       // só o BuyEvent traz ix_name (buy / buy_exact_quote_in); o SellEvent não tem esse campo no IDL
       ixName: isBuy ? str(d, 'ix_name') : null,
+      ...(details ? { swapDetails: details } : {}),
     };
   }
 

@@ -78,6 +78,37 @@ export interface PumpSwapTradeEvent extends OnchainEventBase {
   creatorFee: bigint;
   /** Só presente no BuyEvent. */
   ixName: string | null;
+  /**
+   * Campos do evento necessários para reproduzir o swap exato (`packages/curve-math/src/pumpswap.ts`).
+   * O `normalize` do ingest SEMPRE preenche. Ausente só quando o evento foi reconstruído de uma
+   * fonte que não os tem (ex.: linha de `events_trade` sem a tabela lateral `pumpswap_trade_extra`).
+   */
+  swapDetails?: PumpSwapSwapDetails;
+}
+
+/**
+ * Campos extras do `BuyEvent`/`SellEvent` do PumpSwap (IDL `pump_amm.json`), gravados na tabela
+ * lateral `pumpswap_trade_extra` (migração 011).
+ */
+export interface PumpSwapSwapDetails {
+  /** `buy` (base exata), `buy_exact_quote_in` (quote gastável) ou `sell`. Vem de `ix_name` no BuyEvent. */
+  instruction: 'buy' | 'buy_exact_quote_in' | 'sell';
+  /** `virtual_quote_reserves` (i128): somado ao quote no constant product. 0 em pools sem offset. */
+  virtualQuoteReserves: bigint;
+  lpFeeBps: bigint;
+  protocolFeeBps: bigint;
+  /** `coin_creator_fee_basis_points`. */
+  creatorFeeBps: bigint;
+  cashbackFeeBps: bigint;
+  /** `cashback` (quote): componente de taxa que vai para o usuário/acumulador, fora da pool. */
+  cashbackFee: bigint;
+  /** Repartições internas da taxa de protocolo/criador; não afetam usuário nem pool. */
+  buybackFeeBps: bigint;
+  buybackFee: bigint;
+  holderRewardsBps: bigint;
+  holderRewards: bigint;
+  /** `base_supply`: supply do token base no momento (market cap para o tier de taxa). */
+  baseSupply: bigint;
 }
 
 export interface CurveCompletedEvent extends OnchainEventBase {

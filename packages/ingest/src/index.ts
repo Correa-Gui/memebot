@@ -14,3 +14,5 @@ export { fetchTokenMetadata, MetadataFetchError, type TokenMetadata } from './me
 export { RpcClient, RpcError } from './rpc.ts';
 export { RateLimiter } from './rate-limiter.ts';
 export type { PoolInfo, PoolResolver } from './normalize.ts';
+export { pumpSwapSwapDetails } from './normalize.ts';
+export { decodePumpSwapSwapDetails, type DecodeSwapDetailsResult } from './pumpswap-extra.ts';
