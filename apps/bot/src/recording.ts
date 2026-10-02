@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { configSource, type AppConfig, type Logger, type PumpEvent } from '@memebot/core';
+import { configSource, type AppConfig, type IngestGap, type Logger, type PumpEvent } from '@memebot/core';
 import {
   IngestService,
   RateLimiter,
@@ -36,6 +36,8 @@ export interface RecordingOptions {
   preflight?: (recorder: Recorder) => Promise<void>;
   /** Chamado a cada leitura bem-sucedida de protocol_config (partida e periódica). */
   onProtocolConfig?: (snapshots: ProtocolConfigSnapshot[]) => void;
+  /** Recebe lacunas detectadas no WebSocket além de gravá-las no ClickHouse. */
+  onGap?: (gap: IngestGap) => void;
 }
 
 export interface RecordingSession {
@@ -168,6 +170,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
       sampler,
       onGap: (g) => {
         recorder.recordGap(g);
+        opts.onGap?.(g);
       },
       logger: log,
     });

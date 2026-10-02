@@ -11,8 +11,8 @@ import {
   submitOrder,
 } from '@memebot/execution';
 import type { Fill, PaperExecutorParams, PaperExecutorState, PaperOrder, TxCostEstimate } from '@memebot/execution';
-import { formatEntryAlert, formatExitAlert } from '@memebot/monitor';
-import type { HourlySummary } from '@memebot/monitor';
+import { formatEntryAlert, formatExitAlert, formatTradeBatchSummary } from '@memebot/monitor';
+import type { ClosedTradePnl, HourlySummary, TelegramMessage } from '@memebot/monitor';
 import { applyExitFill, evaluateExits, markExitSubmitted, netPnlRatio, openPosition } from '@memebot/positions';
 import type { ExitContext, ExitOrder, Position } from '@memebot/positions';
 import type { DecisionRecord } from '@memebot/recorder';
@@ -46,7 +46,7 @@ export interface PaperSinks {
   decision(d: DecisionRecord): void;
   fill(f: Fill): void;
   /** Texto para o Telegram (o adaptador decide se envia). */
-  notify(text: string): void;
+  notify(message: TelegramMessage): void;
   log: Logger;
 }
 
@@ -80,12 +80,13 @@ export interface PeriodStats {
   winningOperations: number;
   failedEntries: number;
   netPnlLamports: Lamports;
+  streamGaps: number;
   /** reason → mints distintos rejeitados no período (strategy e risco). */
   rejectedMintsByReason: Map<string, Set<string>>;
 }
 
 function emptyPeriod(): PeriodStats {
-  return { entries: 0, exits: 0, closedOperations: 0, winningOperations: 0, failedEntries: 0, netPnlLamports: 0n, rejectedMintsByReason: new Map() };
+  return { entries: 0, exits: 0, closedOperations: 0, winningOperations: 0, failedEntries: 0, netPnlLamports: 0n, streamGaps: 0, rejectedMintsByReason: new Map() };
 }
 
 const fixedClock = (ms: number): Clock => ({ nowMs: () => ms, slot: () => 0n });
@@ -103,10 +104,11 @@ export class PaperEngine {
   private curveParams: CurveInitialParams;
   private readonly positions = new Map<string, Position>();
   /** Mints com `token_created` visto neste run → símbolo (para alertas). */
-  private readonly liveCreated = new Map<string, string>();
+  private readonly liveCreated = new Map<string, { symbol: string; name: string }>();
   private readonly lastEvalMs = new Map<string, number>();
   private readonly lastOutcome = new Map<string, string>();
   private lastStreamEventMs: number | null = null;
+  private lastStreamReceivedAtMs: number | null = null;
   private stopFilePresent = false;
   private entriesEnabled = true;
   private lastCompactionMs: number;
@@ -114,6 +116,8 @@ export class PaperEngine {
   private minute = emptyPeriod();
   private hour = emptyPeriod();
   private hourStartMs: number;
+  private completedOperations = 0;
+  private tradePnlBatch: ClosedTradePnl[] = [];
   private readonly policy: CompactionPolicy;
 
   constructor(opts: PaperEngineOptions) {
@@ -222,13 +226,22 @@ export class PaperEngine {
       runNetPnlLamports: this.runNetPnl,
       openPositions: this.positions.size,
       rejectionsByReason: new Map([...s.rejectedMintsByReason].map(([r, m]) => [r, m.size])),
+      streamStatus: this.streamStatus(nowMs),
+      streamGaps: s.streamGaps,
     };
+  }
+
+  /** Registra uma lacuna real de reconnect na janela do resumo horário. */
+  recordStreamGap(): void {
+    this.minute.streamGaps++;
+    this.hour.streamGaps++;
   }
 
   // ---- fluxo ----
 
   onEvent(event: PumpEvent, nowMs: number): void {
     if (event.kind === 'tx_cost') return; // custos vêm de tx_costs (recarregados), não do MarketState
+    this.lastStreamReceivedAtMs = event.receivedAtMs;
     const settled = settleBeforeEvent(this.exec, this.params, this.market.state, event.ts);
     this.exec = settled.state;
     this.handleFills(settled.fills);
@@ -236,7 +249,7 @@ export class PaperEngine {
     const mint = this.market.apply(event);
     this.lastStreamEventMs = this.lastStreamEventMs === null ? event.ts : Math.max(this.lastStreamEventMs, event.ts);
     if (mint === null) return;
-    if (event.kind === 'token_created') this.liveCreated.set(mint, event.symbol);
+    if (event.kind === 'token_created') this.liveCreated.set(mint, { symbol: event.symbol, name: event.name });
     if (this.positions.has(mint)) this.runExits(mint, nowMs);
     if (event.kind === 'trade' && event.venue === 'curve') this.maybeEvaluate(mint, nowMs);
   }
@@ -416,6 +429,12 @@ export class PaperEngine {
     this.hour.netPnlLamports += delta;
   }
 
+  private streamStatus(nowMs: number): string {
+    if (this.lastStreamReceivedAtMs === null) return 'aguardando eventos';
+    const ageSeconds = Math.floor(Math.max(0, nowMs - this.lastStreamReceivedAtMs) / 1_000);
+    return ageSeconds <= 30 ? `ativo (último evento há ${String(ageSeconds)}s)` : `sem eventos há ${String(ageSeconds)}s`;
+  }
+
   private handleFills(fills: readonly Fill[]): void {
     for (const fill of fills) {
       this.o.sinks.fill(fill);
@@ -440,11 +459,19 @@ export class PaperEngine {
       formatEntryAlert({
         mode: 'paper',
         mint: fill.mint,
-        symbol: this.liveCreated.get(fill.mint) ?? null,
+        symbol: this.liveCreated.get(fill.mint)?.symbol ?? null,
+        name: this.liveCreated.get(fill.mint)?.name ?? null,
         priceLamportsPerUnit: fill.realizedPriceLamportsPerUnit,
         sizeLamports: fill.solIn,
-        costLamports: fill.protocolFee + fill.creatorFee + fill.priorityFee + fill.jitoTip + fill.baseFee + fill.rent,
-        costSource: `priority ${fill.priorityFeeSource}, tip ${fill.jitoTipSource}`,
+        curveFeeLamports: fill.protocolFee + fill.creatorFee,
+        priorityFeeLamports: fill.priorityFee,
+        jitoTipLamports: fill.jitoTip,
+        baseFeeLamports: fill.baseFee,
+        rentLamports: fill.rent,
+        tokenAgeMs: (() => {
+          const createdAt = this.market.state.tokens.get(fill.mint)?.createdAtMs;
+          return createdAt === null || createdAt === undefined ? null : fill.ts - createdAt;
+        })(),
       }),
     );
   }
@@ -471,26 +498,45 @@ export class PaperEngine {
     const closed = next === null;
     const operationPnl = closed ? position.realizedPnlLamports + realizedPnlDelta : null;
     if (closed && operationPnl !== null) {
+      this.completedOperations++;
       this.minute.closedOperations++;
       this.hour.closedOperations++;
       if (operationPnl > 0n) {
         this.minute.winningOperations++;
         this.hour.winningOperations++;
       }
+      this.tradePnlBatch.push({
+        symbol: this.liveCreated.get(fill.mint)?.symbol ?? null,
+        pnlLamports: operationPnl,
+      });
+      if (this.tradePnlBatch.length === 10) {
+        const batch = this.tradePnlBatch;
+        this.tradePnlBatch = [];
+        this.o.sinks.notify(formatTradeBatchSummary({
+          mode: 'paper',
+          firstOperation: this.completedOperations - batch.length + 1,
+          lastOperation: this.completedOperations,
+          trades: batch,
+        }));
+      }
     }
     this.o.sinks.notify(
       formatExitAlert({
         mode: 'paper',
         mint: fill.mint,
-        symbol: this.liveCreated.get(fill.mint) ?? null,
+        symbol: this.liveCreated.get(fill.mint)?.symbol ?? null,
+        name: this.liveCreated.get(fill.mint)?.name ?? null,
         reason,
         fraction: position.tokenAmount > 0n ? Number(sold) / Number(position.tokenAmount) : 1,
+        remainingFraction: next ? Number(next.tokenAmount) / Number(position.initialTokenAmount) : 0,
         priceLamportsPerUnit: fill.realizedPriceLamportsPerUnit,
         pnlLamports: realizedPnlDelta,
         pnlRatio: allocated > 0n ? Number(realizedPnlDelta) / Number(allocated) : Number.NaN,
         closed,
         operationPnlLamports: operationPnl,
         operationPnlRatio: operationPnl !== null && position.entryCostLamports > 0n ? Number(operationPnl) / Number(position.entryCostLamports) : null,
+        heldMs: fill.ts - position.openedAtMs,
+        stopLossPct: this.o.config.exits.stopLossPct,
       }),
     );
   }

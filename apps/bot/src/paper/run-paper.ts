@@ -8,6 +8,7 @@ import type { TxCostEstimate } from '@memebot/execution';
 import { LAMPORTS_PER_SIGNATURE, fetchTokenAccountRent } from '@memebot/ingest';
 import type { ProtocolConfigSnapshot } from '@memebot/ingest';
 import { TelegramNotifier, formatHourlySummary } from '@memebot/monitor';
+import type { TelegramMessage } from '@memebot/monitor';
 import type { Recorder } from '@memebot/recorder';
 import { DEFAULT_STOP_FILE_PATH, buildEffectiveRiskLimits, isStopFilePresent } from '@memebot/risk';
 import { loadStrategyConfig } from '@memebot/strategy';
@@ -66,6 +67,9 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
   const session = await openRecordingSession(cfg, log, {
     mode: 'paper',
     extraConfigHash: strategyHash,
+    onGap: (gap) => {
+      if (gap.kind === 'reconnect') engine?.recordStreamGap();
+    },
     preflight: async (recorder) => {
       const missing = await recorder.missingFillsColumns();
       if (missing.length > 0) {
@@ -118,8 +122,8 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
         recorder.recordFill(f);
         log.info({ decisionId: f.decisionId, mint: f.mint, side: f.side, status: f.status, error: f.error }, 'fill');
       },
-      notify: (text: string) => {
-        telegram.send(text);
+      notify: (message: TelegramMessage) => {
+        telegram.send(message);
       },
       log,
     };

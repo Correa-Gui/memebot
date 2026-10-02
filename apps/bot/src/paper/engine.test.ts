@@ -38,8 +38,8 @@ function trade(mint: string, ts: number, vq: bigint, trader: string, side: 'buy'
 }
 
 /** Token que passa em todos os filtros: 70 compradores distintos, 1 por segundo, preço subindo. */
-function healthyToken(mint: string, t0: number): PumpEvent[] {
-  const events: PumpEvent[] = [created(mint, t0)];
+function healthyToken(mint: string, t0: number, creator = 'creator'): PumpEvent[] {
+  const events: PumpEvent[] = [created(mint, t0, creator)];
   for (let i = 1; i <= 70; i++) events.push(trade(mint, t0 + i * 1_000, 30_000_000_000n + BigInt(i) * 200_000_000n, `${mint}-w${String(i)}`));
   return events;
 }
@@ -68,7 +68,7 @@ function harness(overrides: { failRate?: number; seed?: number } = {}): Harness 
     baseFeeLamportsPerSignature: LAMPORTS_PER_SIGNATURE,
     seed: overrides.seed ?? 1,
     startMs: T0,
-    sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: (t) => notes.push(t), log: silent },
+    sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: (m) => notes.push(m.text), log: silent },
   });
   return { engine, decisions, fills, notes };
 }
@@ -95,7 +95,7 @@ describe('PaperEngine — entrada', () => {
     expect(buy).toMatchObject({ status: 'filled', baseFee: LAMPORTS_PER_SIGNATURE, rent: 1_513_840n, decisionId: enters[0]?.decisionId });
     expect(buy?.solIn).toBeLessThanOrEqual(HARD_LIMITS.maxPositionLamports);
     expect(h.engine.openPositions).toHaveLength(1);
-    expect(h.notes.some((n) => n.includes('ENTRADA SA (A)'))).toBe(true);
+    expect(h.notes.some((n) => n.includes('<b>\u{1F7E2} COMPRA \u00b7 SA [paper]</b>'))).toBe(true);
   });
 
   it('rejeições deduplicadas: uma linha por mudança de motivo, contagem por mint distinto', () => {
@@ -145,6 +145,18 @@ describe('PaperEngine — entrada', () => {
 });
 
 describe('PaperEngine — saídas, PnL e memória', () => {
+  it('envia um gráfico depois de cada dez operações fechadas', () => {
+    const h = harness();
+    for (let i = 0; i < 10; i++) {
+      const start = T0 + i * 700_000;
+      run(h, healthyToken(`B${String(i)}`, start, `creator-${String(i)}`), start + 75_000);
+      for (let t = start + 76_000; t <= start + 700_000; t += 1_000) h.engine.onTick(t);
+      if (i === 8) expect(h.notes.filter((note) => note.includes('\u{1F4CA} PnL'))).toHaveLength(0);
+    }
+    expect(h.notes.filter((note) => note.includes('\u{1F4CA} PnL'))).toHaveLength(1);
+    expect(h.notes.find((note) => note.includes('\u{1F4CA} PnL'))).toContain('1–10');
+  });
+
   it('time stop por tick sem eventos: vende tudo, grava decisão exit, PnL do run = soma dos fluxos de caixa', () => {
     const h = harness();
     run(h, healthyToken('G', T0), T0 + 75_000 + CONFIG.exits.timeStopSec * 1000);
@@ -159,7 +171,7 @@ describe('PaperEngine — saídas, PnL e memória', () => {
     const summary = h.engine.takeHourlySummary(T0 + 3_600_000);
     expect(summary).toMatchObject({ entries: 1, closedOperations: 1, openPositions: 0, runNetPnlLamports: cash });
     expect(summary.winningOperations).toBe(cash > 0n ? 1 : 0);
-    expect(h.notes.some((n) => n.includes('SAÍDA') && n.includes('time_stop'))).toBe(true);
+    expect(h.notes.some((n) => n.includes('VENDA') && n.includes('tempo esgotado'))).toBe(true);
   });
 
   it('stop loss disparado por evento (venda forte de terceiro derruba o preço)', () => {

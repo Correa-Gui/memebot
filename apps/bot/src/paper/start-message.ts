@@ -1,5 +1,6 @@
 import type { TxCostEstimate } from '@memebot/execution';
-import { formatSol } from '@memebot/monitor';
+import { formatAlertMessage, formatSol } from '@memebot/monitor';
+import type { TelegramMessage } from '@memebot/monitor';
 
 /** Horário de Brasília: UTC−3 fixo (o Brasil não tem horário de verão desde 2019). */
 const BRASILIA_OFFSET_MS = -3 * 60 * 60 * 1000;
@@ -30,15 +31,16 @@ export interface PaperStartInfo {
 }
 
 /** Texto do aviso "paper iniciado" (só dados públicos/do run). */
-export function formatPaperStarted(i: PaperStartInfo): string {
+export function formatPaperStarted(i: PaperStartInfo): TelegramMessage {
   const c = i.costs;
-  return [
-    `[paper] paper iniciado — ${formatBrasiliaTime(i.startedAtMs)}`,
+  return formatAlertMessage('paper iniciado', [
+    // rótulo explícito: formatAlertMessage negrita até o 1º ':' (sem ele, cortaria o horário)
+    `hora: ${formatBrasiliaTime(i.startedAtMs)}`,
     `run: ${i.runId}`,
     `config: ${i.configVersion} (sha256 ${i.configHash.slice(0, 12)})`,
     `posição: ${formatSol(i.sizeLamports)} × até ${String(i.maxOpenPositions)} abertas`,
     `custos: priority ${formatSol(c.priorityFeeLamports)} (${c.priorityFeeSource}, ${String(c.prioritySampleCount)} amostras), ` +
       `tip ${formatSol(c.jitoTipLamports)} (${c.jitoTipSource}, ${String(c.tipSampleCount)} amostras)`,
     `latência simulada ${String(i.latencyMs)} ms, falha ${(i.failRate * 100).toFixed(0)}%`,
-  ].join('\n');
+  ], 'paper');
 }

@@ -31,11 +31,11 @@ describe('aviso "paper iniciado"', () => {
     expect(tg.stats).toEqual({ sent: 1, failed: 0, dropped: 0 });
     const text = (JSON.parse(bodies[0] ?? '{}') as { text: string }).text;
     expect(text).toContain('paper iniciado');
-    expect(text).toContain('19:56:25 (Brasília, UTC−3) (22:56:25 UTC)');
-    expect(text).toContain('run: paper-x');
-    expect(text).toContain('config: v0.1 (sha256 abcdef123456)');
-    expect(text).toContain('posição: 0.050000 SOL × até 3 abertas');
-    expect(text).toContain('priority 0.000150 SOL (tx_costs_p75, 1 amostras)');
-    expect(text).toContain('tip 0.000500 SOL (fallback, 0 amostras)');
+    expect(text).toContain('<b>hora:</b> 01/10/2026 19:56:25 (Brasília, UTC−3) (22:56:25 UTC)');
+    expect(text).toContain('<b>run:</b> paper-x');
+    expect(text).toContain('<b>config:</b> v0.1 (sha256 abcdef123456)');
+    expect(text).toContain('<b>posição:</b> 0,0500 SOL × até 3 abertas');
+    expect(text).toContain('priority 0,0002 SOL (tx_costs_p75, 1 amostras)');
+    expect(text).toContain('tip 0,0005 SOL (fallback, 0 amostras)');
   });
 });
