@@ -1,7 +1,7 @@
 import type { TokenAmount } from '@memebot/core';
 import type { CurveTradeEvent, PumpSwapTradeEvent, TokenCreatedEvent } from '@memebot/core';
 import { FIRST_BUYERS_LIMIT, TRADE_HISTORY_LIMIT } from './types.ts';
-import type { TokenState, TradeRecord } from './types.ts';
+import type { PumpSwapReservesSnapshot, TokenState, TradeRecord } from './types.ts';
 
 export function emptyTokenState(mint: string): TokenState {
   return {
@@ -93,12 +93,38 @@ export function applyCurveTrade(state: TokenState, event: CurveTradeEvent): Toke
   return next;
 }
 
+/** Reservas DEPOIS do trade, a partir das reservas ANTES (evento) e do delta do próprio trade. */
+export function pumpSwapReservesAfter(event: PumpSwapTradeEvent): PumpSwapReservesSnapshot {
+  let base: bigint;
+  let quote: bigint;
+  if (event.side === 'sell') {
+    base = event.poolBaseReserves + event.tokenAmount;
+    quote = event.poolQuoteReserves - (event.quoteAmount - event.lpFee);
+  } else {
+    const net = event.quoteAmount < event.userQuoteAmount ? event.quoteAmount : event.userQuoteAmount;
+    base = event.poolBaseReserves - event.tokenAmount;
+    quote = event.poolQuoteReserves + net + event.lpFee;
+  }
+  const d = event.swapDetails;
+  return {
+    pool: event.pool,
+    base: base < 0n ? 0n : base,
+    quote: quote < 0n ? 0n : quote,
+    virtualQuote: d ? d.virtualQuoteReserves : null,
+    feeBps: d
+      ? { lpFeeBps: d.lpFeeBps, protocolFeeBps: d.protocolFeeBps, creatorFeeBps: d.creatorFeeBps, cashbackFeeBps: d.cashbackFeeBps }
+      : null,
+    baseSupply: d ? d.baseSupply : null,
+    lastSlot: event.slot,
+  };
+}
+
 export function applyPumpSwapTrade(state: TokenState, event: PumpSwapTradeEvent): TokenState {
   let next: TokenState = {
     ...state,
     venue: 'pumpswap',
     quoteMint: state.quoteMint ?? (event.quoteMint || null),
-    pumpSwapReserves: { pool: event.pool, base: event.poolBaseReserves, quote: event.poolQuoteReserves },
+    pumpSwapReserves: pumpSwapReservesAfter(event),
     holderBalances: applyBalanceDelta(state.holderBalances, event.trader, event.side, event.tokenAmount),
     firstBuyers: addFirstBuyerIfNew(state.firstBuyers, event.trader, event.side),
   };

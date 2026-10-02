@@ -1,6 +1,7 @@
 export type {
   CurveReservesSnapshot,
   PumpSwapReservesSnapshot,
+  PumpSwapFeeBpsSnapshot,
   TradeRecord,
   TokenState,
   MarketState,
@@ -15,3 +16,4 @@ export type { CompactionAction, CompactionPolicy, TokenSkeleton } from './market
 
 export type { WindowStats } from './windows.ts';
 export { computeWindowStats, buySellRatio, tokenAgeMs, topHolderConcentration } from './windows.ts';
+export { pumpSwapReservesAfter } from './token-state.ts';

@@ -8,11 +8,45 @@ export interface CurveReservesSnapshot {
   realToken: TokenAmount;
 }
 
-/** Reservas conhecidas do pool PumpSwap (venue `pumpswap`), como emitidas pelo evento. */
+/** Bps de taxa do último trade observado na pool (como o evento traz; ver `PumpSwapSwapDetails`). */
+export interface PumpSwapFeeBpsSnapshot {
+  lpFeeBps: bigint;
+  protocolFeeBps: bigint;
+  creatorFeeBps: bigint;
+  cashbackFeeBps: bigint;
+}
+
+/**
+ * Estado conhecido do pool PumpSwap (venue `pumpswap`) DEPOIS do último trade observado.
+ *
+ * Atenção: `pool_base_token_reserves`/`pool_quote_token_reserves` do evento são o estado ANTES do
+ * swap (confirmado via RPC: = `preTokenBalances` das vaults; ver
+ * `packages/curve-math/test/fixtures/pumpswap-rpc/vaults.json`). Aqui guardamos o estado DEPOIS,
+ * aplicando o delta do próprio trade com os campos do evento (sem depender da fórmula):
+ * - venda: base + `tokenAmount`; quote − (`quoteAmount` − `lpFee`)  (`quoteAmount` = bruto);
+ * - compra: base − `tokenAmount`; quote + (líquido + `lpFee`), líquido = min(`quoteAmount`,
+ *   `userQuoteAmount`) — em `buy` o líquido é `quote_amount_in`, em `buy_exact_quote_in` é
+ *   `user_quote_amount_in`; o outro campo é sempre ≥ (inclui as taxas).
+ * Validado: continuidade exata em 46.829/46.864 pares de trades consecutivos reais (as quebras são
+ * eventos faltando).
+ */
 export interface PumpSwapReservesSnapshot {
   pool: string;
+  /** Saldo da vault de base depois do último trade. */
   base: TokenAmount;
+  /** Saldo da vault de quote depois do último trade. */
   quote: bigint;
+  /**
+   * `Pool.virtual_quote_reserves` (somado ao quote no constant product). `null` se o último trade
+   * veio sem `swapDetails` (evento reconstruído sem a tabela lateral) — nesse caso NÃO precificar.
+   */
+  virtualQuote: bigint | null;
+  /** Bps do último trade (dependem do tier de market cap; podem mudar no próximo). `null` como acima. */
+  feeBps: PumpSwapFeeBpsSnapshot | null;
+  /** `base_supply` do último trade (market cap para o tier de taxa). `null` como acima. */
+  baseSupply: TokenAmount | null;
+  /** Slot do último trade aplicado. */
+  lastSlot: bigint;
 }
 
 /**
