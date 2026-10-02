@@ -1,0 +1,103 @@
+{
+  "description": "Transações reais do PumpSwap buscadas via RPC (getTransaction encoding=json; getAccountInfo base64) para confirmar que as reservas do evento = preTokenBalances das vaults e que Pool.virtual_quote_reserves = campo do evento.",
+  "source": {
+    "rpc": "https://api.mainnet-beta.solana.com",
+    "fetchedAt": "2026-10-02T16:52:01.655Z",
+    "calls": 4
+  },
+  "pool": "Cr469Kh7oCPtQk5YADEmjVpBWx1DiXXLiooPFJn23jsg",
+  "poolAccount": {
+    "owner": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+    "dataBase64": "8ZptBBGxbbz/AABCkrW/97+3H3Ic9K77dG5OAs9D3Cusi8TJUs65fqTDAeFrYYm5YATO6whzlWDmhxJJmNewGlLEW+LSk0Fv04yUBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAHrrDkEfROVUc2fFED2ILe5fTeyxqqAg/28xhoZysDf8h7AiZzOOYPXo5VNe0FDJ4nxbv208GVbT91xjPGtONEoCLscCjxelp7tozQZKPsT94yC2bp1lRX6YnjtkRvN0T+GRWtZ0AMAAKZDW2WoRsBLFRQr2592HBgOOeyUIK7NQeyjR3tBHzSjAADOQR4YBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    "decoded": {
+      "pool_base_token_account": "353WhmCbEmMgBhhKksPoA9rj9X7f3s9BNzXkT3ps5oTm",
+      "pool_quote_token_account": "b5k3m8LSLw94TCVEDESVSefvFdT9JbVoMxPfUgjUQza",
+      "virtual_quote_reserves": "17584505294",
+      "base_mint": "GAwhcphCqCv5bKHmCiN4VDdNWfbXJL4npmkc8L3Q9S9H",
+      "quote_mint": "So11111111111111111111111111111111111111112"
+    }
+  },
+  "txs": [
+    {
+      "sig": "2UhBm8if1t9zxvYbUNVRAygwoFZf6X8rL5vyKEYXs8azVg59WtGUiDTceBFca9xBCjpxJZzZZsKUhJjvaaHo8srt",
+      "slot": 452602263,
+      "ixName": "sell",
+      "eventRawB64": "Pi83CqUD3Cojm79qAAAAAHxoxJEDAAAAAAAAAAAAAADI3taRAwAAAAAAAAAAAAAAsYzxVqkUAABZEdygKwEAAO5DbzQAAAAAFAAAAAAAAAC32BoAAAAAAAUAAAAAAAAALrYGAAAAAAA3a1Q0AAAAAD0fKDQAAAAAsAGCGoPZ4iYhfmiYXO3RosYfueFd91skD0/6fk54sSOD5vNcYmXNqYgFcp8DwvoT0OmYc1CoNxlYtJVk46fO4OKn1l/glEt5LcG4OBvNcsjkUbVoo4I6IOrivcZD5kgNcnBGiBFRaWQ35ejHmY1y5A7llhlnNPFf93zHnxWLj7Rjg3MADqIssmTTSv9koEte+r+7dN3NBImXsZgVR9fREAe0ZyjFA6fIFZjsUWe5tjKg2nvc6Y8HxZZ7EO1veKHOpkNbZahGwEsVFCvbn3YcGA457JQgrs1B7KNHe0EfNKMcAAAAAAAAAMyVJQAAAAAAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAF1sDAAAAAADOQR4YBAAAAAAAAAAAAAAAAfdQOBeQhgMAAAAAAAAAAAAAAAAAAAAAAA==",
+      "eventFoundInTxLogs": true,
+      "event": {
+        "poolBaseTokenReserves": "22717540699313",
+        "poolQuoteTokenReserves": "1286893998425",
+        "virtualQuoteReserves": "17584505294",
+        "feeBps": {
+          "lp": "20",
+          "protocol": "5",
+          "creator": "28",
+          "cashback": "0"
+        },
+        "baseAmount": "15330470012",
+        "quoteAmount": "879707118",
+        "userQuoteAmount": "875044669"
+      },
+      "vaultBalances": {
+        "basePre": "22717540699313",
+        "basePost": "22732871169325",
+        "quotePre": "1286893998425",
+        "quotePost": "1286016050722"
+      }
+    },
+    {
+      "sig": "5MRK7CQFuFgDzhk1hCAH1fZakbZgszkncvVsMYy7Nv4KDWXohiKDH7Xpv2HJLreCCdgvdNXyvA9UMejtxb8iTs9w",
+      "slot": 452602263,
+      "ixName": "buy_exact_quote_in",
+      "eventRawB64": "Z/RSHyz1d3cjm79qAAAAAPiLGCsAAAAAI9h8AgAAAAAAAAAAAAAAACPYfAIAAAAAqRgKgqkUAABjUGGeKwEAACPYfAIAAAAAFAAAAAAAAABZRAEAAAAAAAUAAAAAAAAAF1EAAAAAAAD2wHoCAAAAAJ18eQIAAAAAsAGCGoPZ4iYhfmiYXO3RosYfueFd91skD0/6fk54sSMCQOGwBlONFj93Hvlh8nVEe4BwlakFPK4v4mFHucGLIfd+E7mbjfx7rdqmHGxJ/JwQHF7W+58Hb0PzqPKr/aHn5Ms875weTuqC3XkNzFsXAQ2PabcAzHSuHX5MJNe+wB1jg3MADqIssmTTSv9koEte+r+7dN3NBImXsZgVR9fREAe0ZyjFA6fIFZjsUWe5tjKg2nvc6Y8HxZZ7EO1veKHOpkNbZahGwEsVFCvbn3YcGA457JQgrs1B7KNHe0EfNKMcAAAAAAAAABbGAQAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkwl6IgAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAiygAAAAAAADOQR4YBAAAAAAAAAAAAAAAAfdQOBeQhgMAAAAAAAAAAAAAAAAAAAAAAA==",
+      "eventFoundInTxLogs": true,
+      "event": {
+        "poolBaseTokenReserves": "22718263728297",
+        "poolQuoteTokenReserves": "1286852399203",
+        "virtualQuoteReserves": "17584505294",
+        "feeBps": {
+          "lp": "20",
+          "protocol": "5",
+          "creator": "28",
+          "cashback": "0"
+        },
+        "baseAmount": "723028984",
+        "quoteAmount": "41736227",
+        "userQuoteAmount": "41516189"
+      },
+      "vaultBalances": {
+        "basePre": "22718263728297",
+        "basePost": "22717540699313",
+        "quotePre": "1286852399203",
+        "quotePost": "1286893998425"
+      }
+    },
+    {
+      "sig": "QWS8cvhSmcqimTJqnAjaaS9B9DSnheexs5ii4PM8rHKvpdwMX9Vn98T9TSzaspbqzBG5FpS1KaJ83etZxKKe6Qx",
+      "slot": 452602260,
+      "ixName": "buy",
+      "eventRawB64": "Z/RSHyz1d3chm79qAAAAAGHzxeAIAAAA/ewigwAAAAB3dQ/vAAAAAP3sIoMAAAAAFnnEAq8UAAAt3jdNKwEAABbwcYIAAAAAFAAAAAAAAACzyUIAAAAAAAUAAAAAAAAAbbIQAAAAAADJubSCAAAAAP3sIoMAAAAAsAGCGoPZ4iYhfmiYXO3RosYfueFd91skD0/6fk54sSOnWchtqblmP5fHpLA4XeoxazrNUfj96Nj55MNJWkd95viU2spIxfeRAYLl3vcE+tQzVNei7+hH+FET1quLqOn+4zGySGPrHl5hI3+pZzujaK6GRMxQgY/3Jhs4rKHhZJf/g4OBi6j6KMPNO21ek/n6uPCXm8NyFazFskaHe6jDybnwRqOiz07iErT6kv2dAPpPsLP8/TYeQK5TkflgNepjpkNbZahGwEsVFCvbn3YcGA457JQgrs1B7KNHe0EfNKMcAAAAAAAAAMeAXQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYfPF4AgAAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAANlkIAAAAAADOQR4YBAAAAAAAAAAAAAAAAfdQOBeQhgMAAAAAAAAAAAAAAAAAAAAAAA==",
+      "eventFoundInTxLogs": true,
+      "event": {
+        "poolBaseTokenReserves": "22741898262806",
+        "poolQuoteTokenReserves": "1285490728493",
+        "virtualQuoteReserves": "17584505294",
+        "feeBps": {
+          "lp": "20",
+          "protocol": "5",
+          "creator": "28",
+          "cashback": "0"
+        },
+        "baseAmount": "38130807649",
+        "quoteAmount": "2188505110",
+        "userQuoteAmount": "2200104189"
+      },
+      "vaultBalances": {
+        "basePre": "22741898262806",
+        "basePost": "22703767455157",
+        "quotePre": "1285490728493",
+        "quotePost": "1287683610614"
+      }
+    }
+  ]
+}

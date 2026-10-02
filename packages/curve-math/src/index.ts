@@ -16,7 +16,15 @@ export { parseCurveInitialParams, parseFeeConfigAccount, worstCaseCurveFees } fr
 export type {
   PumpSwapReserves,
   PumpSwapFeeBps,
+  PumpSwapFees,
   PumpSwapBuyResult,
   PumpSwapSellResult,
 } from './pumpswap.ts';
-export { pumpSwapBuy, pumpSwapSell, marketCapLamports } from './pumpswap.ts';
+export {
+  pumpSwapBuyExactBaseOut,
+  pumpSwapBuyExactQuoteIn,
+  pumpSwapSell,
+  pumpSwapFees,
+  effectiveQuoteReserves,
+  marketCapLamports,
+} from './pumpswap.ts';

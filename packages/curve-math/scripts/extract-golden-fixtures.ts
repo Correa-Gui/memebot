@@ -12,12 +12,11 @@
  * `docker exec`, usando as env vars já definidas DENTRO do container
  * (CLICKHOUSE_USER / CLICKHOUSE_PASSWORD), nunca o `.env` do host.
  *
- * Formato de saída (ver packages/curve-math/test/fixtures/golden/README no
- * final deste arquivo para a descrição dos campos): dois arrays JSON,
- * `curve.json` (bonding curve, venue='curve') e `pumpswap.json` (AMM pós-
- * graduação, venue='pumpswap'), cada item é um par (trade anterior, trade
- * atual) do MESMO mint/pool, na ordem em que aconteceram, o que dá o estado
- * "antes" (reservas após o trade anterior) e o resultado exato do trade atual.
+ * Formato de saída: array JSON `curve.json` (bonding curve, venue='curve'),
+ * cada item é um par (trade anterior, trade atual) do MESMO mint, na ordem em
+ * que aconteceram, o que dá o estado "antes" (reservas após o trade anterior)
+ * e o resultado exato do trade atual. As fixtures do PumpSwap (`pumpswap.json`)
+ * são geradas por `extract-pumpswap-fixtures.ts`.
  *
  * Curadoria aplicada (documentada aqui porque afeta quais trades aparecem):
  * - Só quote_mint em SOL_QUOTE_MINTS (config/protocol.ts) — é o único caso
@@ -27,7 +26,6 @@
  *   a regra geral da curva — excluídos comparando a taxa observada com a
  *   esperada pelos bps padrão (95 protocolo / 30 criador, lidos de
  *   `protocol_config` FeeConfig da Pump.fun em 2026-09-29).
- * - PumpSwap: só pools já resolvidas (`pool_unresolved = 0`, `mint != ''`).
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -170,56 +168,13 @@ function extractCurveFixtures(limit: number): CurveFixture[] {
   return fixtures;
 }
 
-interface PumpSwapRow {
-  pool: string;
-  recv_seq: string;
-  side: 'buy' | 'sell';
-  quote_amount: string;
-  token_amount: string;
-  user_quote_amount: string;
-  pool_base_reserves: string;
-  pool_quote_reserves: string;
-  lp_fee: string;
-  protocol_fee: string;
-  creator_fee: string;
-}
-
-interface PumpSwapFixture {
-  description: string;
-  // Reservas reportadas pelo próprio evento = estado ANTES do swap deste trade
-  // (convenção confirmada batendo a continuidade de reservas entre trades consecutivos
-  // do mesmo pool contra dados reais — ver relatório da Fase 2 para a derivação).
-  before: { base: string; quote: string };
-  trade: { side: 'buy' | 'sell'; quoteAmount: string; tokenAmount: string; userQuoteAmount: string };
-  fees: { lpFee: string; protocolFee: string; creatorFee: string };
-}
-
-function extractPumpSwapFixtures(limit: number): PumpSwapFixture[] {
-  const rows = query(
-    `SELECT pool, recv_seq, side, quote_amount, token_amount, user_quote_amount, ` +
-      `pool_base_reserves, pool_quote_reserves, lp_fee, protocol_fee, creator_fee ` +
-      `FROM events_trade WHERE venue='pumpswap' AND quote_mint='So11111111111111111111111111111111111111112' ` +
-      `AND pool_unresolved=0 AND pool_base_reserves IS NOT NULL ORDER BY recv_seq LIMIT ${String(limit)}`,
-  ) as PumpSwapRow[];
-
-  return rows.map((r) => ({
-    description: `pumpswap trade real: pool=${r.pool.slice(0, 8)}… recv_seq=${r.recv_seq}`,
-    before: { base: r.pool_base_reserves, quote: r.pool_quote_reserves },
-    trade: { side: r.side, quoteAmount: r.quote_amount, tokenAmount: r.token_amount, userQuoteAmount: r.user_quote_amount },
-    fees: { lpFee: r.lp_fee, protocolFee: r.protocol_fee, creatorFee: r.creator_fee },
-  }));
-}
-
 function main(): void {
   const curve = extractCurveFixtures(120);
-  const pumpswap = extractPumpSwapFixtures(80);
 
   const outDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'test', 'fixtures', 'golden');
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'curve.json'), JSON.stringify(curve, null, 2) + '\n');
-  writeFileSync(join(outDir, 'pumpswap.json'), JSON.stringify(pumpswap, null, 2) + '\n');
-
-  console.log(`curve: ${String(curve.length)} fixtures, pumpswap: ${String(pumpswap.length)} fixtures`);
+  console.log(`curve: ${String(curve.length)} fixtures`);
 }
 
 main();
