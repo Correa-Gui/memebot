@@ -252,6 +252,16 @@ describe('approveEntry', () => {
     expect(approveEntry(stale, fixedClock(NOW)).result).toMatchObject({ reason: 'kill_switch:stream_stale' });
   });
 
+  it('killSwitchEnabled: false (só replay de pesquisa) ignora o kill switch; ausente/true = ligado', () => {
+    const lossState = recordRealizedPnl(createRiskState(NOW), -200_000_000n, NOW);
+    expect(approveEntry(input({ riskState: lossState, killSwitchEnabled: true }), fixedClock(NOW)).result).toMatchObject({ reason: 'kill_switch:daily_loss' });
+    const off = approveEntry(input({ riskState: lossState, killSwitchEnabled: false, killSwitch: { lastStreamEventMs: null, balance: null, stopFilePresent: true } }), fixedClock(NOW));
+    expect(off.result.approved).toBe(true);
+    // os demais limites continuam valendo
+    expect(approveEntry(input({ killSwitchEnabled: false, portfolio: { openMints: new Set(['a', 'b', 'c']), openExposureLamports: 0n } }), fixedClock(NOW)).result)
+      .toMatchObject({ reason: 'maxOpenPositions' });
+  });
+
   it('posição já aberta, máximo de posições e exposição da carteira', () => {
     expect(approveEntry(input({ portfolio: { openMints: new Set([mint]), openExposureLamports: 0n } }), fixedClock(NOW)).result)
       .toMatchObject({ reason: 'position_already_open' });

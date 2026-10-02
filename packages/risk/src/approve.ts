@@ -29,6 +29,12 @@ export interface ApproveEntryInput {
   /** Entradas do kill switch que não vêm do `RiskState` (perda diária e falhas seguidas vêm dele). */
   killSwitch: Pick<KillSwitchInputs, 'lastStreamEventMs' | 'balance' | 'stopFilePresent'>;
   killSwitchParams?: KillSwitchParams;
+  /**
+   * `false` desliga TODO o kill switch nesta aprovação. Só para pesquisa offline no replay (Fase 4: não
+   * cortar a amostra das hipóteses depois do limite de perda diária); o paper/live ao vivo nunca passa
+   * isto (padrão: ligado). Nenhum outro limite (posições, tamanho, exposição, hard limits) é afetado.
+   */
+  killSwitchEnabled?: boolean;
 }
 
 export interface ApprovedEntry {
@@ -82,7 +88,7 @@ export function approveEntry(input: ApproveEntryInput, clock: Clock): { result: 
     limits.maxDailyLossLamports,
     input.killSwitchParams ?? KILL_SWITCH_DEFAULTS,
   );
-  const firstReason = kill.reasons[0];
+  const firstReason = input.killSwitchEnabled === false ? undefined : kill.reasons[0];
   if (firstReason !== undefined) return reject(`kill_switch:${firstReason}`);
 
   if (input.portfolio.openMints.has(decision.mint)) return reject('position_already_open');
