@@ -300,6 +300,18 @@ export class PaperEngine {
 // operações abertas durante lacunas `reconnect` ([detected_at − duration_ms, detected_at]; linhas sem duration_ms:
 // "desconectado por N ms" + 30 s de heartbeat) com PnL com/sem elas; qualidade medida (v_run_quality ou o mesmo
 // fallback sobre [started_at, último ts de decisions/fills], provisional acima de 1% sem stream).
+// Análise "por que perde" (report/analysis.ts, report/exit-sim.ts; puro, testado com fixtures). Preço depois de t = preço
+// marginal (virtualQuote/virtualToken) do último trade de curva do mint com ts ≤ t (v_trades); "sem dados" se t passa do fim
+// dos dados ou algum minuto no caminho não tem trade gravado de nenhum mint; "graduou" após trade PumpSwap/curve_completed.
+//  - stops: tempo até o stop; MFE líquido (netPnlRatio de positions em cada trade entre entrada e stop) e de preço; preço
+//    5/15/60 min depois em % do preço marginal na saída; - toda saída: máx/mín nas janelas de 15 min/1 h/4 h, upside no máximo
+//    e resultado de segurar até o fim (bondingCurveSell nas reservas do momento, custos de tx iguais);
+//  - regras alternativas sobre as mesmas entradas e o mesmo caminho de preço (latência 800 ms, custos de tx reais, sem falha
+//    sorteada/limite de slippage/emergências; graduação e falta de dados fecham no último preço da curva): +40%, +100%, só
+//    trailing 25% desde a entrada, regra atual, trailing 40%, moonbag 20/40/60% até 4 h — PnL, expectativa, acerto, drawdown;
+//  - token vivo 1 h depois (trade em [+55, +65] min e preço em +60 min ≥ 10% do de entrada); retorno por faixa de ageSec e
+//    volume60sSol (snapshot do enter); IC 95% da expectativa por bootstrap (10 000 réplicas, mulberry32 semeado);
+//    slippage por lado (positivo = pior que o esperado). Run com runs.discarded = 1 (009) → aviso no topo.
 
 // monitor (packages/monitor, Fase 3): depende só de core.
 export class TelegramNotifier { // sendMessage via fetch; timeout 5 s; 3 retries com backoff; 429 → retry_after (≤ 30 s);
