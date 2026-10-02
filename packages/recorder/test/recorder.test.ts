@@ -2,7 +2,7 @@ import { createLogger, type CurveTradeEvent, type PumpSwapTradeEvent } from '@me
 import { Writable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BatchWriter } from '../src/batch-writer.ts';
-import { chTime, eventToRow, type Row, type TableName } from '../src/rows.ts';
+import { chTime, eventToRow, pumpSwapTradeExtraRow, type Row, type TableName } from '../src/rows.ts';
 
 const silent = createLogger({
   destination: new Writable({
@@ -87,6 +87,53 @@ describe('eventToRow', () => {
     const { row } = eventToRow({ ...pumpswapTrade, mint: 'Base1', quoteMint: 'Quote1', poolUnresolved: false }, 0);
     expect(row['mint']).toBe('Base1');
     expect(row['pool_unresolved']).toBe(0);
+  });
+
+  it('pumpswap_trade_extra: i128 negativo e u64 máximo viram string sem perda; events_trade não muda', () => {
+    const details = {
+      instruction: 'buy_exact_quote_in' as const,
+      virtualQuoteReserves: -170_141_183_460_469_231_731_687_303_715_884_105_728n, // i128 mínimo
+      lpFeeBps: 20n,
+      protocolFeeBps: 5n,
+      creatorFeeBps: 95n,
+      cashbackFeeBps: 0n,
+      cashbackFee: 0n,
+      buybackFeeBps: 5000n,
+      buybackFee: 3n,
+      holderRewardsBps: 0n,
+      holderRewards: 0n,
+      baseSupply: 18_446_744_073_709_551_615n,
+    };
+    const row = pumpSwapTradeExtraRow(
+      { sig: 'sig2', eventIndex: 3, slot: 400_000_000n, tsMs: pumpswapTrade.ts, pool: 'Pool1' },
+      details,
+      'recorder',
+      pumpswapTrade.receivedAtMs,
+    );
+    expect(row).toEqual({
+      sig: 'sig2',
+      event_index: 3,
+      slot: '400000000',
+      ts: '2026-09-30 01:00:54.000',
+      pool: 'Pool1',
+      instruction: 'buy_exact_quote_in',
+      virtual_quote_reserves: '-170141183460469231731687303715884105728',
+      lp_fee_bps: '20',
+      protocol_fee_bps: '5',
+      creator_fee_bps: '95',
+      cashback_fee_bps: '0',
+      cashback_fee: '0',
+      buyback_fee_bps: '5000',
+      buyback_fee: '3',
+      holder_rewards_bps: '0',
+      holder_rewards: '0',
+      base_supply: '18446744073709551615',
+      source: 'recorder',
+      inserted_at: chTime(pumpswapTrade.receivedAtMs),
+    });
+    // os campos extras não vazam para events_trade (tabela grande fica igual)
+    const withDetails = eventToRow({ ...pumpswapTrade, swapDetails: details }, 0).row;
+    expect(withDetails).toEqual(eventToRow(pumpswapTrade, 0).row);
   });
 });
 

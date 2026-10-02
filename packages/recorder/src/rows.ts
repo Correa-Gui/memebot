@@ -1,4 +1,4 @@
-import type { IngestGap, OnchainEventBase, PumpEvent } from '@memebot/core';
+import type { IngestGap, OnchainEventBase, PumpEvent, PumpSwapSwapDetails } from '@memebot/core';
 
 export type Row = Record<string, string | number | null>;
 export type TableName =
@@ -8,6 +8,7 @@ export type TableName =
   | 'tx_costs'
   | 'ingest_gaps'
   | 'pumpswap_pools'
+  | 'pumpswap_trade_extra'
   | 'token_metadata'
   | 'protocol_config'
   | 'runs'
@@ -127,6 +128,40 @@ export function eventToRow(e: PumpEvent, nowMs: number): { table: TableName; row
         },
       };
   }
+}
+
+/**
+ * Linha de `pumpswap_trade_extra` (migração 011): campos do `BuyEvent`/`SellEvent` que
+ * `events_trade` não tem, chave `(sig, event_index)`. Mesma função para o recorder ao vivo
+ * (`source = 'recorder'`) e para o backfill a partir de `raw_b64` (`source = 'backfill'`).
+ */
+export function pumpSwapTradeExtraRow(
+  key: { sig: string; eventIndex: number; slot: bigint; tsMs: number; pool: string },
+  d: PumpSwapSwapDetails,
+  source: 'recorder' | 'backfill',
+  insertedAtMs: number,
+): Row {
+  return {
+    sig: key.sig,
+    event_index: key.eventIndex,
+    slot: u(key.slot),
+    ts: chTime(key.tsMs),
+    pool: key.pool,
+    instruction: d.instruction,
+    virtual_quote_reserves: u(d.virtualQuoteReserves),
+    lp_fee_bps: u(d.lpFeeBps),
+    protocol_fee_bps: u(d.protocolFeeBps),
+    creator_fee_bps: u(d.creatorFeeBps),
+    cashback_fee_bps: u(d.cashbackFeeBps),
+    cashback_fee: u(d.cashbackFee),
+    buyback_fee_bps: u(d.buybackFeeBps),
+    buyback_fee: u(d.buybackFee),
+    holder_rewards_bps: u(d.holderRewardsBps),
+    holder_rewards: u(d.holderRewards),
+    base_supply: u(d.baseSupply),
+    source,
+    inserted_at: chTime(insertedAtMs),
+  };
 }
 
 export function gapToRow(g: IngestGap, runId: string): Row {

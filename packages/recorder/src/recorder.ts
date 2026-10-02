@@ -13,7 +13,7 @@ import {
   type ProtocolConfigRecord,
   type TokenCreationRecord,
 } from './paper-rows.ts';
-import { chTime, eventToRow, gapToRow } from './rows.ts';
+import { chTime, eventToRow, gapToRow, pumpSwapTradeExtraRow } from './rows.ts';
 
 export interface RecorderOptions {
   url: string;
@@ -39,6 +39,9 @@ export class Recorder {
   private readonly writer: BatchWriter;
   private readonly runId: string;
   private readonly now: () => number;
+  private readonly logger: Logger;
+  /** `pumpswap_trade_extra` existe (migração 011 aplicada)? Conferido em `start()`. */
+  private pumpSwapExtraEnabled = false;
 
   constructor(o: RecorderOptions) {
     this.client = createClient({ url: o.url, username: o.username, password: o.password, database: o.database, request_timeout: 30_000 });
@@ -50,6 +53,7 @@ export class Recorder {
     });
     this.runId = o.runId;
     this.now = o.now ?? Date.now;
+    this.logger = o.logger;
   }
 
   get stats(): WriterStats {
@@ -59,6 +63,12 @@ export class Recorder {
   async start(): Promise<void> {
     const ping = await this.client.ping();
     if (!ping.success) throw new Error(`ClickHouse indisponível: ${String(ping.error)}`);
+    const rs = await this.client.query({ query: 'EXISTS TABLE pumpswap_trade_extra', format: 'JSONEachRow' });
+    const exists = (await rs.json<{ result: number }>())[0]?.result === 1;
+    this.pumpSwapExtraEnabled = exists;
+    if (!exists) {
+      this.logger.warn('pumpswap_trade_extra não existe (migração 011 não aplicada): campos extras do PumpSwap não serão gravados');
+    }
     this.writer.start();
   }
 
@@ -70,6 +80,12 @@ export class Recorder {
   recordEvent(e: PumpEvent): void {
     const { table, row } = eventToRow(e, this.now());
     this.writer.add(table, row);
+    if (e.kind === 'trade' && e.venue === 'pumpswap' && e.swapDetails && this.pumpSwapExtraEnabled) {
+      this.writer.add(
+        'pumpswap_trade_extra',
+        pumpSwapTradeExtraRow({ sig: e.sig, eventIndex: e.eventIndex, slot: e.slot, tsMs: e.ts, pool: e.pool }, e.swapDetails, 'recorder', this.now()),
+      );
+    }
     if (e.kind === 'pool_created') {
       this.writer.add('pumpswap_pools', {
         pool: e.pool,
