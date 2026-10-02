@@ -263,6 +263,7 @@ export class PaperEngine {
       openPositions: this.positions.size,
       exitsByReason: new Map(s.exitsByReason),
       evaluatedTokens: s.evaluatedMints.size,
+      entriesBlockedBy: this.killSwitchAlerted,
       rejectionsByReason: new Map([...s.rejectedMintsByReason].map(([r, m]) => [r, m.size])),
       health: {
         streamGapMs: health.streamGapMs,

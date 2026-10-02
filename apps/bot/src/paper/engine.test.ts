@@ -138,6 +138,7 @@ describe('PaperEngine — entrada', () => {
     // alerta imediato uma única vez, mesmo com várias avaliações bloqueadas
     expect(h.notes.filter((n) => n.includes('kill switch acionado'))).toHaveLength(1);
     expect(h.notes.find((n) => n.includes('kill switch acionado'))).toContain('kill_switch:stop_file');
+    expect(h.engine.takeHourlySummary(T0 + 3_600_000, { streamGapMs: 0, http429PerMin: 0 }).entriesBlockedBy).toBe('kill_switch:stop_file');
   });
 
   it('TELEGRAM_MODE=hourly (tradeAlerts=false): nenhuma mensagem por entrada/saída, mas o resumo da hora conta tudo', () => {

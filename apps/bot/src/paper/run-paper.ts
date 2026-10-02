@@ -226,7 +226,9 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
         if (hourly.due(now)) {
           const h = session.healthCounters();
           const minutes = Math.max(1, (now - lastHealthMs) / 60_000);
-          telegram.send(formatHourlySummary(e.takeHourlySummary(clock.nowMs(), {
+          // rótulo = a própria virada de hora (o relógio do paper fica ~2 s atrás do relógio de parede)
+          const boundaryMs = Math.floor(now / 3_600_000) * 3_600_000;
+          telegram.send(formatHourlySummary(e.takeHourlySummary(boundaryMs, {
             streamGapMs: Math.max(0, h.streamGapMs - lastHealth.streamGapMs),
             http429PerMin: Math.max(0, h.http429 - lastHealth.http429) / minutes,
           })));

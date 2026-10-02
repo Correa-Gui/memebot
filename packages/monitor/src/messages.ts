@@ -230,6 +230,8 @@ export interface HourlySummary {
   exitsByReason: ReadonlyMap<string, number>;
   evaluatedTokens: number;
   rejectionsByReason: ReadonlyMap<string, number>;
+  /** Motivo do kill switch que bloqueia novas entradas agora (ex. 'kill_switch:daily_loss'), ou null. */
+  entriesBlockedBy: string | null;
   health: {
     streamGapMs: number;
     http429PerMin: number;
@@ -338,6 +340,7 @@ export function formatHourlySummary(s: HourlySummary): TelegramMessage {
       `• <b>Melhor/pior:</b> ${opLabel(s.best)} / ${opLabel(s.worst)}`,
       `• <b>Saídas:</b> ${exitText}`,
       `• <b>Abertas agora:</b> ${String(s.openPositions)}`,
+      ...(s.entriesBlockedBy ? [`⛔ <b>Entradas bloqueadas:</b> ${escapeHtml(s.entriesBlockedBy)}${s.entriesBlockedBy === 'kill_switch:daily_loss' ? ' (zera 21:00 BRT)' : ''}`] : []),
       `• <b>Avaliados:</b> ${String(s.evaluatedTokens)} · <b>mais rejeitou:</b> ${topText}`,
       `• <b>Saúde:</b> sem stream ${String(gapS)}s · 429 ${s.health.http429PerMin.toFixed(1).replace('.', ',')}/min · custo ${formatSol(s.health.priorityFeeLamports + s.health.jitoTipLamports)}/tx (${escapeHtml(s.health.costSource)})`,
     ].join('\n'),

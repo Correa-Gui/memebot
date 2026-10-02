@@ -242,6 +242,7 @@ describe('mensagens', () => {
       best: { symbol: 'GOOD<x>', pnlRatio: 0.42 }, worst: { symbol: 'BAD', pnlRatio: -0.21 }, openPositions: 1,
       exitsByReason: new Map([['stop_loss', 2], ['take_profit_1', 1], ['take_profit_2', 1], ['trailing_stop', 1]]),
       evaluatedTokens: 310, rejectionsByReason: new Map([['minUniqueHolders', 30], ['maxAgeSec', 2]]),
+      entriesBlockedBy: 'kill_switch:daily_loss',
       health: { streamGapMs: 34_200, http429PerMin: 0, priorityFeeLamports: 43_347n, jitoTipLamports: 97_500n, costSource: 'tx_costs_median' },
     });
     const t = summary.text;
@@ -252,6 +253,7 @@ describe('mensagens', () => {
     expect(t).toContain('• <b>Melhor/pior:</b> GOOD&lt;x&gt; +42,0% / BAD -21,0%');
     expect(t).toContain('• <b>Saídas:</b> stop 2 · alvo 1 1 · alvo 2 1 · trailing 1');
     expect(t).toContain('• <b>Abertas agora:</b> 1');
+    expect(t).toContain('⛔ <b>Entradas bloqueadas:</b> kill_switch:daily_loss (zera 21:00 BRT)');
     expect(t).toContain('• <b>Avaliados:</b> 310 · <b>mais rejeitou:</b> minUniqueHolders (30)');
     expect(t).toContain('sem stream 34s · 429 0,0/min · custo 0,0001 SOL/tx (tx_costs_median)');
     // cabe numa tela de celular: poucas linhas
