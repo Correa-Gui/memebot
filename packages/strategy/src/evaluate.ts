@@ -8,6 +8,7 @@ import {
   curveProgress,
   largestSingleSellPctSupply60s,
   priceAboveMean120s,
+  priceVsMean120s,
   riskScore,
   sameSlotBuyPct,
   tokenAgeSec,
@@ -16,12 +17,93 @@ import {
   uniqueHolderCount,
   volume60sSol,
 } from '@memebot/features';
-import type { MarketState } from '@memebot/state';
+import type { MarketState, TokenState } from '@memebot/state';
 import type { StrategyV0Config } from './config.ts';
 import type { Decision } from './decision.ts';
 
 function reject(mint: string, reason: string): Decision[] {
   return [{ outcome: 'reject', mint, reason }];
+}
+
+/** Valores dos filtros duros já calculados (entram no snapshot de features do `enter`). */
+export interface HardFilterValues {
+  top10Pct: number | null;
+  sameSlotPct: number | null;
+  creatorHeldPct: number | null;
+  creatorTokens24h: number;
+  uniqueHolders: number;
+  volumeSol: number;
+  risk: { value: number; missing: boolean };
+}
+
+export type HardFilterResult = { ok: true; values: HardFilterValues } | { ok: false; reason: string };
+
+/**
+ * Universo (§2: venue e quote mint; a idade fica com quem chama) + dados mínimos do token. Puro.
+ * Devolve o motivo da primeira falha ou `null`.
+ */
+export function universeRejection(token: TokenState | undefined, config: StrategyV0Config): string | null {
+  if (!token) return 'mint_not_found';
+  if (token.createdAtMs === null || token.tokenTotalSupply === null || token.quoteMint === null) return 'insufficient_data';
+  if (!config.filters.allowedVenues.includes(token.venue as 'curve' | 'pumpswap')) return 'venue_not_allowed';
+  if (!config.filters.allowedQuoteMints.includes(token.quoteMint)) return 'allowedQuoteMints';
+  return null;
+}
+
+/**
+ * Filtros duros de `docs/STRATEGY.md` §3, na ordem da tabela, parando na primeira falha (motivo = chave
+ * da config). Função pura, compartilhada por `evaluate` e pela reavaliação no disparo de um sinal
+ * pendente (`confirmPendingEntry`).
+ */
+export function evaluateHardFilters(marketState: MarketState, token: TokenState, nowMs: number, config: StrategyV0Config): HardFilterResult {
+  const top10Pct = top10HolderPct(token);
+  if (top10Pct !== null && top10Pct > config.filters.maxTop10PctSupply) return { ok: false, reason: 'maxTop10PctSupply' };
+
+  const sameSlotPct = sameSlotBuyPct(token);
+  if (sameSlotPct !== null && sameSlotPct > config.filters.maxSameSlotAsCreatePct) return { ok: false, reason: 'maxSameSlotAsCreatePct' };
+
+  const creatorHeldPct = creatorHoldingPct(token);
+  if (creatorHeldPct !== null && creatorHeldPct > config.filters.maxCreatorHoldingPct) return { ok: false, reason: 'maxCreatorHoldingPct' };
+
+  const creatorTokens24h = creatorTokensCreated24h(marketState, token, nowMs);
+  if (creatorTokens24h >= config.filters.maxCreatorTokens24h) return { ok: false, reason: 'maxCreatorTokens24h' };
+
+  const uniqueHolders = uniqueHolderCount(token);
+  if (uniqueHolders < config.filters.minUniqueHolders) return { ok: false, reason: 'minUniqueHolders' };
+
+  const volumeSol = volume60sSol(token, nowMs);
+  if (volumeSol < config.filters.minVolume60sSol) return { ok: false, reason: 'minVolume60sSol' };
+
+  // Risco (CLAUDE.md §3): modelo não existe ainda — sinal ausente nunca bloqueia a decisão.
+  const risk = riskScore();
+  if (!risk.missing && risk.value > config.filters.maxRiskScore) return { ok: false, reason: 'maxRiskScore' };
+
+  return { ok: true, values: { top10Pct, sameSlotPct, creatorHeldPct, creatorTokens24h, uniqueHolders, volumeSol, risk } };
+}
+
+/** Snapshot de features do `enter` (mesmas chaves da v0/v0.1). */
+export function enterFeatures(
+  token: TokenState,
+  ageSec: number,
+  v: HardFilterValues,
+  trigger: { ratio60s: number; buyers60s: number; largestSellPct: number | null },
+  curveParams: CurveInitialParams,
+): Record<string, number> {
+  return {
+    ageSec,
+    curveProgress: curveProgress(token, curveParams),
+    uniqueHolders: v.uniqueHolders,
+    top10HolderPct: v.top10Pct ?? Number.NaN,
+    sameSlotBuyPct: v.sameSlotPct ?? Number.NaN,
+    buySellVolumeRatio60s: trigger.ratio60s,
+    uniqueBuyers60s: trigger.buyers60s,
+    volume60sSol: v.volumeSol,
+    largestSingleSellPctSupply60s: trigger.largestSellPct ?? Number.NaN,
+    creatorHoldingPct: v.creatorHeldPct ?? Number.NaN,
+    creatorInitialBuyPct: creatorInitialBuyPct(token) ?? Number.NaN,
+    creatorTokensCreated24h: v.creatorTokens24h,
+    riskScore: v.risk.value,
+  };
 }
 
 /**
@@ -42,6 +124,10 @@ function reject(mint: string, reason: string): Decision[] {
  * tokens cada filtro barrou" (`docs/ROADMAP.md` Fase 3, item do `pnpm report`) precisar do motivo
  * de TODOS os filtros que falhariam, não só o primeiro, isso é um ajuste de escopo futuro (parte
  * B), não desta tarefa.
+ *
+ * Experimento de 2026-10-02 (docs/STRATEGY.md §8): com `entry.maxPriceAboveMean120sPct` definido, o
+ * último passo rejeita (`maxPriceAboveMean120sPct`) quem estiver acima da média de 120 s por mais que a
+ * fração configurada, e o snapshot ganha `priceVsMean120sPct`. Sem a opção, saída idêntica à v0.1.
  */
 export function evaluate(
   marketState: MarketState,
@@ -51,21 +137,10 @@ export function evaluate(
   curveParams: CurveInitialParams,
 ): Decision[] {
   const token = marketState.tokens.get(mint);
-  if (!token) return reject(mint, 'mint_not_found');
-
-  if (token.createdAtMs === null || token.tokenTotalSupply === null || token.quoteMint === null) {
-    return reject(mint, 'insufficient_data');
-  }
+  const universe = universeRejection(token, config);
+  if (universe !== null || !token) return reject(mint, universe ?? 'mint_not_found');
 
   const nowMs = clock.nowMs();
-
-  // --- Universo (docs/STRATEGY.md §2) ---
-  if (!config.filters.allowedVenues.includes(token.venue as 'curve' | 'pumpswap')) {
-    return reject(mint, 'venue_not_allowed');
-  }
-  if (!config.filters.allowedQuoteMints.includes(token.quoteMint)) {
-    return reject(mint, 'allowedQuoteMints');
-  }
 
   const ageSec = tokenAgeSec(token, nowMs);
   if (ageSec === null) return reject(mint, 'insufficient_data');
@@ -73,41 +148,8 @@ export function evaluate(
   if (ageSec > config.entry.maxAgeSec) return reject(mint, 'maxAgeSec');
 
   // --- Filtros duros (docs/STRATEGY.md §3, ordem da tabela) ---
-  const top10Pct = top10HolderPct(token);
-  if (top10Pct !== null && top10Pct > config.filters.maxTop10PctSupply) {
-    return reject(mint, 'maxTop10PctSupply');
-  }
-
-  const sameSlotPct = sameSlotBuyPct(token);
-  if (sameSlotPct !== null && sameSlotPct > config.filters.maxSameSlotAsCreatePct) {
-    return reject(mint, 'maxSameSlotAsCreatePct');
-  }
-
-  const creatorHeldPct = creatorHoldingPct(token);
-  if (creatorHeldPct !== null && creatorHeldPct > config.filters.maxCreatorHoldingPct) {
-    return reject(mint, 'maxCreatorHoldingPct');
-  }
-
-  const creatorTokens24h = creatorTokensCreated24h(marketState, token, nowMs);
-  if (creatorTokens24h >= config.filters.maxCreatorTokens24h) {
-    return reject(mint, 'maxCreatorTokens24h');
-  }
-
-  const uniqueHolders = uniqueHolderCount(token);
-  if (uniqueHolders < config.filters.minUniqueHolders) {
-    return reject(mint, 'minUniqueHolders');
-  }
-
-  const volumeSol = volume60sSol(token, nowMs);
-  if (volumeSol < config.filters.minVolume60sSol) {
-    return reject(mint, 'minVolume60sSol');
-  }
-
-  // Risco (CLAUDE.md §3): modelo não existe ainda — sinal ausente nunca bloqueia a decisão.
-  const risk = riskScore();
-  if (!risk.missing && risk.value > config.filters.maxRiskScore) {
-    return reject(mint, 'maxRiskScore');
-  }
+  const hard = evaluateHardFilters(marketState, token, nowMs, config);
+  if (!hard.ok) return reject(mint, hard.reason);
 
   // --- Gatilho de entrada (docs/STRATEGY.md §4, ordem da lista) ---
   const ratio60s = buySellVolumeRatio60s(token, nowMs);
@@ -132,27 +174,16 @@ export function evaluate(
     return reject(mint, 'maxSingleSellPctSupply60s');
   }
 
-  const progress = curveProgress(token, curveParams);
-  return [
-    {
-      outcome: 'enter',
-      mint,
-      reason: 'momentum_trigger',
-      features: {
-        ageSec,
-        curveProgress: progress,
-        uniqueHolders,
-        top10HolderPct: top10Pct ?? Number.NaN,
-        sameSlotBuyPct: sameSlotPct ?? Number.NaN,
-        buySellVolumeRatio60s: ratio60s,
-        uniqueBuyers60s: buyers60s,
-        volume60sSol: volumeSol,
-        largestSingleSellPctSupply60s: largestSellPct ?? Number.NaN,
-        creatorHoldingPct: creatorHeldPct ?? Number.NaN,
-        creatorInitialBuyPct: creatorInitialBuyPct(token) ?? Number.NaN,
-        creatorTokensCreated24h: creatorTokens24h,
-        riskScore: risk.value,
-      },
-    },
-  ];
+  const features = enterFeatures(token, ageSec, hard.values, { ratio60s, buyers60s, largestSellPct }, curveParams);
+
+  // --- Hipótese (b) "não perseguir" (desligada por padrão) ---
+  const maxAbove = config.entry.maxPriceAboveMean120sPct;
+  if (maxAbove !== undefined) {
+    const vsMean = priceVsMean120s(token, nowMs);
+    if (vsMean === null || vsMean > maxAbove) return reject(mint, 'maxPriceAboveMean120sPct');
+    features.priceVsMean120sPct = vsMean;
+  }
+
+  return [{ outcome: 'enter', mint, reason: 'momentum_trigger', features }];
 }
+

@@ -1,0 +1,48 @@
+# Variante de pesquisa offline (Fase 4, replay) — derivada de config/strategy.v0.yaml (v0.1) com UMA mudança:
+# (c) recuo: o gatilho arma o token por 180 s; entra quando o preço recuar 15% do máximo desde o sinal, com uniqueBuyers60s ≥ 15, sem venda > 3% do supply em 60 s e filtros duros reavaliados.
+# Tudo o mais idêntico à v0.1. Rodar com: pnpm replay:sweep (ver docs/ARCHITECTURE.md, seção replay).
+version: v0.1-exp-c-pullback15              # experimento de 2026-10-02 (docs/STRATEGY.md §8) — NÃO é a config do paper
+
+entry:
+  minAgeSec: 60
+  maxAgeSec: 600
+  minBuySellVolumeRatio60s: 1.5
+  minUniqueBuyers60s: 15
+  requirePriceAboveMean120s: true
+  maxSingleSellPctSupply60s: 0.03
+  pullback: { retracePct: 0.15, windowSec: 180, minUniqueBuyers60s: 15 }
+
+filters:
+  allowedVenues: [curve]      # PumpSwap fica fora até o swap exato bater (docs/ROADMAP.md Fase 2)
+  allowedQuoteMints: ["11111111111111111111111111111111", "So11111111111111111111111111111111111111112"]
+  maxTop10PctSupply: 0.30
+  maxSameSlotAsCreatePct: 0.10
+  maxCreatorHoldingPct: 0.05
+  maxCreatorTokens24h: 3
+  minUniqueHolders: 40
+  minVolume60sSol: 5
+  maxRiskScore: 0.30          # ignorado enquanto o modelo não existir
+
+sizing:
+  sizeSol: 0.05               # = hard limit maxPositionLamports (vale também no paper; config só reduz)
+  maxOwnPriceImpactPct: 0.02
+
+exits:
+  takeProfit:
+    - { gainPct: 0.40, sellFraction: 0.50 }
+    - { gainPct: 1.00, sellFraction: 0.30 }
+  trailingStopPct: 0.25
+  stopLossPct: 0.20
+  timeStopSec: 600
+  emergency:
+    singleSellPctSupply: 0.05
+    exitOnCreatorSell: true
+
+signals:
+  riskModel: { enabled: false, path: packages/signals/models/risk.onnx }
+  narrative: { enabled: false, minMatch: 0.7 }
+  smartMoney: { enabled: false, minWallets: 2 }
+
+risk:
+  maxOpenPositions: 3
+  maxDailyLossSol: 0.2

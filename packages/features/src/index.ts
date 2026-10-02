@@ -187,6 +187,12 @@ export function largestSingleSellPctSupply60s(token: TokenState, nowMs: number):
  * `null` se não há nenhum trade de curva na janela.
  */
 export function priceAboveMean120s(token: TokenState, nowMs: number): boolean | null {
+  const m = priceAndMean120s(token, nowMs);
+  return m === null ? null : m.current > m.mean;
+}
+
+/** Preço marginal atual e média simples dos preços marginais dos trades de curva em `[nowMs − 120 s, nowMs]`. */
+function priceAndMean120s(token: TokenState, nowMs: number): { current: number; mean: number } | null {
   const from = nowMs - TWO_MINUTES_MS;
   const prices: number[] = [];
   for (const t of token.trades) {
@@ -197,7 +203,28 @@ export function priceAboveMean120s(token: TokenState, nowMs: number): boolean | 
   const current = prices.at(-1);
   if (current === undefined) return null;
   const mean = prices.reduce((acc, p) => acc + p, 0) / prices.length;
-  return current > mean;
+  return { current, mean };
+}
+
+/**
+ * Quanto o preço atual está acima da média de 120 s, em fração: `atual / média − 1` (0,2 = 20% acima).
+ * Mesma janela, mesmo "atual" e mesma média de `priceAboveMean120s` (preço marginal após cada trade de
+ * curva, média simples por trade). Usada pela hipótese "não perseguir" (`entry.maxPriceAboveMean120sPct`,
+ * experimento de 2026-10-02 — docs/STRATEGY.md §8). `null` se não há trade de curva na janela.
+ */
+export function priceVsMean120s(token: TokenState, nowMs: number): number | null {
+  const m = priceAndMean120s(token, nowMs);
+  if (m === null || !(m.mean > 0)) return null;
+  return m.current / m.mean - 1;
+}
+
+/**
+ * Preço marginal atual da curva (`virtualQuote / virtualToken` das últimas reservas conhecidas), em
+ * lamports por unidade mínima do token. `null` sem reservas observadas. Sem janela; não é aproximação.
+ */
+export function currentMarginalPrice(token: TokenState): number | null {
+  if (token.curveReserves === null) return null;
+  return marginalPrice({ virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken });
 }
 
 /**

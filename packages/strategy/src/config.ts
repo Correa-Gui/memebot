@@ -14,6 +14,30 @@ const TakeProfitStepSchema = z.object({
   sellFraction: z.number().positive().max(1),
 });
 
+/**
+ * Hipótese (a) "confirmação" (experimento de 2026-10-02, docs/STRATEGY.md §8): depois do gatilho, o sinal
+ * fica pendente `windowSec` s e só vira entrada se o preço marginal se SUSTENTAR — nunca abaixo de
+ * `preçoDoSinal × (1 − maxDipPct)` durante a janela (cancela na hora) e, no fim da janela, ≥ preço do
+ * sinal. No disparo os filtros duros (§3) são reavaliados. Ausente = desligado (v0.1).
+ */
+const ConfirmationSchema = z.object({
+  windowSec: z.number().positive(),
+  maxDipPct: z.number().positive().max(1),
+});
+
+/**
+ * Hipótese (c) "recuo" (experimento de 2026-10-02): o gatilho de momentum só ARMA o token; a entrada
+ * acontece quando o preço marginal recuar `retracePct` do máximo observado desde o sinal (o "pico"), em
+ * até `windowSec` s, com compradores únicos ainda ativos (`uniqueBuyers60s ≥ minUniqueBuyers60s`), sem
+ * venda individual > `entry.maxSingleSellPctSupply60s` nos últimos 60 s e com os filtros duros (§3)
+ * reavaliados. Ausente = desligado (v0.1).
+ */
+const PullbackSchema = z.object({
+  retracePct: z.number().positive().max(1),
+  windowSec: z.number().positive(),
+  minUniqueBuyers60s: z.number().int().nonnegative(),
+});
+
 const EntrySchema = z.object({
   minAgeSec: z.number().nonnegative(),
   maxAgeSec: z.number().positive(),
@@ -21,7 +45,14 @@ const EntrySchema = z.object({
   minUniqueBuyers60s: z.number().int().nonnegative(),
   requirePriceAboveMean120s: z.boolean(),
   maxSingleSellPctSupply60s: z.number().positive().max(1),
-});
+  /**
+   * Hipótese (b) "não perseguir" (experimento de 2026-10-02): rejeita (`maxPriceAboveMean120sPct`) se o
+   * preço atual estiver mais que esta fração acima da média de 120 s (`priceVsMean120s`). Ausente = desligado.
+   */
+  maxPriceAboveMean120sPct: z.number().positive().optional(),
+  confirmation: ConfirmationSchema.optional(),
+  pullback: PullbackSchema.optional(),
+}).refine((e) => !(e.confirmation && e.pullback), { message: 'entry.confirmation e entry.pullback são exclusivos (escolha um modo de entrada)' });
 
 const FiltersSchema = z.object({
   allowedVenues: z.array(z.enum(['curve', 'pumpswap'])).min(1),
@@ -73,6 +104,15 @@ export const StrategyConfigSchema = z.object({
 });
 
 export type StrategyV0Config = z.infer<typeof StrategyConfigSchema>;
+
+/** Modo de entrada derivado da config: `immediate` (v0.1), `confirmation` (hipótese a) ou `pullback` (hipótese c). */
+export type EntryMode = 'immediate' | 'confirmation' | 'pullback';
+
+export function entryMode(config: StrategyV0Config): EntryMode {
+  if (config.entry.confirmation) return 'confirmation';
+  if (config.entry.pullback) return 'pullback';
+  return 'immediate';
+}
 
 /**
  * Carrega e valida `config/strategy.v0.yaml` (ou outro caminho equivalente).
