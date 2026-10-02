@@ -133,15 +133,23 @@ export function parseCurveInitialParams(globalConfigJson: unknown): CurveInitial
 export interface FeeBps { lpFeeBps: bigint; protocolFeeBps: bigint; creatorFeeBps: bigint }
 export function lookupFeeTier(tiers: readonly { marketCapLamportsThreshold: bigint; fees: FeeBps }[], marketCapLamports: bigint): FeeBps;
 
-// LIMITAÇÃO CONHECIDA (documentada, não escondida): `pumpSwapBuy`/`pumpSwapSell` (mesma
-// assinatura, em `packages/curve-math/src/pumpswap.ts`) têm o cálculo de taxas confirmado exato
-// contra dados reais, mas o `baseOut`/reservas pós-swap usa constant product "de manual" sobre
-// `pool_base_token_reserves`/`pool_quote_token_reserves` e NÃO reproduziu os valores reais
-// gravados (erro ~10%, não é arredondamento) — provável uso de reservas virtuais do PumpSwap não
-// expostas nesses dois campos do evento (análogo ao par virtual/real da bonding curve). Exigiria
-// ler a conta `Pool` on-chain; ficou para quando isso entrar em pauta (Fase 3+). Os testes golden
-// do PumpSwap por isso só exigem exatidão no bookkeeping de taxas (bruto = líquido + lp + protocol
-// + creator), não no valor de saída do swap.
+// PumpSwap (exato desde 2026-10-02, 0 de diferença em 99 fixtures reais + 3 tx conferidas via RPC;
+// regras e fontes no cabeçalho de packages/curve-math/src/pumpswap.ts). O constant product usa o quote
+// EFETIVO `quote + virtualQuote` (`Pool.virtual_quote_reserves`, i128, também presente em
+// BuyEvent/SellEvent); `base`/`quote` = saldos das vaults = reservas do evento (estado ANTES do swap).
+export interface PumpSwapReserves { base: TokenAmount; quote: bigint; virtualQuote: bigint }
+export interface PumpSwapFeeBps { lpFeeBps: bigint; protocolFeeBps: bigint; creatorFeeBps: bigint; cashbackFeeBps: bigint }
+// PumpSwapFees = { lpFee; protocolFee; creatorFee; cashbackFee } (ceil por componente)
+export function pumpSwapBuyExactBaseOut(r: PumpSwapReserves, baseOut: TokenAmount, fees: PumpSwapFeeBps):   // instrução `buy`
+  PumpSwapFees & { baseOut; netQuoteIn; totalQuoteCost; reservesAfter: PumpSwapReserves };
+export function pumpSwapBuyExactQuoteIn(r: PumpSwapReserves, spendableQuoteIn: Lamports, fees: PumpSwapFeeBps): // `buy_exact_quote_in`
+  PumpSwapFees & { baseOut; netQuoteIn; totalQuoteCost; reservesAfter: PumpSwapReserves };
+export function pumpSwapSell(r: PumpSwapReserves, baseIn: TokenAmount, fees: PumpSwapFeeBps):
+  PumpSwapFees & { quoteOutGross; netQuoteOut; reservesAfter: PumpSwapReserves };
+export function marketCapLamports(r: PumpSwapReserves, tokenTotalSupply: TokenAmount): bigint; // Qe·supply/B, para o tier
+// Ainda não ligado ao estado: o normalize do ingest não grava `virtual_quote_reserves` por trade do
+// PumpSwap (o `TokenState.pumpSwapReserves` abaixo não tem o campo). O paper executor segue recusando
+// simular PumpSwap (PumpSwapSimulationNotValidatedError) enquanto o universo for só curva.
 
 // state (Fase 2, 2026-10-01): estado em memória por token, só a partir dos eventos observados
 // (ver §8 "Holders e concentração são aproximações" — vale integralmente aqui). Função pura

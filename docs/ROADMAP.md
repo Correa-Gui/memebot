@@ -45,36 +45,48 @@ Os dias são estimativas para quem trabalha diariamente no projeto com o Claude 
 
 ## Fase 2 — Matemática exata e estado (dias 3–6)
 
-- [~] `packages/curve-math`: buy/sell na bonding curve e no PumpSwap, com taxas vindas da config lida.
-  **PARCIAL**: curva: exato (fixtures golden, 0 de diferença); PumpSwap: só as taxas batem, o valor do swap
-  está pendente. *(Bonding curve: fórmula constant-product com ceiling, confirmada exata contra dados reais.
-  PumpSwap: taxas confirmadas exatas; `baseOut`/reservas pós-swap é best-effort — ver limitação documentada
-  abaixo e em `packages/curve-math/src/pumpswap.ts`.)*
-  **Divergência registrada** (fixture real `pumpswap.json[0]`, pool `DycbAuWK…`, sell): reservas antes
-  `base=70574196524936`, `quote=231911523080`; `tokenAmountIn=61061924`. Esperado por constant-product puro
-  sobre esses dois campos: `quoteOutGross=200653`. Real gravado on-chain: `quoteAmount(gross)=215867`,
-  `userQuoteAmount(net)=213600` — diferença de ~7,6%, não é arredondamento. Resolver é pré-requisito para
-  incluir tokens graduados no universo (ver tarefa "Resolver swap exato do PumpSwap" abaixo e em
-  `docs/STRATEGY.md`).
+- [x] `packages/curve-math`: buy/sell na bonding curve e no PumpSwap, com taxas vindas da config lida.
+  *(Curva: exata desde a Fase 2. PumpSwap: exato desde 2026-10-02 — `pumpSwapBuyExactBaseOut` (instrução
+  `buy`), `pumpSwapBuyExactQuoteIn` (`buy_exact_quote_in`) e `pumpSwapSell` em
+  `packages/curve-math/src/pumpswap.ts`, 0 de diferença em base, quote bruto/líquido, cada taxa e reservas
+  depois do swap. A divergência registrada antes (pool `DycbAuWK…`, sell, `quoteOutGross` 200653 calculado ×
+  215867 real) vinha de ignorar `virtual_quote_reserves` (i128) da conta `Pool`/eventos — ver tarefa
+  "Resolver swap exato do PumpSwap" abaixo.)*
 - [x] Fixtures "golden": 50+ trades reais gravados; teste que reproduz os valores **exatos**.
   *(120 fixtures da bonding curve, extraídas de `memebot.events_trade` — `packages/curve-math/scripts/extract-golden-fixtures.ts`
-  — 0 de diferença em `tokenOut`/`quoteOutGross`/taxas/reservas. 80 fixtures do PumpSwap: 0 de diferença no
-  bookkeeping de taxas; o valor do swap em si não tem teste golden, ver limitação.)*
+  — 0 de diferença em `tokenOut`/`quoteOutGross`/taxas/reservas. PumpSwap: 99 fixtures de eventos reais
+  decodificados do `raw_b64` (`packages/curve-math/scripts/extract-pumpswap-fixtures.ts`) — 30+ `buy`,
+  30+ `buy_exact_quote_in`, 30+ `sell`, pools com quote WSOL, base WSOL e quote ≠ WSOL, com e sem reserva
+  virtual, com cashback — 0 de diferença em tudo, inclusive reservas depois (= reservas do próximo evento
+  do mesmo pool). Mais 3 transações reais via RPC em `test/fixtures/pumpswap-rpc/vaults.json`, conferindo
+  as reservas com os saldos das vaults da pool.)*
 - [x] Testes de propriedade (comprar e vender em seguida sempre perde as taxas; preço cresce com o supply vendido).
 - [x] `packages/state`: estado em memória por token (reservas, holders e saldos, fluxo de compra/venda por janela, primeiros compradores, carteiras do criador).
 
 **Aceite:** 100% dos fixtures golden batem com 0 de diferença na matemática da curva. *(Cumprido para a bonding
-curve — 120/120 fixtures reais com 0 de diferença. O PumpSwap tem uma limitação conhecida e documentada: o
-cálculo de taxas bate exato, mas o valor do swap (quanto token/quote efetivamente sai) não foi reproduzido com
-exatidão a partir de `pool_base_token_reserves`/`pool_quote_token_reserves` — provável uso de reservas virtuais
-não expostas nesses dois campos do evento. Por isso a v0 segue para a Fase 3 restrita à bonding curve
-(`filters.allowedVenues: [curve]` em `docs/STRATEGY.md`/`config/strategy.v0.yaml`); retomar quando a tarefa
-abaixo for resolvida.)*
+curve — 120/120 fixtures reais com 0 de diferença — e, desde 2026-10-02, também para o PumpSwap — 99/99
+fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à bonding curve
+(`filters.allowedVenues: [curve]`); incluir tokens graduados é decisão do usuário, ver `docs/STRATEGY.md` §2.)*
 
-- [ ] **Resolver swap exato do PumpSwap** (pré-requisito para incluir tokens graduados no universo, v1): ler a
-  conta `Pool` on-chain do PumpSwap para encontrar as reservas (virtuais?) que realmente alimentam o constant
-  product, e reproduzir `baseOut`/`quoteOutGross` com 0 de diferença nos mesmos moldes da bonding curve. Ver
-  divergência registrada acima.
+- [x] **Resolver swap exato do PumpSwap** (pré-requisito para incluir tokens graduados no universo, v1).
+  *(2026-10-02. Causa: o IDL oficial `pump_amm.json` tem `virtual_quote_reserves: i128` na conta `Pool` e nos
+  eventos `BuyEvent`/`SellEvent`; o constant product usa `Qe = pool_quote_token_reserves +
+  virtual_quote_reserves` (≈ 17,58 SOL nas pools graduadas da Pump.fun; 0 em pools sem offset) e a base real.
+  Confirmado: (1) via RPC — reservas do evento = `preTokenBalances` das vaults e `Pool.virtual_quote_reserves`
+  lido por `getAccountInfo` = campo do evento (pool `Cr469Kh7…`, 3 tx, `test/fixtures/pumpswap-rpc/`);
+  (2) em massa — 52.758 eventos (40 pools WSOL) + amostras de pools com base WSOL e quote ≠ WSOL, 100% exatos;
+  continuidade de reservas entre eventos consecutivos 46.829/46.864 (as 35 quebras são evento faltando/ordem
+  no slot: base e quote quebram juntas). Regras: taxas `ceil(valor·bps/10000)` por componente (lp, protocolo,
+  criador, cashback); venda `bruto = floor(Qe·in/(B+in))`, vault perde `bruto − lp`; `buy` (base exata)
+  `líquido = ceil(Qe·out/(B−out))`; `buy_exact_quote_in`: `n0 = floor(gastável·10000/(10000+Σbps))`, taxas
+  sobre `n0`, `líquido = min(n0, gastável − taxas)`, `out = floor(B·(líquido−1)/(Qe+líquido−1))`; nas duas
+  compras a vault ganha `líquido + lp`. O tier de taxa usa market cap com `Qe` (99,0% de acerto contra 88,3%
+  com o saldo real; exceções são pools fora da regra de tiers). Custo de ida e volta medido nos fixtures
+  (compra + venda imediata, 0,1 SOL, quote WSOL): ~237 bps no tier 20/5/95, ~247 bps no tier 2/93/30, ~218 bps
+  no 20/5/85. **Pendente fora deste pacote:** o `normalize` (`packages/ingest`) ainda não grava
+  `virtual_quote_reserves`/`cashback`/bps por trade do PumpSwap; o estado (`pumpSwapReserves`) precisa desse
+  campo antes de qualquer simulação. O paper executor continua lançando `PumpSwapSimulationNotValidatedError`
+  até o usuário decidir incluir graduados.)*
 
 ## Fase 3 — Estratégia por regras + paper executor (dias 5–10) → M2
 
@@ -82,7 +94,8 @@ abaixo for resolvida.)*
 - [x] `packages/strategy` v0 conforme `docs/STRATEGY.md` (filtros duros + gatilho de momentum). Decide só `enter`/`reject` (motivo = chave do filtro); saídas (§6) são responsabilidade de `packages/positions` e sizing/risco de `packages/risk` (ver `ARCHITECTURE.md` §4). Testado com config sintética (um teste por filtro) e com o `config/strategy.v0.yaml` real (um aprovado, um rejeitado). *(2026-10-01, `packages/strategy/src/evaluate.ts`.)*
 - [x] `packages/risk`: `hard-limits.ts`, sizing fixo, máximo de posições simultâneas, limite de perda diária, kill switch. *(2026-10-01. Config acima do hard limit = erro explícito; `sizing.sizeSol` reduzido de 0,1 para 0,05 SOL. Sizing com teto de impacto (busca binária, rejeita abaixo de 50% do tamanho). Kill switch com os 5 gatilhos de RISK §3 — divergência de saldo só ativa no live; `data/STOP` via adaptador `isStopFilePresent`. `decisionId` determinístico. Ver `packages/risk/src/`.)*
 - [x] `packages/execution/paper.ts` pessimista (latência, custos, falhas) conforme `ARCHITECTURE.md` §5. *(2026-10-01. Máquina de estados pura; custos = mediana de `tx_costs` × 1,5 com mínimo de 30 amostras e fallback marcado no fill (`cost_estimate_source`); hard limits conferidos de novo; PumpSwap → `PumpSwapSimulationNotValidatedError`; graduação → `venue_unverified`. Migração `006_fills_paper_columns.sql` (ex-`006_fills_venue_unverified.sql`, renomeada e ampliada antes de aplicada: `base_fee`, preços `*_lamports_per_unit`, `virtual_*_before`) **não aplicada** — aplicar com `pnpm migrate` é decisão do usuário. Taxa base por assinatura cobrada em todo fill desde 2026-10-01.)*
-  **Regra (até o swap exato do PumpSwap ser resolvido, ver Fase 2):** nunca simular um swap no PumpSwap — se
+  **Regra (enquanto o universo for só curva — a matemática do PumpSwap já é exata desde 2026-10-02, mas ligar
+  graduados é decisão do usuário):** nunca simular um swap no PumpSwap — se
   uma posição aberta na curva graduar, fechar no último preço conhecido da bonding curve e marcar o fill com
   `venue_unverified: true`, sem calcular venda no PumpSwap. Qualquer código que tentar simular um swap
   PumpSwap enquanto essa limitação existir deve **lançar erro explícito**, nunca silenciar ou aproximar.

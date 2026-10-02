@@ -10,13 +10,15 @@ Os primeiros segundos pertencem a snipers profissionais e insiders. A estratégi
 ## 2. Universo
 
 - **Por enquanto, só tokens ainda na bonding curve** (`filters.allowedVenues: [curve]`). Tokens recém-graduados
-  no PumpSwap ficam de fora do universo de entrada até a matemática do swap do PumpSwap bater exato (ver
-  `docs/ROADMAP.md` Fase 2, tarefa "Resolver swap exato do PumpSwap" — hoje só as taxas do PumpSwap foram
-  confirmadas, o valor do swap em si (`baseOut`/`quoteOutGross`) não).
+  no PumpSwap ficam de fora do universo de entrada. O pré-requisito técnico — a matemática do swap do PumpSwap
+  bater exato — foi cumprido em 2026-10-02 (ver `docs/ROADMAP.md` Fase 2, tarefa "Resolver swap exato do
+  PumpSwap"); incluir graduados continua sendo **decisão do usuário** e ainda exige gravar
+  `virtual_quote_reserves` por trade no ingest/estado. Custo de ida e volta medido no PumpSwap (0,1 SOL,
+  quote WSOL): ~2,2–2,5% (≈ 218–247 bps conforme o tier de taxa), contra ~2,5% na curva (2 × 125 bps).
   - Se uma posição aberta na curva **graduar para o PumpSwap enquanto está aberta**, o paper executor fecha a
     posição no último preço conhecido da bonding curve (não simula venda no PumpSwap) e marca o fill com
-    `venue_unverified: true`. Qualquer tentativa de simular um swap no PumpSwap antes dessa limitação ser
-    resolvida deve lançar erro explícito, nunca aproximar silenciosamente.
+    `venue_unverified: true`. Enquanto o universo for só curva, qualquer tentativa de simular um swap no
+    PumpSwap deve lançar erro explícito (`PumpSwapSimulationNotValidatedError`), nunca aproximar silenciosamente.
 - Idade entre `entry.minAgeSec` (60) e `entry.maxAgeSec` (600).
 - Quote mint permitido: só SOL (`filters.allowedQuoteMints`) — placeholder nativo da curva (`11111111111111111111111111111111`) e WSOL (`So11111111111111111111111111111111111111112`). Outros quote mints são rejeitados.
 
