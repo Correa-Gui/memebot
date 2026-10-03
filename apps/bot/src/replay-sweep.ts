@@ -2,7 +2,7 @@ import { readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { createLogger, loadConfigFromEnvFile } from '@memebot/core';
 import type { QueryFn } from './replay/clickhouse.ts';
-import { createReplayClient, loadVariant, paramsFromConfig, runPeriod, writeReplayRun } from './replay/load.ts';
+import { createReplayClient, loadSolUsdCandles, loadVariant, paramsFromConfig, runPeriod, writeReplayRun } from './replay/load.ts';
 import type { ReplayVariant } from './replay/run.ts';
 import { summarizeVariant, type VariantSummary } from './replay/summary.ts';
 
@@ -17,7 +17,11 @@ import { summarizeVariant, type VariantSummary } from './replay/summary.ts';
  *
  * Opções: --from/--cut/--to (ISO) · --variants=<arquivo,...> (padrão: config/strategy.v0.yaml + config/variants/*.yaml)
  * · --seed=<n> (padrão 1) · --group=<n> variantes por passada (padrão todas) · --write (grava os runs) · --out=<prefixo>.
+ * · --pumpswap: universo GRADUADO (experimento de 2026-10-03) — libera a simulação do PumpSwap, carrega os trades
+ *   do PumpSwap dos tokens graduados com `swapDetails` e bloqueia entradas no aquecimento; --sol-usd=<json> (padrão
+ *   config/reference/solusdt-1h-2026-09-30_10-03.json) dá o preço SOL/US$ do filtro de market cap.
  */
+const DEFAULT_SOL_USD = 'config/reference/solusdt-1h-2026-09-30_10-03.json';
 
 /**
  * Bloco contínuo de 2026-10-01/02 (primeiro e último ts gravados). O ajuste começa no início dos dados, então não há
@@ -37,7 +41,7 @@ const pct = (x: number): string => (Number.isFinite(x) ? `${(x * 100).toFixed(0)
 async function main(): Promise<void> {
   const { values } = parseArgs({
     args: process.argv.slice(2),
-    options: { from: { type: 'string' }, cut: { type: 'string' }, to: { type: 'string' }, clock: { type: 'string' }, 'warmup-min': { type: 'string' }, 'creator-preload-h': { type: 'string' }, variants: { type: 'string' }, seed: { type: 'string' }, group: { type: 'string' }, write: { type: 'boolean' }, out: { type: 'string' } },
+    options: { from: { type: 'string' }, cut: { type: 'string' }, to: { type: 'string' }, clock: { type: 'string' }, 'warmup-min': { type: 'string' }, 'creator-preload-h': { type: 'string' }, variants: { type: 'string' }, seed: { type: 'string' }, group: { type: 'string' }, write: { type: 'boolean' }, out: { type: 'string' }, pumpswap: { type: 'boolean' }, 'sol-usd': { type: 'string' } },
     strict: true,
   });
   const fromMs = Date.parse(values.from ?? DEFAULT_FROM);
@@ -46,12 +50,15 @@ async function main(): Promise<void> {
   if (!(fromMs < cutMs && cutMs < toMs)) throw new Error('--from < --cut < --to');
   const files = values.variants
     ? values.variants.split(',').map((s) => s.trim()).filter(Boolean)
-    : ['config/strategy.v0.yaml', ...readdirSync('config/variants').filter((f) => f.endsWith('.yaml') && !f.startsWith('d-')).sort().map((f) => `config/variants/${f}`)];
+    : ['config/strategy.v0.yaml', ...readdirSync('config/variants').filter((f) => f.endsWith('.yaml') && !f.startsWith('d-') && !f.startsWith('g')).sort().map((f) => `config/variants/${f}`)];
   const clockMode = values.clock === 'event' ? 'event' : 'paper_wall';
   const warmupMs = Number(values['warmup-min'] ?? '120') * 60_000;
   const preloadMs = Number(values['creator-preload-h'] ?? '2') * 3_600_000;
   const variants: ReplayVariant[] = files.map((f) => loadVariant(f));
   const group = Number(values.group ?? String(variants.length));
+  const pumpSwap = values.pumpswap === true;
+  const solUsdPath = values['sol-usd'] ?? DEFAULT_SOL_USD;
+  const solUsd = pumpSwap ? loadSolUsdCandles(solUsdPath) : undefined;
 
   const cfg = loadConfigFromEnvFile();
   const log = createLogger({ name: 'replay-sweep' });
@@ -68,8 +75,8 @@ async function main(): Promise<void> {
       const byLabel = new Map<string, VariantSummary>();
       for (let i = 0; i < variants.length; i += group) {
         const chunk = variants.slice(i, i + group);
-        const params = paramsFromConfig(cfg, { fromMs: p.fromMs, entriesUntilMs: p.toMs, drainMs: 30 * 60_000, seed: Number(values.seed ?? '1'), killSwitchEnabled: false, excludeGapTokens: true, clockMode, eligibleFromMs: p.eligibleFromMs, creatorPreloadMs: preloadMs });
-        const run = await runPeriod(query, chunk, params, log);
+        const params = paramsFromConfig(cfg, { fromMs: p.fromMs, entriesUntilMs: p.toMs, drainMs: 30 * 60_000, seed: Number(values.seed ?? '1'), killSwitchEnabled: false, excludeGapTokens: true, clockMode, eligibleFromMs: p.eligibleFromMs, creatorPreloadMs: preloadMs, ...(pumpSwap ? { pumpSwapEnabled: true } : {}) });
+        const run = await runPeriod(query, chunk, params, log, solUsd);
         const r = run.result;
         notes.push(`${p.name} [${chunk.map((v) => v.label).join(', ')}]: eventos desde ${brt(p.fromMs)}, entradas ${brt(p.eligibleFromMs)} → ${brt(p.toMs)}; relógio ${clockMode}; eventos ${String(r.driver.events)}; tokens só-estado (aquecimento) ${String(r.warmupTokens)}; tokens excluídos por lacuna ${String(r.driver.excludedTokens - r.warmupTokens)}; esqueletos pré-carregados ${String(r.seededSkeletons)} (${String(preloadMs / 3_600_000)} h); lacunas ${String(run.gaps.length)} (${run.gaps.map((g) => `${new Date(g.fromMs).toISOString().slice(11, 19)}–${new Date(g.toMs).toISOString().slice(11, 19)}`).join(', ')}); execução ${String(Math.round(run.runMs / 1000))} s; latência ${String(params.latencyMs)} ms; falha ${String(params.failRate)}; seed ${String(params.seed)}`);
         for (const v of r.variants) {
@@ -100,7 +107,7 @@ async function main(): Promise<void> {
   const widths = header.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length)));
   const line = (r: string[]): string => r.map((c, i) => (i === 0 ? c.padEnd(widths[i] ?? 0) : c.padStart(widths[i] ?? 0))).join('  ');
   const out: string[] = [];
-  out.push(`Hipóteses de entrada — replay offline (relógio ${clockMode}, kill switch desligado, tokens com lacuna excluídos, pré-carga de criadores ${String(preloadMs / 3_600_000)} h)`);
+  out.push(`Hipóteses de entrada — replay offline (relógio ${clockMode}, kill switch desligado, tokens com lacuna excluídos, pré-carga de criadores ${String(preloadMs / 3_600_000)} h${pumpSwap ? `, universo GRADUADO com PumpSwap exato, SOL/US$ de ${solUsdPath}` : ''})`);
   out.push(`AJUSTE entradas ${brt(fromMs + warmupMs)} → ${brt(cutMs)} (aquecimento só de estado desde ${brt(fromMs)}) | VALIDAÇÃO ${brt(cutMs)} → ${brt(toMs)} (sem sobreposição; SOL; IC 95% bootstrap da média por operação fechada)`);
   out.push('');
   out.push(line(header));

@@ -1,0 +1,49 @@
+version: v0.1-grad-g1              # experimento de 2026-10-03 (universo graduado, só replay) — NÃO é a config do paper
+
+entry:
+  minAgeSec: 60
+  maxAgeSec: 600
+  minBuySellVolumeRatio60s: 1.5
+  minUniqueBuyers60s: 15
+  requirePriceAboveMean120s: true
+  maxSingleSellPctSupply60s: 0.03
+
+filters:
+  allowedVenues: [pumpswap]   # só tokens GRADUADOS (swap exato do PumpSwap; replay com --pumpswap)
+  allowedQuoteMints: ["11111111111111111111111111111111", "So11111111111111111111111111111111111111112"]   # SOL da curva (estado herdado) e WSOL da pool
+  maxTop10PctSupply: 0.30
+  maxSameSlotAsCreatePct: 0.10
+  maxCreatorHoldingPct: 0.05
+  maxCreatorTokens24h: 3
+  minUniqueHolders: 40
+  minVolume60sSol: 5
+  maxRiskScore: 0.30          # ignorado enquanto o modelo não existir
+
+sizing:
+  sizeSol: 0.05               # = hard limit maxPositionLamports (vale também no paper; config só reduz)
+  maxOwnPriceImpactPct: 0.02
+
+exits:
+  takeProfit:
+    - { gainPct: 0.40, sellFraction: 0.50 }
+    - { gainPct: 1.00, sellFraction: 0.30 }
+  trailingStopPct: 0.25
+  stopLossPct: 0.20
+  timeStopSec: 600
+  emergency:
+    singleSellPctSupply: 0.05
+    exitOnCreatorSell: true
+
+signals:
+  riskModel: { enabled: false, path: packages/signals/models/risk.onnx }
+  narrative: { enabled: false, minMatch: 0.7 }
+  smartMoney: { enabled: false, minWallets: 2 }
+
+risk:
+  maxOpenPositions: 3
+  maxDailyLossSol: 0.2
+
+# graduados há 5–60 min
+graduated:
+  minSinceGraduationSec: 300
+  maxSinceGraduationSec: 3600

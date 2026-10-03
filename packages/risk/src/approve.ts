@@ -7,7 +7,7 @@ import type { KillSwitchInputs, KillSwitchParams } from './kill-switch.ts';
 import type { EffectiveRiskLimits } from './limits.ts';
 import { dailyRealizedLoss, nextDecisionId, rollDay } from './risk-state.ts';
 import type { RiskState } from './risk-state.ts';
-import { computeEntrySize } from './sizing.ts';
+import { computeEntrySize, computePumpSwapEntrySize } from './sizing.ts';
 
 /** Posições do run vistas pelo risco. Inclui compras ainda pendentes no executor (latência). */
 export interface PortfolioSnapshot {
@@ -35,6 +35,11 @@ export interface ApproveEntryInput {
    * isto (padrão: ligado). Nenhum outro limite (posições, tamanho, exposição, hard limits) é afetado.
    */
   killSwitchEnabled?: boolean;
+  /**
+   * `true` libera entradas em tokens GRADUADOS (venue `pumpswap`), com sizing pelo swap exato do PumpSwap.
+   * Só o replay de pesquisa passa isto (experimento de 2026-10-03); ausente = só bonding curve, como antes.
+   */
+  pumpSwapEnabled?: boolean;
 }
 
 export interface ApprovedEntry {
@@ -95,13 +100,18 @@ export function approveEntry(input: ApproveEntryInput, clock: Clock): { result: 
   if (input.portfolio.openMints.size >= limits.maxOpenPositions) return reject('maxOpenPositions');
 
   const token = input.token;
-  if (!token?.curveReserves || token.venue !== 'curve' || token.curveCompleted) return reject('curve_unavailable');
+  const ps = token?.pumpSwapReserves ?? null;
+  const pumpSwap = input.pumpSwapEnabled === true && token?.venue === 'pumpswap' && ps !== null && ps.virtualQuote !== null && ps.feeBps !== null
+    ? { reserves: { base: ps.base, quote: ps.quote, virtualQuote: ps.virtualQuote }, fees: ps.feeBps }
+    : null;
+  if (!pumpSwap && (!token?.curveReserves || token.venue !== 'curve' || token.curveCompleted)) return reject('curve_unavailable');
 
-  const sizing = computeEntrySize(
-    { virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken },
-    limits,
-    input.fees,
-  );
+  const sizing = pumpSwap
+    ? computePumpSwapEntrySize(pumpSwap.reserves, limits, pumpSwap.fees)
+    : token?.curveReserves
+      ? computeEntrySize({ virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken }, limits, input.fees)
+      : null;
+  if (!sizing) return reject('curve_unavailable');
   if (!sizing.ok) return reject(sizing.reason);
 
   if (input.portfolio.openExposureLamports + sizing.sizeLamports > limits.maxHotWalletLamports) {

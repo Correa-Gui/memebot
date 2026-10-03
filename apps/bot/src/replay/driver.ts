@@ -1,7 +1,7 @@
 import { SimulatedClock } from '@memebot/core';
 import type { PaperEngine } from '../paper/engine.ts';
 import type { ReplayEvent } from './order.ts';
-import type { CostSchedule, ProtocolSchedule } from './schedules.ts';
+import type { CostSchedule, ProtocolSchedule, SolUsdSchedule } from './schedules.ts';
 
 /**
  * Laço do replay determinístico (Fase 4): o MESMO `PaperEngine` do paper ao vivo, dirigido pelo tempo
@@ -37,6 +37,8 @@ export interface ReplayDriverOptions {
   clockMode?: 'event' | 'paper_wall';
   /** Atraso do PaperClock sobre a parede (padrão 2.000 ms, como em paper/clock.ts). */
   wallGraceMs?: number;
+  /** Preço SOL/US$ vigente (universo graduado, filtro de market cap); ausente = engines sem preço. */
+  solUsd?: SolUsdSchedule;
 }
 
 export interface ReplayDriverStats {
@@ -51,6 +53,7 @@ export class ReplayDriver {
   readonly clock: SimulatedClock;
   private nextTickMs: number;
   private entriesStopped = false;
+  private lastSolUsd: number | null = null;
   readonly stats: ReplayDriverStats = { events: 0, ticks: 0, excludedTokens: 0, firstEventMs: null, lastEventMs: null };
 
   private readonly o: ReplayDriverOptions;
@@ -100,7 +103,11 @@ export class ReplayDriver {
   private atInstant(t: number): void {
     const costs = this.o.costs.due(t);
     const protocol = this.o.protocol.due(t);
+    const solUsd = this.o.solUsd ? this.o.solUsd.at(t) : null;
+    const solUsdChanged = solUsd !== this.lastSolUsd;
+    this.lastSolUsd = solUsd;
     for (const engine of this.o.engines) {
+      if (solUsdChanged) engine.setSolUsd(solUsd);
       if (costs) engine.setCosts(costs);
       if (protocol?.fees) engine.setFees(protocol.fees);
       if (protocol?.curveParams) engine.setCurveParams(protocol.curveParams);

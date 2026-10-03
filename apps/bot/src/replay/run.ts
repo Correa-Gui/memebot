@@ -12,7 +12,7 @@ import { PaperEngine } from '../paper/engine.ts';
 import { ReplayDriver, type ReplayDriverStats } from './driver.ts';
 import { tokenAffectedByGap, type Interval } from './gaps.ts';
 import type { ReplayEvent } from './order.ts';
-import { CostSchedule, ProtocolSchedule, type ProtocolRow, type TimedCostSample } from './schedules.ts';
+import { CostSchedule, ProtocolSchedule, SolUsdSchedule, type ProtocolRow, type SolUsdCandle, type TimedCostSample } from './schedules.ts';
 
 /**
  * Execução de um replay (Fase 4) sobre entradas já carregadas — sem banco: o `EventSource` é injetado
@@ -60,6 +60,12 @@ export interface ReplayParams {
   eligibleFromMs?: number;
   /** Janela da pré-carga de `token_created` antes de `fromMs` (padrão 24 h, como o paper). */
   creatorPreloadMs?: number;
+  /**
+   * Universo GRADUADO (experimento de 2026-10-03): libera a simulação do PumpSwap no executor/risco dos
+   * engines, carrega os trades do PumpSwap dos tokens graduados no período (com `swapDetails`) e bloqueia
+   * entradas antes de `eligibleFromMs`. Ausente = replay da curva exatamente como antes.
+   */
+  pumpSwapEnabled?: boolean;
 }
 
 export interface ReplayInputs {
@@ -69,6 +75,8 @@ export interface ReplayInputs {
   costSamples: readonly TimedCostSample[];
   protocolRows: readonly ProtocolRow[];
   gaps: readonly Interval[];
+  /** Velas SOL/US$ (só o universo graduado com filtro de market cap usa). */
+  solUsd?: readonly SolUsdCandle[];
 }
 
 export interface VariantRun {
@@ -135,6 +143,7 @@ export async function executeReplay(inputs: ReplayInputs, variants: readonly Rep
       baseFeeLamportsPerSignature: LAMPORTS_PER_SIGNATURE, seed: params.seed, startMs: params.fromMs,
       sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: () => undefined, log },
       tradeAlerts: false, killSwitchEnabled: params.killSwitchEnabled,
+      ...(params.pumpSwapEnabled === true ? { pumpSwapEnabled: true, entriesFromMs: params.eligibleFromMs ?? params.fromMs } : {}),
     });
     return { label: v.label, runId, configHash: replayConfigHash(v, params), config: v.config, decisions, fills, engine, counter };
   });
@@ -152,6 +161,7 @@ export async function executeReplay(inputs: ReplayInputs, variants: readonly Rep
     costs,
     protocol,
     clockMode: params.clockMode ?? 'event',
+    ...(inputs.solUsd ? { solUsd: new SolUsdSchedule(inputs.solUsd) } : {}),
     excludeToken: (_mint: string, createdAtMs: number) => {
       if (createdAtMs < eligibleFromMs) {
         warmupTokens++;

@@ -1,6 +1,6 @@
 import type { Lamports, TokenAmount } from '@memebot/core';
-import { bondingCurveBuy, bondingCurveSell } from '@memebot/curve-math';
-import type { CurveFeeBps, CurveReserves } from '@memebot/curve-math';
+import { bondingCurveBuy, bondingCurveSell, effectiveQuoteReserves, pumpSwapBuyExactQuoteIn, pumpSwapSell } from '@memebot/curve-math';
+import type { CurveFeeBps, CurveReserves, PumpSwapFeeBps, PumpSwapReserves } from '@memebot/curve-math';
 import { HARD_LIMITS, assertWithinHardLimits, quoteInForBudget } from '@memebot/risk';
 import type { EffectiveRiskLimits } from '@memebot/risk';
 import type { MarketState, TokenState } from '@memebot/state';
@@ -50,6 +50,14 @@ export interface PaperExecutorParams {
   costs: TxCostEstimate;
   /** Limites efetivos (já validados); conferidos de novo contra `HARD_LIMITS`. */
   limits: EffectiveRiskLimits;
+  /**
+   * `true` libera a simulação de swaps no PumpSwap (compra e venda de tokens GRADUADOS) com a matemática
+   * exata de `curve-math/pumpswap.ts` (0 de diferença em 11,46 M de trades reais, 2026-10-03). Só o replay
+   * de pesquisa liga (experimento do universo graduado); ausente = comportamento anterior: compra fora da
+   * curva lança `PumpSwapSimulationNotValidatedError` e posição de curva que gradua fecha no último preço
+   * da curva (`venue_unverified`).
+   */
+  pumpSwapEnabled?: boolean;
 }
 
 /**
@@ -81,6 +89,8 @@ export type PaperOrder = BuyOrder | SellOrder;
 
 interface PendingOrder {
   order: PaperOrder;
+  /** Onde a ordem foi simulada na submissão (compra: venue do token; venda: venue da posição). */
+  venue: 'curve' | 'pumpswap';
   seq: number;
   dueMs: number;
   /** Compra: total pago esperado; venda: líquido esperado. Nas reservas do instante da decisão. */
@@ -90,6 +100,8 @@ interface PendingOrder {
 }
 
 export interface Holding {
+  /** Onde a posição foi comprada: `pumpswap` só com `pumpSwapEnabled` (token graduado). */
+  venue: 'curve' | 'pumpswap';
   tokenBalance: TokenAmount;
   /** Rent pago ao abrir a conta de token (devolvido quando a posição zera). */
   rentPaid: Lamports;
@@ -121,6 +133,13 @@ function validateParams(params: PaperExecutorParams): void {
 function curveReservesOf(token: TokenState): CurveReserves | null {
   if (!token.curveReserves) return null;
   return { virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken };
+}
+
+/** Reservas e bps EFETIVOS do PumpSwap, se completos (offset virtual e bps conhecidos). */
+function pumpSwapOf(token: TokenState): { reserves: PumpSwapReserves; fees: PumpSwapFeeBps } | null {
+  const r = token.pumpSwapReserves;
+  if (!r || r.virtualQuote === null || r.feeBps === null || r.base <= 0n) return null;
+  return { reserves: { base: r.base, quote: r.quote, virtualQuote: r.virtualQuote }, fees: r.feeBps };
 }
 
 /** Token saiu da bonding curve (completou ou já migrou): só existe o último preço da curva. */
@@ -182,6 +201,7 @@ export function submitOrder(
 
   let expectedQuote: Lamports;
   let expectedTokens: TokenAmount;
+  let venue: 'curve' | 'pumpswap' = 'curve';
 
   if (order.side === 'buy') {
     const maxPosition = minBigint(params.limits.maxPositionLamports, HARD_LIMITS.maxPositionLamports);
@@ -193,15 +213,25 @@ export function submitOrder(
     if (open.has(order.mint)) throw new InvalidOrderError(`já existe posição ou compra pendente em ${order.mint}`);
     const maxOpen = Math.min(params.limits.maxOpenPositions, HARD_LIMITS.maxOpenPositions);
     if (open.size >= maxOpen) throw new HardLimitViolationError('maxOpenPositions', `${String(open.size)} >= ${String(maxOpen)}`);
-    // Compra só na bonding curve: qualquer outra coisa seria simular um swap no PumpSwap.
-    if (isGraduated(token) || token.venue !== 'curve') throw new PumpSwapSimulationNotValidatedError(order.mint);
-    const reserves = curveReservesOf(token);
-    if (!reserves) throw new InvalidOrderError(`sem reservas da curva para ${order.mint}`);
-    const quoteIn = quoteInForBudget(order.sizeLamports, params.fees);
-    if (quoteIn <= 0n) throw new InvalidOrderError('sizeLamports pequeno demais para as taxas da curva');
-    const sim = bondingCurveBuy(reserves, quoteIn, params.fees);
-    expectedQuote = sim.totalQuoteCost;
-    expectedTokens = sim.tokenOut;
+    if (params.pumpSwapEnabled === true && token.venue === 'pumpswap') {
+      // Token graduado (universo do replay): buy_exact_quote_in com spendable = tamanho.
+      const ps = pumpSwapOf(token);
+      if (!ps) throw new InvalidOrderError(`sem reservas completas do PumpSwap para ${order.mint}`);
+      const sim = pumpSwapBuyExactQuoteIn(ps.reserves, order.sizeLamports, ps.fees);
+      expectedQuote = sim.totalQuoteCost;
+      expectedTokens = sim.baseOut;
+      venue = 'pumpswap';
+    } else {
+      // Compra só na bonding curve: qualquer outra coisa seria simular um swap no PumpSwap.
+      if (isGraduated(token) || token.venue !== 'curve') throw new PumpSwapSimulationNotValidatedError(order.mint);
+      const reserves = curveReservesOf(token);
+      if (!reserves) throw new InvalidOrderError(`sem reservas da curva para ${order.mint}`);
+      const quoteIn = quoteInForBudget(order.sizeLamports, params.fees);
+      if (quoteIn <= 0n) throw new InvalidOrderError('sizeLamports pequeno demais para as taxas da curva');
+      const sim = bondingCurveBuy(reserves, quoteIn, params.fees);
+      expectedQuote = sim.totalQuoteCost;
+      expectedTokens = sim.tokenOut;
+    }
   } else {
     if (!Number.isFinite(order.fraction) || order.fraction <= 0 || order.fraction > 1) {
       throw new InvalidOrderError(`fraction fora de (0, 1]: ${String(order.fraction)}`);
@@ -213,10 +243,17 @@ export function submitOrder(
     }
     const tokens = sellTokenAmount(holding.tokenBalance, order.fraction);
     if (tokens <= 0n) throw new InvalidOrderError('quantidade a vender arredonda para 0');
-    // Graduado: usa as últimas reservas conhecidas da curva (nunca o PumpSwap).
-    const reserves = curveReservesOf(token);
-    if (!reserves) throw new InvalidOrderError(`sem reservas da curva para ${order.mint}`);
-    expectedQuote = bondingCurveSell(reserves, tokens, params.fees).netQuoteOut;
+    venue = holding.venue;
+    if (holding.venue === 'pumpswap') {
+      const ps = pumpSwapOf(token);
+      if (!ps) throw new InvalidOrderError(`sem reservas completas do PumpSwap para ${order.mint}`);
+      expectedQuote = pumpSwapSell(ps.reserves, tokens, ps.fees).netQuoteOut;
+    } else {
+      // Posição de curva que graduou: usa as últimas reservas conhecidas da curva (nunca o PumpSwap).
+      const reserves = curveReservesOf(token);
+      if (!reserves) throw new InvalidOrderError(`sem reservas da curva para ${order.mint}`);
+      expectedQuote = bondingCurveSell(reserves, tokens, params.fees).netQuoteOut;
+    }
     expectedTokens = tokens;
   }
 
@@ -224,7 +261,7 @@ export function submitOrder(
   return {
     ...state,
     orderSeq: seq,
-    pending: [...state.pending, { order, seq, dueMs: nowMs + params.latencyMs, expectedQuote, expectedTokens }],
+    pending: [...state.pending, { order, venue, seq, dueMs: nowMs + params.latencyMs, expectedQuote, expectedTokens }],
   };
 }
 
@@ -290,6 +327,80 @@ function withReserves(fill: Fill, reserves: CurveReserves | null): Fill {
   return { ...fill, virtualQuoteBefore: reserves.virtualQuote, virtualTokenBefore: reserves.virtualToken };
 }
 
+/** PumpSwap: "reservas antes" do fill = quote EFETIVO (vault + offset virtual) e base, o par do constant product. */
+function withPumpSwapReserves(fill: Fill, ps: { reserves: PumpSwapReserves } | null): Fill {
+  if (!ps) return fill;
+  return { ...fill, virtualQuoteBefore: effectiveQuoteReserves(ps.reserves), virtualTokenBefore: ps.reserves.base };
+}
+
+/** Taxas do PumpSwap no `Fill`: `protocolFee` = lp + protocolo + cashback (tudo que não é do criador), `creatorFee` = criador. */
+function pumpSwapFillFees(f: { lpFee: Lamports; protocolFee: Lamports; creatorFee: Lamports; cashbackFee: Lamports }): { protocolFee: Lamports; creatorFee: Lamports } {
+  return { protocolFee: f.lpFee + f.protocolFee + f.cashbackFee, creatorFee: f.creatorFee };
+}
+
+function fillPumpSwapBuy(p: PendingOrder, order: BuyOrder, params: PaperExecutorParams, token: TokenState | undefined,
+  holdings: ReadonlyMap<string, Holding>, failedDraw: boolean): FillOutcome {
+  const costs = cappedCosts(params);
+  const ps = token && token.venue === 'pumpswap' ? pumpSwapOf(token) : null;
+  const fill = withPumpSwapReserves(baseFill(p, params, costs), ps);
+  if (failedDraw) return { fill: unexecuted(fill, 'failed', 'simulated_tx_failure'), holdings };
+  if (!ps) return { fill: unexecuted(fill, 'failed', 'pumpswap_unavailable_at_fill'), holdings };
+  let sim: ReturnType<typeof pumpSwapBuyExactQuoteIn>;
+  try {
+    sim = pumpSwapBuyExactQuoteIn(ps.reserves, order.sizeLamports, ps.fees);
+  } catch {
+    return { fill: unexecuted(fill, 'failed', 'pumpswap_unavailable_at_fill'), holdings };
+  }
+  const realized = priceOf(sim.totalQuoteCost, sim.baseOut);
+  const slippage = slippageBpsBuy(p.expectedQuote, p.expectedTokens, sim.totalQuoteCost, sim.baseOut);
+  if (sim.baseOut <= 0n || buyExceedsSlippage(p, sim.totalQuoteCost, sim.baseOut, order.maxSlippageBps)) {
+    return { fill: unexecuted(fill, 'expired', 'slippage_exceeded', realized, slippage), holdings };
+  }
+  const existing = holdings.get(order.mint);
+  const rent = existing ? 0n : params.tokenAccountRentLamports;
+  const next = new Map(holdings);
+  next.set(order.mint, { venue: 'pumpswap', tokenBalance: (existing?.tokenBalance ?? 0n) + sim.baseOut, rentPaid: (existing?.rentPaid ?? 0n) + rent });
+  return {
+    fill: { ...fill, status: 'filled', solIn: sim.totalQuoteCost, tokenDelta: sim.baseOut, ...pumpSwapFillFees(sim), jitoTip: costs.jitoTip, rent, realizedPriceLamportsPerUnit: realized, slippageBps: slippage },
+    holdings: next,
+  };
+}
+
+function fillPumpSwapSell(p: PendingOrder, order: SellOrder, params: PaperExecutorParams, token: TokenState | undefined,
+  holdings: ReadonlyMap<string, Holding>, failedDraw: boolean): FillOutcome {
+  const costs = cappedCosts(params);
+  const holding = holdings.get(order.mint);
+  const ps = token ? pumpSwapOf(token) : null;
+  const fill = withPumpSwapReserves(baseFill(p, params, costs), ps);
+  if (!holding || holding.tokenBalance <= 0n || !ps) return { fill: unexecuted(fill, 'failed', 'no_position_or_reserves_at_fill'), holdings };
+  if (failedDraw) return { fill: unexecuted(fill, 'failed', 'simulated_tx_failure'), holdings };
+  const tokensIn = p.expectedTokens <= holding.tokenBalance ? p.expectedTokens : holding.tokenBalance;
+  let sim: ReturnType<typeof pumpSwapSell>;
+  try {
+    sim = pumpSwapSell(ps.reserves, tokensIn, ps.fees);
+  } catch {
+    return { fill: unexecuted(fill, 'failed', 'pumpswap_unavailable_at_fill'), holdings };
+  }
+  const realized = priceOf(sim.netQuoteOut, tokensIn);
+  const slippage = fill.expectedPriceLamportsPerUnit > 0 ? Math.round((1 - realized / fill.expectedPriceLamportsPerUnit) * 10_000) : 0;
+  if (sellExceedsSlippage(p, sim.netQuoteOut, order.maxSlippageBps)) {
+    return { fill: unexecuted(fill, 'expired', 'slippage_exceeded', realized, slippage), holdings };
+  }
+  const remaining = holding.tokenBalance - tokensIn;
+  const next = new Map(holdings);
+  let rentRefund = 0n;
+  if (remaining === 0n) {
+    next.delete(order.mint);
+    rentRefund = holding.rentPaid;
+  } else {
+    next.set(order.mint, { ...holding, tokenBalance: remaining });
+  }
+  return {
+    fill: { ...fill, status: 'filled', solOut: sim.netQuoteOut, tokenDelta: -tokensIn, ...pumpSwapFillFees(sim), jitoTip: costs.jitoTip, rentRefund, realizedPriceLamportsPerUnit: realized, slippageBps: slippage },
+    holdings: next,
+  };
+}
+
 /**
  * Transação que não executou (`failed`) ou expirou por slippage (`expired`): paga a priority fee e a
  * taxa base (pessimista: a transação entrou no bloco e falhou), NÃO paga o tip — o tip do Jito é uma
@@ -340,6 +451,7 @@ function fillBuy(p: PendingOrder, order: BuyOrder, params: PaperExecutorParams, 
   const rent = existing ? 0n : params.tokenAccountRentLamports;
   const next = new Map(holdings);
   next.set(order.mint, {
+    venue: 'curve',
     tokenBalance: (existing?.tokenBalance ?? 0n) + sim.tokenOut,
     rentPaid: (existing?.rentPaid ?? 0n) + rent,
   });
@@ -436,9 +548,11 @@ function settle(
     rngState = draw.state;
     const failedDraw = draw.value < params.failRate;
     const token = market.tokens.get(p.order.mint);
-    const outcome = p.order.side === 'buy'
-      ? fillBuy(p, p.order, params, token, holdings, failedDraw)
-      : fillSell(p, p.order, params, token, holdings, failedDraw);
+    const outcome = p.venue === 'pumpswap'
+      ? (p.order.side === 'buy' ? fillPumpSwapBuy(p, p.order, params, token, holdings, failedDraw) : fillPumpSwapSell(p, p.order, params, token, holdings, failedDraw))
+      : p.order.side === 'buy'
+        ? fillBuy(p, p.order, params, token, holdings, failedDraw)
+        : fillSell(p, p.order, params, token, holdings, failedDraw);
     holdings = outcome.holdings;
     fills.push(outcome.fill);
   }

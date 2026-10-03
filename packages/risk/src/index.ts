@@ -12,7 +12,7 @@ export {
 } from './limits.ts';
 
 export type { EntrySizeResult } from './sizing.ts';
-export { computeEntrySize, ownPriceImpactPct, quoteInForBudget } from './sizing.ts';
+export { computeEntrySize, computePumpSwapEntrySize, ownPriceImpactPct, pumpSwapImpactPct, quoteInForBudget } from './sizing.ts';
 
 export type { RiskState } from './risk-state.ts';
 export {

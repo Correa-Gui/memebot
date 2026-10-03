@@ -131,3 +131,34 @@ export class ProtocolSchedule {
     return out;
   }
 }
+
+/** Vela horária de SOL/US$ (referência pública gravada em `config/reference/`, ver `loadSolUsdCandles`). */
+export interface SolUsdCandle {
+  openTimeMs: number;
+  open: number;
+}
+
+/**
+ * Preço SOL/US$ "como era" no instante `t` (universo graduado: filtro de market cap em US$): o preço de
+ * ABERTURA da vela horária vigente (`openTimeMs ≤ t < openTimeMs + 1 h`) — nada do futuro dentro da hora.
+ * `null` fora da série.
+ */
+export class SolUsdSchedule {
+  private readonly candles: SolUsdCandle[];
+
+  constructor(candles: readonly SolUsdCandle[]) {
+    this.candles = [...candles].sort((a, b) => a.openTimeMs - b.openTimeMs);
+  }
+
+  at(t: number): number | null {
+    let lo = 0;
+    let hi = this.candles.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if ((this.candles[mid]?.openTimeMs ?? 0) <= t) lo = mid + 1;
+      else hi = mid;
+    }
+    const c = this.candles[lo - 1];
+    return c && t < c.openTimeMs + 3_600_000 ? c.open : null;
+  }
+}

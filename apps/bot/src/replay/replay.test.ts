@@ -8,7 +8,7 @@ import { compareEntries } from './compare.ts';
 import { mergeIntervals, overlapsAny, silenceGaps, tokenAffectedByGap } from './gaps.ts';
 import { compareReplayEvents, sortAndDedupe, type ReplayEvent } from './order.ts';
 import { ArrayEventSource, executeReplay, replayRunId, type ReplayParams, type ReplayVariant } from './run.ts';
-import { CostSchedule, ProtocolSchedule, type ProtocolRow } from './schedules.ts';
+import { CostSchedule, ProtocolSchedule, SolUsdSchedule, type ProtocolRow } from './schedules.ts';
 import { summarizeVariant, toReportDecision, toReportFill } from './summary.ts';
 
 const CONFIG_PATH = fileURLToPath(new URL('../../../../config/strategy.v0.yaml', import.meta.url));
@@ -229,5 +229,17 @@ describe('comparação replay × paper', () => {
     expect(cmp.onlyReplayWhy.find((w) => w.why === 'enter em outro horário (> tolerância)')?.count).toBe(cmp.onlyReplay.filter((m) => m.mint === 'C').length);
     expect(uniq(cmp.onlyPaper.map((m) => m.mint))).toEqual(['C']);
     expect(cmp.matched.every((m) => m.paperNetLamports === m.replayNetLamports)).toBe(true);
+  });
+});
+
+describe('SolUsdSchedule (universo graduado)', () => {
+  it('preço de abertura da vela horária vigente; null fora da série', () => {
+    const s = new SolUsdSchedule([{ openTimeMs: 3_600_000, open: 120 }, { openTimeMs: 0, open: 118 }]);
+    expect(s.at(0)).toBe(118);
+    expect(s.at(3_599_999)).toBe(118);
+    expect(s.at(3_600_000)).toBe(120);
+    expect(s.at(7_199_999)).toBe(120);
+    expect(s.at(7_200_000)).toBeNull();
+    expect(s.at(-1)).toBeNull();
   });
 });

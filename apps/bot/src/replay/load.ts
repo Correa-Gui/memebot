@@ -9,6 +9,7 @@ import { loadStrategyConfig } from '@memebot/strategy';
 import { gitCommit, idlHash } from '../run-info.ts';
 import { ClickHouseReplaySource, loadCostSamples, loadGaps, loadProtocolRows, loadSkeletons, type QueryFn } from './clickhouse.ts';
 import type { Interval } from './gaps.ts';
+import type { SolUsdCandle } from './schedules.ts';
 import { executeReplay, type ReplayParams, type ReplayResult, type ReplayVariant } from './run.ts';
 
 /** Cliente do ClickHouse para leituras longas do replay (sem avisos de socket ocioso no stdout). */
@@ -48,8 +49,19 @@ export interface PeriodRun {
   runMs: number;
 }
 
+/** Velas SOL/US$ de `config/reference/*.json` (`{ candles: [{ openTimeMs, open }] }`), validadas. */
+export function loadSolUsdCandles(path: string): SolUsdCandle[] {
+  const raw = JSON.parse(readFileSync(path, 'utf8')) as { candles?: unknown };
+  if (!Array.isArray(raw.candles)) throw new Error(`${path}: sem "candles"`);
+  return raw.candles.map((c: unknown) => {
+    const x = c as { openTimeMs?: unknown; open?: unknown };
+    if (typeof x.openTimeMs !== 'number' || typeof x.open !== 'number' || !(x.open > 0)) throw new Error(`${path}: vela inválida`);
+    return { openTimeMs: x.openTimeMs, open: x.open };
+  });
+}
+
 /** Carrega as entradas de um período no ClickHouse e roda todas as variantes numa passada. */
-export async function runPeriod(query: QueryFn, variants: readonly ReplayVariant[], params: ReplayParams, log: Logger): Promise<PeriodRun> {
+export async function runPeriod(query: QueryFn, variants: readonly ReplayVariant[], params: ReplayParams, log: Logger, solUsd?: readonly SolUsdCandle[]): Promise<PeriodRun> {
   const t0 = Date.now();
   const endMs = params.entriesUntilMs + params.drainMs;
   const maxAgeMs = Math.max(...variants.map((v) => v.config.entry.maxAgeSec)) * 1000;
@@ -59,10 +71,13 @@ export async function runPeriod(query: QueryFn, variants: readonly ReplayVariant
     loadProtocolRows(query, endMs),
     loadGaps(query, params.fromMs, params.entriesUntilMs + maxAgeMs),
   ]);
-  const source = new ClickHouseReplaySource(query, { fromMs: params.fromMs, toMs: endMs, liveCreatedFromMs: params.fromMs, liveCreatedToMs: params.entriesUntilMs });
+  const source = new ClickHouseReplaySource(query, {
+    fromMs: params.fromMs, toMs: endMs, liveCreatedFromMs: params.fromMs, liveCreatedToMs: params.entriesUntilMs,
+    ...(params.pumpSwapEnabled === true ? { graduated: true } : {}),
+  });
   const t1 = Date.now();
   log.info({ skeletons: skeletons.length, costSamples: costSamples.length, protocolRows: protocolRows.length, gaps: gaps.length, variants: variants.map((v) => v.label) }, 'replay: entradas carregadas');
-  const result = await executeReplay({ source, skeletons, costSamples, protocolRows, gaps }, variants, params);
+  const result = await executeReplay({ source, skeletons, costSamples, protocolRows, gaps, ...(solUsd ? { solUsd } : {}) }, variants, params);
   return { result, gaps, source, loadMs: t1 - t0, runMs: Date.now() - t1 };
 }
 

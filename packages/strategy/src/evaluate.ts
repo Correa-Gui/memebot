@@ -1,4 +1,5 @@
 import type { Clock } from '@memebot/core';
+import { marketCapLamports } from '@memebot/curve-math';
 import type { CurveInitialParams } from '@memebot/curve-math';
 import {
   buySellVolumeRatio60s,
@@ -44,7 +45,8 @@ export type HardFilterResult = { ok: true; values: HardFilterValues } | { ok: fa
  */
 export function universeRejection(token: TokenState | undefined, config: StrategyV0Config): string | null {
   if (!token) return 'mint_not_found';
-  if (token.createdAtMs === null || token.tokenTotalSupply === null || token.quoteMint === null) return 'insufficient_data';
+  // graduado: a criação pode ser anterior ao run (sem createdAtMs); a idade conta desde a graduação
+  if ((token.venue !== 'pumpswap' && token.createdAtMs === null) || token.tokenTotalSupply === null || token.quoteMint === null) return 'insufficient_data';
   if (!config.filters.allowedVenues.includes(token.venue as 'curve' | 'pumpswap')) return 'venue_not_allowed';
   if (!config.filters.allowedQuoteMints.includes(token.quoteMint)) return 'allowedQuoteMints';
   return null;
@@ -106,6 +108,41 @@ export function enterFeatures(
   };
 }
 
+/** Entradas de mercado que não vêm do `MarketState` (só o universo graduado usa). */
+export interface EvaluateMarketInputs {
+  /** Preço SOL/US$ no instante (filtro de market cap em US$); `null` = indisponível. */
+  solUsd: number | null;
+}
+
+/**
+ * Universo graduado (bloco `graduated`): janela desde a graduação, reservas completas do PumpSwap e
+ * market cap em US$. Devolve o motivo da rejeição ou os valores para o snapshot.
+ */
+function graduatedWindow(
+  token: TokenState,
+  nowMs: number,
+  config: StrategyV0Config,
+  market: EvaluateMarketInputs | undefined,
+): { ok: false; reason: string } | { ok: true; sinceGraduationSec: number; marketCapSol: number; marketCapUsd: number } {
+  const g = config.graduated;
+  if (!g) return { ok: false, reason: 'venue_not_allowed' };
+  if (token.graduatedAtMs === null) return { ok: false, reason: 'graduation_not_seen' };
+  const r = token.pumpSwapReserves;
+  if (!r || r.virtualQuote === null || r.feeBps === null || r.base <= 0n || token.tokenTotalSupply === null) return { ok: false, reason: 'pumpswap_details_missing' };
+  const sinceGraduationSec = (nowMs - token.graduatedAtMs) / 1000;
+  if (sinceGraduationSec < g.minSinceGraduationSec) return { ok: false, reason: 'minSinceGraduationSec' };
+  if (sinceGraduationSec > g.maxSinceGraduationSec) return { ok: false, reason: 'maxSinceGraduationSec' };
+  const marketCapSol = Number(marketCapLamports({ base: r.base, quote: r.quote, virtualQuote: r.virtualQuote }, token.tokenTotalSupply)) / 1e9;
+  const solUsd = market?.solUsd ?? null;
+  const marketCapUsd = solUsd === null ? Number.NaN : marketCapSol * solUsd;
+  if (g.minMarketCapUsd !== undefined || g.maxMarketCapUsd !== undefined) {
+    if (solUsd === null) return { ok: false, reason: 'sol_usd_unavailable' };
+    if (g.minMarketCapUsd !== undefined && marketCapUsd < g.minMarketCapUsd) return { ok: false, reason: 'minMarketCapUsd' };
+    if (g.maxMarketCapUsd !== undefined && marketCapUsd > g.maxMarketCapUsd) return { ok: false, reason: 'maxMarketCapUsd' };
+  }
+  return { ok: true, sinceGraduationSec, marketCapSol, marketCapUsd };
+}
+
 /**
  * Estratégia v0 (`docs/STRATEGY.md`): filtros duros (§3) + gatilho de momentum (§4), restrita ao
  * universo definido em §2 (só bonding curve, idade 60–600 s, quote SOL). Função **pura**: recebe
@@ -135,6 +172,7 @@ export function evaluate(
   clock: Clock,
   config: StrategyV0Config,
   curveParams: CurveInitialParams,
+  market?: EvaluateMarketInputs,
 ): Decision[] {
   const token = marketState.tokens.get(mint);
   const universe = universeRejection(token, config);
@@ -142,10 +180,21 @@ export function evaluate(
 
   const nowMs = clock.nowMs();
 
-  const ageSec = tokenAgeSec(token, nowMs);
-  if (ageSec === null) return reject(mint, 'insufficient_data');
-  if (ageSec < config.entry.minAgeSec) return reject(mint, 'minAgeSec');
-  if (ageSec > config.entry.maxAgeSec) return reject(mint, 'maxAgeSec');
+  // Universo: curva → idade desde a criação (entry.min/maxAgeSec); graduado → janela desde a graduação.
+  let ageSec: number;
+  let graduated: { sinceGraduationSec: number; marketCapSol: number; marketCapUsd: number } | null = null;
+  if (token.venue === 'pumpswap') {
+    const g = graduatedWindow(token, nowMs, config, market);
+    if (!g.ok) return reject(mint, g.reason);
+    graduated = g;
+    ageSec = tokenAgeSec(token, nowMs) ?? Number.NaN;
+  } else {
+    const age = tokenAgeSec(token, nowMs);
+    if (age === null) return reject(mint, 'insufficient_data');
+    if (age < config.entry.minAgeSec) return reject(mint, 'minAgeSec');
+    if (age > config.entry.maxAgeSec) return reject(mint, 'maxAgeSec');
+    ageSec = age;
+  }
 
   // --- Filtros duros (docs/STRATEGY.md §3, ordem da tabela) ---
   const hard = evaluateHardFilters(marketState, token, nowMs, config);
@@ -175,6 +224,11 @@ export function evaluate(
   }
 
   const features = enterFeatures(token, ageSec, hard.values, { ratio60s, buyers60s, largestSellPct }, curveParams);
+  if (graduated) {
+    features.sinceGraduationSec = graduated.sinceGraduationSec;
+    features.marketCapSol = graduated.marketCapSol;
+    features.marketCapUsd = graduated.marketCapUsd;
+  }
 
   // --- Hipótese (b) "não perseguir" (desligada por padrão) ---
   const maxAbove = config.entry.maxPriceAboveMean120sPct;

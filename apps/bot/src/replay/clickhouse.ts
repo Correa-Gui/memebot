@@ -1,4 +1,4 @@
-import type { CurveCompletedEvent, CurveTradeEvent, EventSource, PoolCreatedEvent, PumpEvent, PumpSwapTradeEvent, SocialEvent, TokenCreatedEvent } from '@memebot/core';
+import type { CurveCompletedEvent, CurveTradeEvent, EventSource, PoolCreatedEvent, PumpEvent, PumpSwapSwapDetails, PumpSwapTradeEvent, SocialEvent, TokenCreatedEvent } from '@memebot/core';
 import type { TokenSkeleton } from '@memebot/state';
 import { z } from 'zod';
 import { reconnectIntervals, silenceGaps, mergeIntervals, type Interval } from './gaps.ts';
@@ -23,7 +23,20 @@ const CurveRow = z.object({
 const SwapRow = z.object({
   ...Base, pool: z.string(), mint: z.string(), trader: z.string(), side: z.enum(['buy', 'sell']), quote_mint: z.string(), quote_amount: u, token_amount: u,
   user_quote_amount: u.nullable(), pool_base_reserves: u.nullable(), pool_quote_reserves: u.nullable(), lp_fee: u.nullable(), protocol_fee: u, creator_fee: u, ix_name: z.string().nullable(),
+  // só com `graduated` (view v_pumpswap_trades, migração 011): campos do swap exato
+  has_extra: n.optional(), instruction: z.enum(['buy', 'buy_exact_quote_in', 'sell']).optional(), vqr: u.optional(),
+  lp_fee_bps: u.optional(), protocol_fee_bps: u.optional(), creator_fee_bps: u.optional(), cashback_fee_bps: u.optional(), cashback_fee: u.optional(),
+  buyback_fee_bps: u.optional(), buyback_fee: u.optional(), holder_rewards_bps: u.optional(), holder_rewards: u.optional(), base_supply: u.optional(),
 });
+
+function swapDetailsOf(r: z.infer<typeof SwapRow>): PumpSwapSwapDetails | null {
+  if (r.has_extra !== 1 || !r.instruction || r.vqr === undefined) return null;
+  return {
+    instruction: r.instruction, virtualQuoteReserves: r.vqr, lpFeeBps: r.lp_fee_bps ?? 0n, protocolFeeBps: r.protocol_fee_bps ?? 0n,
+    creatorFeeBps: r.creator_fee_bps ?? 0n, cashbackFeeBps: r.cashback_fee_bps ?? 0n, cashbackFee: r.cashback_fee ?? 0n, buybackFeeBps: r.buyback_fee_bps ?? 0n,
+    buybackFee: r.buyback_fee ?? 0n, holderRewardsBps: r.holder_rewards_bps ?? 0n, holderRewards: r.holder_rewards ?? 0n, baseSupply: r.base_supply ?? 0n,
+  };
+}
 const TokenRow = z.object({ ...Base, mint: z.string(), creator: z.string(), name: z.string(), symbol: z.string(), uri: z.string(), bonding_curve: z.string(), quote_mint: z.string(), token_total_supply: u });
 const LifeRow = z.object({ ...Base, kind: z.enum(['curve_completed', 'pool_created']), mint: z.string(), bonding_curve: z.string().nullable(), pool: z.string().nullable(), quote_mint: z.string().nullable(), creator: z.string().nullable() });
 
@@ -48,6 +61,12 @@ export interface ClickHouseReplaySourceOptions {
   liveCreatedToMs: number;
   /** Tamanho do bloco de leitura em slots (padrão 1.500 ≈ 10 min): limita a memória do Node e do ClickHouse. */
   chunkSlots?: number;
+  /**
+   * Universo graduado: inclui os trades do PumpSwap dos tokens com `curve_completed` em
+   * [liveCreatedFromMs, liveCreatedToMs) e lê TODOS os trades do PumpSwap pela view `v_pumpswap_trades`
+   * (com `swapDetails`: offset virtual, bps, base_supply — sem eles o swap não é simulável).
+   */
+  graduated?: boolean;
 }
 
 export interface SourceStats {
@@ -106,18 +125,23 @@ export class ClickHouseReplaySource implements EventSource {
   private async loadChunk(a: bigint, b: bigint): Promise<ReplayEvent[]> {
     const p = { from: this.o.fromMs, to: this.o.toMs, a: a.toString(), b: b.toString(), liveFrom: this.o.liveCreatedFromMs, liveTo: this.o.liveCreatedToMs };
     const live = 'SELECT mint FROM events_token WHERE ts >= fromUnixTimestamp64Milli({liveFrom:Int64}) AND ts < fromUnixTimestamp64Milli({liveTo:Int64})';
+    const graduatedMints = "SELECT mint FROM events_lifecycle WHERE kind = 'curve_completed' AND ts >= fromUnixTimestamp64Milli({liveFrom:Int64}) AND ts < fromUnixTimestamp64Milli({liveTo:Int64})";
+    const swapQuery = this.o.graduated
+      ? `SELECT ${TIME}, pool, mint, trader, side, quote_mint, quote_amount, token_amount, user_quote_amount, pool_base_reserves, pool_quote_reserves, lp_fee, ` +
+        'protocol_fee, creator_fee, ix_name, has_extra, toString(instruction) AS instruction, toString(pool_virtual_quote_reserves) AS vqr, lp_fee_bps, protocol_fee_bps, ' +
+        'creator_fee_bps, cashback_fee_bps, cashback_fee, buyback_fee_bps, buyback_fee, holder_rewards_bps, holder_rewards, base_supply ' +
+        'FROM v_pumpswap_trades(from_slot = {a:UInt64}, to_slot = {b:UInt64}) WHERE ts >= fromUnixTimestamp64Milli({from:Int64}) AND ts < fromUnixTimestamp64Milli({to:Int64}) ' +
+        `AND (mint IN (${live}) OR mint IN (${graduatedMints}))`
+      : `SELECT ${TIME}, pool, mint, trader, side, quote_mint, quote_amount, token_amount, user_quote_amount, pool_base_reserves, pool_quote_reserves, lp_fee, ` +
+        `protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'pumpswap' AND ${WINDOW} AND (mint IN (${live}) OR ` +
+        `(mint = '' AND pool IN (SELECT pool FROM events_lifecycle WHERE kind = 'pool_created' AND mint IN (${live}))))`;
     const [curve, swap, tokens, life] = await Promise.all([
       this.query(
         `SELECT ${TIME}, mint, trader, side, quote_mint, quote_amount, token_amount, virtual_quote_reserves AS vq, virtual_token_reserves AS vt, ` +
           `real_quote_reserves AS rq, real_token_reserves AS rt, protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'curve' AND ${WINDOW}`,
         p,
       ),
-      this.query(
-        `SELECT ${TIME}, pool, mint, trader, side, quote_mint, quote_amount, token_amount, user_quote_amount, pool_base_reserves, pool_quote_reserves, lp_fee, ` +
-          `protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'pumpswap' AND ${WINDOW} AND (mint IN (${live}) OR ` +
-          `(mint = '' AND pool IN (SELECT pool FROM events_lifecycle WHERE kind = 'pool_created' AND mint IN (${live}))))`,
-        p,
-      ),
+      this.query(swapQuery, p),
       this.query(`SELECT ${TIME}, mint, creator, name, symbol, uri, bonding_curve, quote_mint, token_total_supply FROM events_token WHERE ${WINDOW}`, p),
       this.query(`SELECT ${TIME}, kind, mint, bonding_curve, pool, quote_mint, creator FROM events_lifecycle WHERE ${WINDOW}`, p),
     ]);
@@ -132,7 +156,9 @@ export class ClickHouseReplaySource implements EventSource {
     }
     for (const x of swap) {
       const r = SwapRow.parse(x);
+      const details = swapDetailsOf(r);
       out.push({
+        ...(details ? { swapDetails: details } : {}),
         kind: 'trade', venue: 'pumpswap', ...base(r), pool: r.pool, mint: r.mint, quoteMint: r.quote_mint, poolUnresolved: r.mint === '', trader: r.trader,
         side: r.side, tokenAmount: r.token_amount, quoteAmount: r.quote_amount, userQuoteAmount: r.user_quote_amount ?? 0n,
         poolBaseReserves: r.pool_base_reserves ?? 0n, poolQuoteReserves: r.pool_quote_reserves ?? 0n, lpFee: r.lp_fee ?? 0n,

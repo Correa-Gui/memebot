@@ -14,6 +14,7 @@ export function emptyTokenState(mint: string): TokenState {
     bondingCurve: null,
     venue: 'unknown',
     curveCompleted: false,
+    graduatedAtMs: null,
     curveReserves: null,
     pumpSwapReserves: null,
     holderBalances: new Map(),
@@ -122,11 +123,14 @@ export function pumpSwapReservesAfter(event: PumpSwapTradeEvent): PumpSwapReserv
 }
 
 export function applyPumpSwapTrade(state: TokenState, event: PumpSwapTradeEvent): TokenState {
+  const reserves = pumpSwapReservesAfter(event);
   let next: TokenState = {
     ...state,
     venue: 'pumpswap',
     quoteMint: state.quoteMint ?? (event.quoteMint || null),
-    pumpSwapReserves: pumpSwapReservesAfter(event),
+    // supply do evento do PumpSwap quando a criação não foi vista (token graduado antes do run)
+    tokenTotalSupply: state.tokenTotalSupply ?? reserves.baseSupply,
+    pumpSwapReserves: reserves,
     holderBalances: applyBalanceDelta(state.holderBalances, event.trader, event.side, event.tokenAmount),
     firstBuyers: addFirstBuyerIfNew(state.firstBuyers, event.trader, event.side),
   };
@@ -138,16 +142,19 @@ export function applyPumpSwapTrade(state: TokenState, event: PumpSwapTradeEvent)
     trader: event.trader,
     quoteAmount: event.quoteAmount,
     tokenAmount: event.tokenAmount,
-    virtualQuoteAfter: null,
-    virtualTokenAfter: null,
+    // constant product do PumpSwap: preço marginal = (vault de quote + virtual_quote_reserves) / base,
+    // depois do trade — mesma semântica do par da curva (só com o offset conhecido)
+    virtualQuoteAfter: reserves.virtualQuote === null ? null : reserves.quote + reserves.virtualQuote,
+    virtualTokenAfter: reserves.virtualQuote === null ? null : reserves.base,
   });
   return next;
 }
 
-export function markCurveCompleted(state: TokenState): TokenState {
+export function markCurveCompleted(state: TokenState, ts: number): TokenState {
   // A curva "completa" ainda não migrou de fato para o PumpSwap (isso acontece no pool_created +
   // primeiro trade na pool); só marcamos que não aceita mais trades de curva daqui em diante.
-  return { ...state, curveCompleted: true };
+  // `graduatedAtMs` = primeiro `curve_completed` visto (a graduação do Pump.fun).
+  return { ...state, curveCompleted: true, graduatedAtMs: state.graduatedAtMs ?? ts };
 }
 
 export function markPoolCreated(state: TokenState): TokenState {

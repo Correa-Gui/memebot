@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { Writable } from 'node:stream';
 import { createLogger } from '@memebot/core';
-import type { CurveTradeEvent, PumpEvent, TokenCreatedEvent } from '@memebot/core';
+import type { CurveTradeEvent, PumpEvent, PumpSwapTradeEvent, TokenCreatedEvent } from '@memebot/core';
 import { parseCurveInitialParams } from '@memebot/curve-math';
 import { estimateTxCosts, fillCashFlow } from '@memebot/execution';
 import type { Fill } from '@memebot/execution';
@@ -52,13 +52,13 @@ interface Harness {
   notes: string[];
 }
 
-function harnessWith(extra: Pick<PaperEngineOptions, 'streamSilenceMs'>): Harness {
-  return harness({}, extra);
+function harnessWith(extra: Pick<PaperEngineOptions, 'streamSilenceMs' | 'pumpSwapEnabled' | 'entriesFromMs'>, config?: StrategyV0Config): Harness {
+  return harness(config ? { config } : {}, extra);
 }
 
 function harness(
   overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean; config?: StrategyV0Config; killSwitchEnabled?: boolean } = {},
-  extra: Pick<PaperEngineOptions, 'streamSilenceMs'> = {},
+  extra: Pick<PaperEngineOptions, 'streamSilenceMs' | 'pumpSwapEnabled' | 'entriesFromMs'> = {},
 ): Harness {
   const decisions: DecisionRecord[] = [];
   const fills: Fill[] = [];
@@ -375,5 +375,64 @@ describe('PaperEngine ao vivo — relógio local errado não muda decisões', ()
     const ok = harnessWith({ streamSilenceMs: () => 29_000 });
     run(ok, healthyToken('Z', T0), T0 + 75_000);
     expect(ok.decisions.filter((d) => d.type === 'enter')).toHaveLength(1);
+  });
+});
+
+describe('PaperEngine — universo graduado (replay, pumpSwapEnabled)', () => {
+  const G0 = loadStrategyConfig(fileURLToPath(new URL('../../../../config/variants/g0-grad-1-10m.yaml', import.meta.url)));
+  const B0 = 206_900_000_000_000n;
+  const Q0 = 67_000_000_000n;
+  function swapBuy(mint: string, ts: number, i: number): PumpSwapTradeEvent {
+    return {
+      kind: 'trade', venue: 'pumpswap', ...base(ts), pool: `pool-${mint}`, mint, quoteMint: 'So11111111111111111111111111111111111111112', poolUnresolved: false,
+      trader: `${mint}-g${String(i)}`, side: 'buy', tokenAmount: 1_000_000_000_000n, quoteAmount: 300_000_000n, userQuoteAmount: 303_600_000n,
+      poolBaseReserves: B0 - BigInt(i) * 1_000_000_000_000n, poolQuoteReserves: Q0 + BigInt(i) * 300_000_000n, lpFee: 600_000n, protocolFee: 150_000n, creatorFee: 2_850_000n, ixName: 'buy_exact_quote_in',
+      swapDetails: { instruction: 'buy_exact_quote_in', virtualQuoteReserves: 17_584_505_396n, lpFeeBps: 20n, protocolFeeBps: 5n, creatorFeeBps: 95n, cashbackFeeBps: 0n, cashbackFee: 0n, buybackFeeBps: 0n, buybackFee: 0n, holderRewardsBps: 0n, holderRewards: 0n, baseSupply: 1_000_000_000_000_000n },
+    };
+  }
+  /** Token criado há 1 h, curva com compradores antigos, gradua em T0 e recebe 80 compras no PumpSwap (1/s). */
+  function graduatedFlow(mint: string): PumpEvent[] {
+    const ev: PumpEvent[] = [created(mint, T0 - 3_600_000, `dev-${mint}`)];
+    for (let i = 1; i <= 5; i++) ev.push(trade(mint, T0 - 3_000_000 + i * 1_000, 30_000_000_000n + BigInt(i) * 1_000_000_000n, `${mint}-old${String(i)}`));
+    ev.push({ kind: 'curve_completed', ...base(T0), mint, bondingCurve: 'bc' });
+    ev.push({ kind: 'pool_created', ...base(T0 + 100), pool: `pool-${mint}`, mint, quoteMint: 'So11111111111111111111111111111111111111112', creator: 'x' });
+    for (let i = 0; i < 80; i++) ev.push(swapBuy(mint, T0 + 1_000 + i * 1_000, i));
+    return ev;
+  }
+
+  it('graduação vista no run: entra no PumpSwap depois de 60 s, posição venue pumpswap, sai por regra de preço/tempo (nunca graduated)', () => {
+    const h = harnessWith({ pumpSwapEnabled: true }, G0);
+    run(h, graduatedFlow('GA'), T0 + 81_000 + G0.exits.timeStopSec * 1000);
+    const enter = h.decisions.find((d) => d.type === 'enter');
+    expect(enter?.ts).toBeGreaterThanOrEqual(T0 + 60_000);
+    expect(enter?.features).toMatchObject({ venue: 'pumpswap', sinceGraduationSec: expect.any(Number) as number });
+    const buyFill = h.fills.find((f) => f.side === 'buy' && f.status === 'filled');
+    expect(buyFill?.venueUnverified).toBe(false);
+    const exit = h.decisions.find((d) => d.type === 'exit');
+    expect(exit?.reason).toBeDefined();
+    expect(exit?.reason).not.toBe('graduated');
+    expect(h.fills.find((f) => f.side === 'sell' && f.status === 'filled')?.venueUnverified).toBe(false);
+    // holders/janelas só depois da graduação: os compradores da curva foram zerados na graduação
+    expect(h.engine.tokenState('GA')?.holderBalances.has('GA-old1')).toBe(false);
+  });
+
+  it('sem pumpSwapEnabled (paper ao vivo) a mesma config não avalia nada; entriesFromMs bloqueia o aquecimento', () => {
+    const off = harnessWith({}, G0);
+    run(off, graduatedFlow('GB'), T0 + 120_000);
+    expect(off.decisions).toHaveLength(0);
+    const warm = harnessWith({ pumpSwapEnabled: true, entriesFromMs: T0 + 1_000_000 }, G0);
+    run(warm, graduatedFlow('GC'), T0 + 120_000);
+    expect(warm.decisions).toHaveLength(0);
+  });
+
+  it('v0.1 com pumpSwapEnabled: decisões idênticas às sem a flag (a flag só muda o universo graduado)', () => {
+    const events = [...healthyToken('P1', T0), ...graduatedFlow('GD')].sort((a, b) => (a.kind === 'tx_cost' || b.kind === 'tx_cost' ? 0 : a.ts - b.ts));
+    const a = harness({ seed: 5 });
+    const b = harness({ seed: 5 }, { pumpSwapEnabled: true });
+    run(a, events, T0 + 800_000);
+    run(b, events, T0 + 800_000);
+    expect(a.decisions.some((d) => d.type === 'enter')).toBe(true);
+    expect(b.decisions).toEqual(a.decisions);
+    expect(b.fills).toEqual(a.fills);
   });
 });

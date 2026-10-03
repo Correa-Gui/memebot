@@ -135,6 +135,10 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
 
 **Aceite:** divergência backtest × paper < 10% no PnL líquido do mesmo período; replay determinístico.
 
+- [x] Teste do universo graduado no replay (2026-10-03): `--pumpswap` libera o swap exato do PumpSwap no executor/risco
+  só no replay; variantes g0/g1/g2 (± saída +40%) — nenhuma positiva em ajuste E validação (STRATEGY §8,
+  `data/reports/replay-graduated-2026-10-03.txt`). Paper ao vivo continua só na curva.
+
 ## Fase 5 — Sinais (dias 12–21) → M4 **(condicional: só se o paper trading da v0 mostrar resultado — ver `docs/STRATEGY.md` §7)**
 
 Cada item só entra na estratégia se o backtest fora da amostra melhorar o PnL líquido.

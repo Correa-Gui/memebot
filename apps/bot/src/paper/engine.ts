@@ -98,6 +98,14 @@ export interface PaperEngineOptions {
    * entre `nowMs` e o maior ts de evento visto.
    */
   streamSilenceMs?: () => number | null;
+  /**
+   * Universo GRADUADO (experimento de 2026-10-03, só replay): libera a simulação de swaps no PumpSwap no
+   * executor e no risco. Com `pumpswap` em `filters.allowedVenues`, trades do PumpSwap de tokens cuja
+   * graduação (`curve_completed`) foi vista no run disparam a avaliação. Padrão `false` (paper ao vivo).
+   */
+  pumpSwapEnabled?: boolean;
+  /** Nenhuma entrada antes deste instante (aquecimento só de estado no replay). Padrão: sem limite. */
+  entriesFromMs?: number;
 }
 
 /** Saúde do ingest na hora (vem do adaptador de gravação; o engine não vê WS/HTTP). */
@@ -153,6 +161,7 @@ export class PaperEngine {
   private lastStreamEventMs: number | null = null;
   private lastStreamReceivedAtMs: number | null = null;
   private stopFilePresent = false;
+  private solUsd: number | null = null;
   private entriesEnabled = true;
   private lastCompactionMs: number;
   private runNetPnl: Lamports = 0n;
@@ -173,6 +182,8 @@ export class PaperEngine {
       skeletonRetentionMs: 24 * 60 * 60 * 1000,
       tradeAlerts: true,
       killSwitchEnabled: true,
+      pumpSwapEnabled: false,
+      entriesFromMs: Number.NEGATIVE_INFINITY,
       ...opts,
     };
     this.curveParams = opts.curveParams;
@@ -185,6 +196,7 @@ export class PaperEngine {
       baseFeeLamportsPerSignature: opts.baseFeeLamportsPerSignature,
       costs: opts.costs,
       limits: opts.limits,
+      ...(opts.pumpSwapEnabled === true ? { pumpSwapEnabled: true } : {}),
     };
     this.exec = createPaperExecutorState(opts.seed);
     this.risk = createRiskState(opts.startMs);
@@ -207,6 +219,11 @@ export class PaperEngine {
 
   setCurveParams(curveParams: CurveInitialParams): void {
     this.curveParams = curveParams;
+  }
+
+  /** Preço SOL/US$ (filtro de market cap do universo graduado); `null` = indisponível. */
+  setSolUsd(price: number | null): void {
+    this.solUsd = price;
   }
 
   setStopFile(present: boolean): void {
@@ -325,10 +342,46 @@ export class PaperEngine {
     const mint = this.market.apply(event);
     this.lastStreamEventMs = this.lastStreamEventMs === null ? event.ts : Math.max(this.lastStreamEventMs, event.ts);
     if (mint === null) return;
+    // Universo graduado: na graduação o histórico do mint é zerado — holders e janelas de TODO token graduado
+    // passam a refletir só o que foi negociado depois dela (com ou sem a fase de curva observada no run).
+    if (event.kind === 'curve_completed' && this.graduatedUniverse && !this.positions.has(mint)) this.market.compactMint(mint);
     if (event.kind === 'token_created') this.liveCreated.set(mint, { symbol: event.symbol, name: event.name });
     if (this.positions.has(mint)) this.runExits(mint, nowMs);
     if (this.pendingSignals.has(mint)) this.handlePending(mint, nowMs, event.kind === 'trade' && event.venue === 'curve');
     if (event.kind === 'trade' && event.venue === 'curve') this.maybeEvaluate(mint, nowMs);
+    if (event.kind === 'trade' && event.venue === 'pumpswap' && this.graduatedUniverse) this.maybeEvaluateGraduated(mint, nowMs);
+  }
+
+  /** Config com `pumpswap` em `allowedVenues` e o PumpSwap liberado no executor/risco. */
+  private get graduatedUniverse(): boolean {
+    return this.o.pumpSwapEnabled && this.o.config.filters.allowedVenues.includes('pumpswap') && this.o.config.graduated !== undefined;
+  }
+
+  /**
+   * Universo graduado: avalia um trade do PumpSwap de token cuja graduação foi vista no run, dentro da
+   * janela desde a graduação, no máximo 1×/s por mint. Só o modo de entrada imediato (v0.1); sinais
+   * pendentes (confirmação/recuo) usam o preço da curva e ficam fora deste experimento.
+   */
+  private maybeEvaluateGraduated(mint: string, nowMs: number): void {
+    const g = this.o.config.graduated;
+    if (!g || this.mode !== 'immediate' || !this.entriesEnabled || nowMs < this.o.entriesFromMs) return;
+    if (this.positions.has(mint) || openMints(this.exec).has(mint)) return;
+    const token = this.market.state.tokens.get(mint);
+    if (!token || token.venue !== 'pumpswap' || token.graduatedAtMs === null) return;
+    const sinceSec = (nowMs - token.graduatedAtMs) / 1000;
+    if (sinceSec < g.minSinceGraduationSec || sinceSec > g.maxSinceGraduationSec) return;
+    const last = this.lastEvalMs.get(mint);
+    if (last !== undefined && nowMs - last < this.o.evalIntervalMs) return;
+    this.lastEvalMs.set(mint, nowMs);
+    this.minute.evaluatedMints.add(mint);
+    this.hour.evaluatedMints.add(mint);
+    const decision = evaluate(this.market.state, mint, fixedClock(nowMs), this.o.config, this.curveParams, { solUsd: this.solUsd })[0];
+    if (!decision) return;
+    if (decision.outcome === 'reject') {
+      this.recordReject(mint, decision.reason, nowMs, null);
+      return;
+    }
+    this.tryEnter(mint, decision, nowMs);
   }
 
   onTick(nowMs: number): void {
@@ -346,7 +399,8 @@ export class PaperEngine {
   // ---- entrada ----
 
   private maybeEvaluate(mint: string, nowMs: number): void {
-    if (!this.entriesEnabled || !this.liveCreated.has(mint)) return;
+    if (!this.entriesEnabled || !this.liveCreated.has(mint) || nowMs < this.o.entriesFromMs) return;
+    if (!this.o.config.filters.allowedVenues.includes('curve')) return;
     if (this.positions.has(mint) || openMints(this.exec).has(mint)) return;
     if (this.pendingSignals.has(mint)) return;
     const token = this.market.state.tokens.get(mint);
@@ -422,6 +476,7 @@ export class PaperEngine {
         portfolio: { openMints: open, openExposureLamports: exposure },
         killSwitch: { lastStreamEventMs: this.lastStreamInClockFrame(nowMs), balance: null, stopFilePresent: this.stopFilePresent },
         ...(this.o.killSwitchEnabled ? {} : { killSwitchEnabled: false }),
+        ...(this.o.pumpSwapEnabled ? { pumpSwapEnabled: true } : {}),
       },
       fixedClock(nowMs),
     );
@@ -458,6 +513,14 @@ export class PaperEngine {
         protocolFeeBps: Number(this.params.fees.protocolFeeBps),
         creatorFeeBps: Number(this.params.fees.creatorFeeBps),
         costEstimateSource: this.costSource(),
+        ...(token?.venue === 'pumpswap' && token.pumpSwapReserves?.feeBps
+          ? {
+            venue: 'pumpswap',
+            pumpSwapLpFeeBps: Number(token.pumpSwapReserves.feeBps.lpFeeBps),
+            pumpSwapProtocolFeeBps: Number(token.pumpSwapReserves.feeBps.protocolFeeBps),
+            pumpSwapCreatorFeeBps: Number(token.pumpSwapReserves.feeBps.creatorFeeBps),
+          }
+          : {}),
       },
     });
   }
@@ -582,7 +645,8 @@ export class PaperEngine {
       this.hour.failedEntries++;
       return;
     }
-    this.positions.set(fill.mint, openPosition(fill));
+    // venue da posição = onde o executor simulou a compra (holding gravada no fill)
+    this.positions.set(fill.mint, openPosition(fill, this.exec.holdings.get(fill.mint)?.venue ?? 'curve'));
     this.minute.entries++;
     this.hour.entries++;
     if (!this.o.tradeAlerts) return;
@@ -683,7 +747,14 @@ export class PaperEngine {
 
   private compact(nowMs: number): void {
     const busy = openMints(this.exec);
-    const isProtected = (mint: string): boolean => this.positions.has(mint) || busy.has(mint) || this.pendingSignals.has(mint);
+    // universo graduado: token graduado no run mantém o estado completo durante a janela desde a graduação (+1 min)
+    const g = this.graduatedUniverse ? this.o.config.graduated : undefined;
+    const inGraduatedWindow = (mint: string): boolean => {
+      if (!g) return false;
+      const at = this.market.state.tokens.get(mint)?.graduatedAtMs ?? null;
+      return at !== null && nowMs - at <= g.maxSinceGraduationSec * 1000 + 60_000;
+    };
+    const isProtected = (mint: string): boolean => this.positions.has(mint) || busy.has(mint) || this.pendingSignals.has(mint) || inGraduatedWindow(mint);
     const r = this.market.compact(nowMs, this.policy, isProtected);
     // Mapas auxiliares por mint: só para tokens ainda dentro da janela de estado completo.
     const stale = (mint: string): boolean => {

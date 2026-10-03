@@ -36,7 +36,7 @@ export function tokenUpdateFor(state: MarketState, event: PumpEvent): TokenUpdat
     }
 
     case 'curve_completed':
-      return { mint: event.mint, token: markCurveCompleted(current(event.mint)), pool: null };
+      return { mint: event.mint, token: markCurveCompleted(current(event.mint), event.ts), pool: null };
 
     case 'pool_created':
       return { mint: event.mint, token: markPoolCreated(current(event.mint)), pool: event.pool };

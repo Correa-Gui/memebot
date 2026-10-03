@@ -125,3 +125,14 @@ Resultado: **nenhuma variante foi positiva nos dois períodos**; todos os IC 95%
 `data/reports/replay-sweep-v2-event.txt`) só b-nochase-20 fica positiva nos dois (+0,075 / +0,143), também com IC
 incluindo 0 — o ranking muda com o relógio, outro sinal de que a amostra não distingue as hipóteses. Nada promovido a
 v0.2; próxima decisão depende de um paper com o relógio corrigido e de mais dias de dados.
+
+**2026-10-03 — universo GRADUADO (só replay, `pnpm replay:sweep --pumpswap --clock=event`; nada promovido).**
+Pré-requisito: swap do PumpSwap exato em 11.463.859/11.463.859 trades reais (regra nova: pool sem criador não cobra a
+taxa do criador). Variantes `config/variants/g*.yaml` (mesmos filtros/gatilho/saídas da v0.1, universo = tokens com
+`curve_completed` visto no run, holders/janelas só pós-graduação): g0 = 1–10 min desde a graduação; g1 = 5–60 min;
+g2 = g0 + market cap US$100k–1M (SOL/US$ = abertura da hora, Binance); cada uma também com "vende tudo em +40%"
+(`-tp40all`). Mesmos períodos de ajuste/validação do sweep anterior. PnL líquido (SOL) ajuste | validação:
+g0 −0,447 | −0,114; g0-tp40 −0,493 | −0,081; g1 −1,167 | −0,159; g1-tp40 −1,335 | −0,401; g2 −0,157 | −0,014;
+g2-tp40 −0,172 | +0,004 (12 ops). Referência v0.1 (curva) na mesma passada: −0,458 | +0,212. Nenhuma positiva nos dois
+períodos; todos os IC 95% da média por operação incluem 0 ou são negativos; stop loss domina as saídas (~50–60%).
+Tabela completa: `data/reports/replay-graduated-2026-10-03.txt`.

@@ -25,6 +25,11 @@ export interface ExitOrder {
  */
 export interface Position {
   mint: string;
+  /**
+   * Onde a posição foi comprada. `curve` (padrão, v0.1): se o token graduar, sai por `graduated` no último
+   * preço da curva. `pumpswap` (universo graduado do replay): liquidação e saídas pelo swap exato do PumpSwap.
+   */
+  venue: 'curve' | 'pumpswap';
   entryDecisionId: string;
   /** ts do fill de compra (relógio dos eventos). */
   openedAtMs: number;
@@ -54,14 +59,15 @@ export class InvalidFillForPositionError extends Error {
   }
 }
 
-/** Abre a posição a partir de um fill de compra `filled`. */
-export function openPosition(fill: Fill): Position {
+/** Abre a posição a partir de um fill de compra `filled` (`venue`: onde a compra foi simulada). */
+export function openPosition(fill: Fill, venue: 'curve' | 'pumpswap' = 'curve'): Position {
   if (fill.side !== 'buy' || fill.status !== 'filled' || fill.tokenDelta <= 0n) {
     throw new InvalidFillForPositionError(`openPosition exige compra preenchida (decision ${fill.decisionId})`);
   }
   const entryCost = fill.solIn + fill.priorityFee + fill.jitoTip + fill.baseFee + fill.rent;
   return {
     mint: fill.mint,
+    venue,
     entryDecisionId: fill.decisionId,
     openedAtMs: fill.ts,
     initialTokenAmount: fill.tokenDelta,

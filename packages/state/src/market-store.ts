@@ -114,6 +114,16 @@ export class MarketStore {
     return true;
   }
 
+  /**
+   * Zera o histórico de um mint (trades, saldos, primeiros compradores), mantendo identidade e reservas.
+   * Universo graduado: chamado na graduação, para que holders/janelas de TODO token graduado reflitam só
+   * o que foi negociado depois dela (uniforme entre tokens com e sem a fase de curva observada).
+   */
+  compactMint(mint: string): void {
+    const token = this.tokens.get(mint);
+    if (token) this.tokens.set(mint, compactTokenState(token));
+  }
+
   /** Aplica `compactionActionFor` a todos os tokens. `isProtected(mint)`: posição aberta / ordem pendente. */
   compact(nowMs: number, policy: CompactionPolicy, isProtected: (mint: string) => boolean): { compacted: number; dropped: number } {
     let compacted = 0;

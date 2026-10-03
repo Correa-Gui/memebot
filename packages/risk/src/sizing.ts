@@ -1,6 +1,6 @@
 import type { Lamports } from '@memebot/core';
-import { bondingCurveBuy, feeFromBps } from '@memebot/curve-math';
-import type { CurveFeeBps, CurveReserves } from '@memebot/curve-math';
+import { bondingCurveBuy, effectiveQuoteReserves, feeFromBps, pumpSwapBuyExactQuoteIn } from '@memebot/curve-math';
+import type { CurveFeeBps, CurveReserves, PumpSwapFeeBps, PumpSwapReserves } from '@memebot/curve-math';
 import type { EffectiveRiskLimits } from './limits.ts';
 
 /**
@@ -54,19 +54,23 @@ function impactForBudget(reserves: CurveReserves, budget: Lamports, fees: CurveF
  * com o tamanho, então uma entrada muito menor que a planejada é outra aposta, pior.
  */
 export function computeEntrySize(reserves: CurveReserves, limits: EffectiveRiskLimits, fees: CurveFeeBps): EntrySizeResult {
+  return sizeWith(limits, (budget) => quoteInForBudget(budget, fees), (budget) => impactForBudget(reserves, budget, fees));
+}
+
+/** Busca do tamanho, comum à curva e ao PumpSwap: `quoteInFor`/`impactFor` dão o valor no swap e o impacto de um orçamento. */
+function sizeWith(limits: EffectiveRiskLimits, quoteInFor: (budget: Lamports) => Lamports, impactFor: (budget: Lamports) => number): EntrySizeResult {
   const budget = limits.sizeLamports;
-  const fullQuoteIn = quoteInForBudget(budget, fees);
+  const fullQuoteIn = quoteInFor(budget);
   if (fullQuoteIn <= 0n) return { ok: false, reason: 'size_too_small', priceImpactPct: 0 };
 
-  const fullImpact = ownPriceImpactPct(reserves, fullQuoteIn, fees);
+  const fullImpact = impactFor(budget);
   if (fullImpact <= limits.maxOwnPriceImpactPct) {
     return { ok: true, sizeLamports: budget, quoteAmountIn: fullQuoteIn, priceImpactPct: fullImpact, reduced: false };
   }
 
   const fractionPpm = BigInt(Math.round(limits.minSizeFraction * 1_000_000));
   const minBudget = (budget * fractionPpm + 999_999n) / 1_000_000n;
-  const minImpact = impactForBudget(reserves, minBudget, fees);
-  if (minBudget <= 0n || quoteInForBudget(minBudget, fees) <= 0n || minImpact > limits.maxOwnPriceImpactPct) {
+  if (minBudget <= 0n || quoteInFor(minBudget) <= 0n || impactFor(minBudget) > limits.maxOwnPriceImpactPct) {
     return { ok: false, reason: 'maxOwnPriceImpactPct', priceImpactPct: fullImpact };
   }
 
@@ -75,15 +79,35 @@ export function computeEntrySize(reserves: CurveReserves, limits: EffectiveRiskL
   let hi = budget;
   while (hi - lo > 1n) {
     const mid = (lo + hi) / 2n;
-    if (impactForBudget(reserves, mid, fees) <= limits.maxOwnPriceImpactPct) lo = mid;
+    if (impactFor(mid) <= limits.maxOwnPriceImpactPct) lo = mid;
     else hi = mid;
   }
-  const quoteAmountIn = quoteInForBudget(lo, fees);
-  return {
-    ok: true,
-    sizeLamports: lo,
-    quoteAmountIn,
-    priceImpactPct: ownPriceImpactPct(reserves, quoteAmountIn, fees),
-    reduced: true,
-  };
+  return { ok: true, sizeLamports: lo, quoteAmountIn: quoteInFor(lo), priceImpactPct: impactFor(lo), reduced: true };
+}
+
+/**
+ * PumpSwap (universo graduado, só replay por enquanto): a compra simulada é `buy_exact_quote_in` com
+ * `spendable = orçamento` (o total debitado — líquido + todas as taxas — nunca passa do orçamento).
+ * Impacto com a mesma definição da curva: preço médio SEM taxas (`líquido / baseOut`) ÷ preço marginal
+ * antes (`Qe / B`) − 1. `quoteAmountIn` = líquido que entra no constant product.
+ */
+export function pumpSwapImpactPct(reserves: PumpSwapReserves, spendable: Lamports, fees: PumpSwapFeeBps): number {
+  try {
+    const sim = pumpSwapBuyExactQuoteIn(reserves, spendable, fees);
+    return Number(sim.netQuoteIn * reserves.base) / Number(sim.baseOut * effectiveQuoteReserves(reserves)) - 1;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+function pumpSwapNetQuoteIn(reserves: PumpSwapReserves, spendable: Lamports, fees: PumpSwapFeeBps): Lamports {
+  try {
+    return spendable > 0n ? pumpSwapBuyExactQuoteIn(reserves, spendable, fees).netQuoteIn : 0n;
+  } catch {
+    return 0n;
+  }
+}
+
+export function computePumpSwapEntrySize(reserves: PumpSwapReserves, limits: EffectiveRiskLimits, fees: PumpSwapFeeBps): EntrySizeResult {
+  return sizeWith(limits, (budget) => pumpSwapNetQuoteIn(reserves, budget, fees), (budget) => pumpSwapImpactPct(reserves, budget, fees));
 }

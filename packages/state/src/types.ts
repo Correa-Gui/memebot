@@ -64,7 +64,8 @@ export interface TradeRecord {
   tokenAmount: TokenAmount;
   /**
    * Reservas virtuais da curva logo após este trade, como emitidas no próprio `TradeEvent`
-   * (preço marginal = `virtualQuoteAfter / virtualTokenAfter`). `null` para trades do PumpSwap.
+   * (preço marginal = `virtualQuoteAfter / virtualTokenAfter`). PumpSwap: quote efetivo (vault +
+   * `virtual_quote_reserves`) e base DEPOIS do trade; `null` sem `swapDetails` (offset desconhecido).
    */
   virtualQuoteAfter: bigint | null;
   virtualTokenAfter: TokenAmount | null;
@@ -98,6 +99,12 @@ export interface TokenState {
    * `pool_created`, e para nunca simular compra numa curva encerrada.
    */
   curveCompleted: boolean;
+  /**
+   * ts do primeiro `curve_completed` visto (graduação no Pump.fun); `null` se a graduação não foi
+   * observada (antes do run, ou ainda na curva). Universo de tokens graduados (`strategy`, bloco
+   * `graduated`): a idade conta a partir daqui.
+   */
+  graduatedAtMs: number | null;
   curveReserves: CurveReservesSnapshot | null;
   pumpSwapReserves: PumpSwapReservesSnapshot | null;
   /**

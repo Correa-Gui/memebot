@@ -66,6 +66,20 @@ const FiltersSchema = z.object({
   maxRiskScore: z.number().min(0).max(1),
 });
 
+/**
+ * Universo de tokens GRADUADOS (experimento de 2026-10-03, só replay): com `pumpswap` em
+ * `filters.allowedVenues`, um token no PumpSwap é avaliado pela janela de tempo DESDE A GRADUAÇÃO
+ * (`curve_completed` visto no run) em vez da idade desde a criação (`entry.min/maxAgeSec` valem só para a
+ * curva), e opcionalmente pelo market cap em US$ (quote efetivo × supply / base, com o preço SOL/US$
+ * injetado por quem chama). Obrigatório quando `pumpswap` está em `allowedVenues`.
+ */
+const GraduatedSchema = z.object({
+  minSinceGraduationSec: z.number().nonnegative(),
+  maxSinceGraduationSec: z.number().positive(),
+  minMarketCapUsd: z.number().positive().optional(),
+  maxMarketCapUsd: z.number().positive().optional(),
+});
+
 const SizingSchema = z.object({
   sizeSol: z.number().positive(),
   maxOwnPriceImpactPct: z.number().positive().max(1),
@@ -101,6 +115,9 @@ export const StrategyConfigSchema = z.object({
   exits: ExitsSchema,
   signals: SignalsSchema,
   risk: RiskSchema,
+  graduated: GraduatedSchema.optional(),
+}).refine((c) => !c.filters.allowedVenues.includes('pumpswap') || c.graduated !== undefined, {
+  message: 'filters.allowedVenues com pumpswap exige o bloco graduated (janela desde a graduação)',
 });
 
 export type StrategyV0Config = z.infer<typeof StrategyConfigSchema>;

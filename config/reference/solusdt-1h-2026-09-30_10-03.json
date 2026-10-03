@@ -1,0 +1,471 @@
+{
+ "source": "Binance spot API GET /api/v3/klines symbol=SOLUSDT interval=1h (p\u00fablico; baixado em 2026-10-03)",
+ "note": "USDT \u2248 USD; o replay usa o pre\u00e7o de abertura de cada hora (sem olhar o futuro dentro da hora)",
+ "candles": [
+  {
+   "openTimeMs": 1790726400000,
+   "open": 119.15,
+   "close": 118.95
+  },
+  {
+   "openTimeMs": 1790730000000,
+   "open": 118.94,
+   "close": 119.46
+  },
+  {
+   "openTimeMs": 1790733600000,
+   "open": 119.46,
+   "close": 119.7
+  },
+  {
+   "openTimeMs": 1790737200000,
+   "open": 119.71,
+   "close": 119.14
+  },
+  {
+   "openTimeMs": 1790740800000,
+   "open": 119.13,
+   "close": 118.78
+  },
+  {
+   "openTimeMs": 1790744400000,
+   "open": 118.77,
+   "close": 119.09
+  },
+  {
+   "openTimeMs": 1790748000000,
+   "open": 119.09,
+   "close": 118.12
+  },
+  {
+   "openTimeMs": 1790751600000,
+   "open": 118.12,
+   "close": 118.48
+  },
+  {
+   "openTimeMs": 1790755200000,
+   "open": 118.47,
+   "close": 118.22
+  },
+  {
+   "openTimeMs": 1790758800000,
+   "open": 118.23,
+   "close": 119.34
+  },
+  {
+   "openTimeMs": 1790762400000,
+   "open": 119.33,
+   "close": 119.88
+  },
+  {
+   "openTimeMs": 1790766000000,
+   "open": 119.87,
+   "close": 119.5
+  },
+  {
+   "openTimeMs": 1790769600000,
+   "open": 119.51,
+   "close": 121.9
+  },
+  {
+   "openTimeMs": 1790773200000,
+   "open": 121.9,
+   "close": 121.04
+  },
+  {
+   "openTimeMs": 1790776800000,
+   "open": 121.04,
+   "close": 118.82
+  },
+  {
+   "openTimeMs": 1790780400000,
+   "open": 118.82,
+   "close": 119.32
+  },
+  {
+   "openTimeMs": 1790784000000,
+   "open": 119.33,
+   "close": 120.34
+  },
+  {
+   "openTimeMs": 1790787600000,
+   "open": 120.34,
+   "close": 119.18
+  },
+  {
+   "openTimeMs": 1790791200000,
+   "open": 119.17,
+   "close": 118.72
+  },
+  {
+   "openTimeMs": 1790794800000,
+   "open": 118.71,
+   "close": 117.24
+  },
+  {
+   "openTimeMs": 1790798400000,
+   "open": 117.23,
+   "close": 118.05
+  },
+  {
+   "openTimeMs": 1790802000000,
+   "open": 118.06,
+   "close": 118.04
+  },
+  {
+   "openTimeMs": 1790805600000,
+   "open": 118.05,
+   "close": 118.15
+  },
+  {
+   "openTimeMs": 1790809200000,
+   "open": 118.15,
+   "close": 118.12
+  },
+  {
+   "openTimeMs": 1790812800000,
+   "open": 118.12,
+   "close": 118.0
+  },
+  {
+   "openTimeMs": 1790816400000,
+   "open": 117.99,
+   "close": 118.12
+  },
+  {
+   "openTimeMs": 1790820000000,
+   "open": 118.12,
+   "close": 118.2
+  },
+  {
+   "openTimeMs": 1790823600000,
+   "open": 118.2,
+   "close": 118.7
+  },
+  {
+   "openTimeMs": 1790827200000,
+   "open": 118.7,
+   "close": 119.12
+  },
+  {
+   "openTimeMs": 1790830800000,
+   "open": 119.11,
+   "close": 119.42
+  },
+  {
+   "openTimeMs": 1790834400000,
+   "open": 119.42,
+   "close": 119.24
+  },
+  {
+   "openTimeMs": 1790838000000,
+   "open": 119.25,
+   "close": 117.49
+  },
+  {
+   "openTimeMs": 1790841600000,
+   "open": 117.5,
+   "close": 117.91
+  },
+  {
+   "openTimeMs": 1790845200000,
+   "open": 117.92,
+   "close": 117.7
+  },
+  {
+   "openTimeMs": 1790848800000,
+   "open": 117.7,
+   "close": 118.01
+  },
+  {
+   "openTimeMs": 1790852400000,
+   "open": 118.02,
+   "close": 117.96
+  },
+  {
+   "openTimeMs": 1790856000000,
+   "open": 117.97,
+   "close": 117.36
+  },
+  {
+   "openTimeMs": 1790859600000,
+   "open": 117.37,
+   "close": 117.97
+  },
+  {
+   "openTimeMs": 1790863200000,
+   "open": 117.96,
+   "close": 117.38
+  },
+  {
+   "openTimeMs": 1790866800000,
+   "open": 117.39,
+   "close": 117.38
+  },
+  {
+   "openTimeMs": 1790870400000,
+   "open": 117.38,
+   "close": 117.14
+  },
+  {
+   "openTimeMs": 1790874000000,
+   "open": 117.14,
+   "close": 118.36
+  },
+  {
+   "openTimeMs": 1790877600000,
+   "open": 118.36,
+   "close": 118.39
+  },
+  {
+   "openTimeMs": 1790881200000,
+   "open": 118.39,
+   "close": 118.31
+  },
+  {
+   "openTimeMs": 1790884800000,
+   "open": 118.3,
+   "close": 118.14
+  },
+  {
+   "openTimeMs": 1790888400000,
+   "open": 118.14,
+   "close": 117.66
+  },
+  {
+   "openTimeMs": 1790892000000,
+   "open": 117.66,
+   "close": 118.32
+  },
+  {
+   "openTimeMs": 1790895600000,
+   "open": 118.32,
+   "close": 118.41
+  },
+  {
+   "openTimeMs": 1790899200000,
+   "open": 118.41,
+   "close": 118.9
+  },
+  {
+   "openTimeMs": 1790902800000,
+   "open": 118.89,
+   "close": 119.51
+  },
+  {
+   "openTimeMs": 1790906400000,
+   "open": 119.51,
+   "close": 120.07
+  },
+  {
+   "openTimeMs": 1790910000000,
+   "open": 120.08,
+   "close": 121.24
+  },
+  {
+   "openTimeMs": 1790913600000,
+   "open": 121.24,
+   "close": 123.49
+  },
+  {
+   "openTimeMs": 1790917200000,
+   "open": 123.49,
+   "close": 121.9
+  },
+  {
+   "openTimeMs": 1790920800000,
+   "open": 121.9,
+   "close": 121.76
+  },
+  {
+   "openTimeMs": 1790924400000,
+   "open": 121.76,
+   "close": 121.72
+  },
+  {
+   "openTimeMs": 1790928000000,
+   "open": 121.72,
+   "close": 122.05
+  },
+  {
+   "openTimeMs": 1790931600000,
+   "open": 122.05,
+   "close": 121.77
+  },
+  {
+   "openTimeMs": 1790935200000,
+   "open": 121.78,
+   "close": 121.92
+  },
+  {
+   "openTimeMs": 1790938800000,
+   "open": 121.92,
+   "close": 121.82
+  },
+  {
+   "openTimeMs": 1790942400000,
+   "open": 121.82,
+   "close": 122.56
+  },
+  {
+   "openTimeMs": 1790946000000,
+   "open": 122.56,
+   "close": 122.06
+  },
+  {
+   "openTimeMs": 1790949600000,
+   "open": 122.07,
+   "close": 120.64
+  },
+  {
+   "openTimeMs": 1790953200000,
+   "open": 120.65,
+   "close": 119.98
+  },
+  {
+   "openTimeMs": 1790956800000,
+   "open": 119.98,
+   "close": 119.96
+  },
+  {
+   "openTimeMs": 1790960400000,
+   "open": 119.96,
+   "close": 119.69
+  },
+  {
+   "openTimeMs": 1790964000000,
+   "open": 119.68,
+   "close": 118.14
+  },
+  {
+   "openTimeMs": 1790967600000,
+   "open": 118.14,
+   "close": 118.0
+  },
+  {
+   "openTimeMs": 1790971200000,
+   "open": 118.0,
+   "close": 117.77
+  },
+  {
+   "openTimeMs": 1790974800000,
+   "open": 117.77,
+   "close": 118.22
+  },
+  {
+   "openTimeMs": 1790978400000,
+   "open": 118.22,
+   "close": 118.52
+  },
+  {
+   "openTimeMs": 1790982000000,
+   "open": 118.52,
+   "close": 118.65
+  },
+  {
+   "openTimeMs": 1790985600000,
+   "open": 118.65,
+   "close": 119.03
+  },
+  {
+   "openTimeMs": 1790989200000,
+   "open": 119.03,
+   "close": 119.1
+  },
+  {
+   "openTimeMs": 1790992800000,
+   "open": 119.1,
+   "close": 118.9
+  },
+  {
+   "openTimeMs": 1790996400000,
+   "open": 118.9,
+   "close": 119.4
+  },
+  {
+   "openTimeMs": 1791000000000,
+   "open": 119.39,
+   "close": 119.18
+  },
+  {
+   "openTimeMs": 1791003600000,
+   "open": 119.19,
+   "close": 119.63
+  },
+  {
+   "openTimeMs": 1791007200000,
+   "open": 119.64,
+   "close": 119.45
+  },
+  {
+   "openTimeMs": 1791010800000,
+   "open": 119.46,
+   "close": 119.34
+  },
+  {
+   "openTimeMs": 1791014400000,
+   "open": 119.34,
+   "close": 119.24
+  },
+  {
+   "openTimeMs": 1791018000000,
+   "open": 119.25,
+   "close": 119.34
+  },
+  {
+   "openTimeMs": 1791021600000,
+   "open": 119.34,
+   "close": 119.5
+  },
+  {
+   "openTimeMs": 1791025200000,
+   "open": 119.49,
+   "close": 119.31
+  },
+  {
+   "openTimeMs": 1791028800000,
+   "open": 119.32,
+   "close": 119.48
+  },
+  {
+   "openTimeMs": 1791032400000,
+   "open": 119.48,
+   "close": 119.43
+  },
+  {
+   "openTimeMs": 1791036000000,
+   "open": 119.44,
+   "close": 119.78
+  },
+  {
+   "openTimeMs": 1791039600000,
+   "open": 119.78,
+   "close": 119.71
+  },
+  {
+   "openTimeMs": 1791043200000,
+   "open": 119.71,
+   "close": 119.71
+  },
+  {
+   "openTimeMs": 1791046800000,
+   "open": 119.72,
+   "close": 119.98
+  },
+  {
+   "openTimeMs": 1791050400000,
+   "open": 119.99,
+   "close": 119.97
+  },
+  {
+   "openTimeMs": 1791054000000,
+   "open": 119.97,
+   "close": 119.78
+  },
+  {
+   "openTimeMs": 1791057600000,
+   "open": 119.79,
+   "close": 119.89
+  }
+ ]
+}

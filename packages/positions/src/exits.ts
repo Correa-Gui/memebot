@@ -1,5 +1,5 @@
 import type { Lamports } from '@memebot/core';
-import { bondingCurveSell } from '@memebot/curve-math';
+import { bondingCurveSell, pumpSwapSell } from '@memebot/curve-math';
 import type { CurveFeeBps } from '@memebot/curve-math';
 import type { TokenState } from '@memebot/state';
 import type { StrategyV0Config } from '@memebot/strategy';
@@ -32,13 +32,26 @@ function graduated(token: TokenState): boolean {
  * fecha a conta de token e devolve o rent (que foi cobrado no custo de entrada). `null` sem reservas.
  */
 export function liquidationValue(position: Position, token: TokenState, ctx: ExitContext): Lamports | null {
-  if (!token.curveReserves || position.tokenAmount <= 0n) return null;
-  const { netQuoteOut } = bondingCurveSell(
-    { virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken },
-    position.tokenAmount,
-    ctx.fees,
-  );
+  if (position.tokenAmount <= 0n) return null;
+  const netQuoteOut = position.venue === 'pumpswap' ? pumpSwapNetOut(position, token) : curveNetOut(position, token, ctx);
+  if (netQuoteOut === null) return null;
   return netQuoteOut - ctx.exitPriorityFeeLamports - ctx.exitJitoTipLamports - ctx.exitBaseFeeLamports + position.rentPaidLamports;
+}
+
+function curveNetOut(position: Position, token: TokenState, ctx: ExitContext): Lamports | null {
+  if (!token.curveReserves) return null;
+  return bondingCurveSell({ virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken }, position.tokenAmount, ctx.fees).netQuoteOut;
+}
+
+/** Posição comprada no PumpSwap: venda exata com as reservas e os bps efetivos do último trade da pool. */
+function pumpSwapNetOut(position: Position, token: TokenState): Lamports | null {
+  const r = token.pumpSwapReserves;
+  if (!r || r.virtualQuote === null || r.feeBps === null || r.base <= 0n) return null;
+  try {
+    return pumpSwapSell({ base: r.base, quote: r.quote, virtualQuote: r.virtualQuote }, position.tokenAmount, r.feeBps).netQuoteOut;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -126,7 +139,8 @@ export function evaluateExits(
   if (position.exitPending !== null || position.tokenAmount <= 0n) return { position: next, orders: [] };
   const done = (order: ExitOrder): { position: Position; orders: ExitOrder[] } => ({ position: next, orders: [order] });
 
-  if (graduated(token)) return done(sellAll(position, 'graduated'));
+  // só posição de curva sai por graduação; posição comprada no PumpSwap já está no venue graduado
+  if (position.venue === 'curve' && graduated(token)) return done(sellAll(position, 'graduated'));
   if (config.emergency.exitOnCreatorSell && hasCreatorSellSince(position, token)) {
     return done(sellAll(position, 'emergency_creator_sell'));
   }
