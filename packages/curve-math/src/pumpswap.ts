@@ -103,6 +103,22 @@ function assertValidFees(f: PumpSwapFeeBps): void {
   }
 }
 
+/** `Pool.coin_creator` de pool sem criador (chave padrão). */
+export const PUMPSWAP_NO_COIN_CREATOR = '11111111111111111111111111111111';
+
+/**
+ * Bps efetivos de um swap. Pool SEM criador (`coin_creator` = chave padrão): o programa não cobra a
+ * taxa do criador, mas o evento ainda traz `coin_creator_fee_basis_points` > 0 (com
+ * `coin_creator_fee` = 0). Achado de 2026-10-03: verificação em massa de 11.356.386 trades reais
+ * (todos com `pumpswap_trade_extra`) — 148 divergências, 100% nesse caso, e as 148 batem com 0 de
+ * diferença usando o bps do criador = 0 (fixtures `test/fixtures/golden/pumpswap-no-creator.json`).
+ * Sem o `coin_creator` à mão (linha reconstruída do banco), o equivalente exato é
+ * `coin_creator_fee == 0` com bps > 0: com valor > 0, `ceil(valor·bps/10000) ≥ 1`.
+ */
+export function effectivePumpSwapFeeBps(eventBps: PumpSwapFeeBps, hasCoinCreator: boolean): PumpSwapFeeBps {
+  return hasCoinCreator ? eventBps : { ...eventBps, creatorFeeBps: 0n };
+}
+
 export function pumpSwapFees(amount: Lamports, fees: PumpSwapFeeBps): PumpSwapFees {
   return {
     lpFee: feeFromBps(amount, fees.lpFeeBps),

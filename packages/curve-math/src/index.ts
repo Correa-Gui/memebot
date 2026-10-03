@@ -25,6 +25,8 @@ export {
   pumpSwapBuyExactQuoteIn,
   pumpSwapSell,
   pumpSwapFees,
+  effectivePumpSwapFeeBps,
+  PUMPSWAP_NO_COIN_CREATOR,
   effectiveQuoteReserves,
   marketCapLamports,
 } from './pumpswap.ts';

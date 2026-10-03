@@ -86,7 +86,15 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
   no 20/5/85. **Pendente fora deste pacote (resolvido no item seguinte):** o `normalize` (`packages/ingest`) ainda não gravava
   `virtual_quote_reserves`/`cashback`/bps por trade do PumpSwap; o estado (`pumpSwapReserves`) precisa desse
   campo antes de qualquer simulação. O paper executor continua lançando `PumpSwapSimulationNotValidatedError`
-  até o usuário decidir incluir graduados.)*
+  até o usuário decidir incluir graduados.
+  **2026-10-03 — verificação em massa e pool sem criador:** `scripts/verify-pumpswap-bulk.sh` reimplementa as
+  fórmulas em SQL e confere TODOS os trades com `pumpswap_trade_extra`: 11.463.859 trades, 150 divergências, 100%
+  em pools com `coin_creator` = chave padrão — o evento traz `coin_creator_fee_basis_points` > 0, mas o programa não
+  cobra a taxa do criador. Com o bps efetivo do criador = 0 (`effectivePumpSwapFeeBps`; no estado, taxa do
+  criador = 0 no evento ⇔ sem criador), 11.463.859/11.463.859 exatos. Fixtures golden de pool sem criador:
+  `test/fixtures/golden/pumpswap-no-creator.json` (13 eventos reais: 3 vendas, 5 `buy`, 5 `buy_exact_quote_in`;
+  `scripts/extract-pumpswap-no-creator-fixtures.ts`). A venda da divergência original (pool `DycbAuWK…`, sig
+  `gFtyZXf6…`, `quote_amount` 215867) está entre os conferidos.)*
 - [x] **Dados do PumpSwap completos e persistentes** (pré-requisito para testar o universo graduado no replay).
   *(2026-10-02. `PumpSwapTradeEvent.swapDetails` (offset virtual, bps por componente, cashback, variante da
   instrução, `base_supply`) preenchido pelo normalize; `TokenState.pumpSwapReserves` agora é o estado DEPOIS do

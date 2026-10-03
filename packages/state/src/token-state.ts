@@ -111,8 +111,10 @@ export function pumpSwapReservesAfter(event: PumpSwapTradeEvent): PumpSwapReserv
     base: base < 0n ? 0n : base,
     quote: quote < 0n ? 0n : quote,
     virtualQuote: d ? d.virtualQuoteReserves : null,
+    // bps EFETIVOS: pool sem criador traz bps do criador > 0 mas não cobra (taxa do criador = 0 no
+    // evento ⇔ sem criador; ver `effectivePumpSwapFeeBps` em curve-math)
     feeBps: d
-      ? { lpFeeBps: d.lpFeeBps, protocolFeeBps: d.protocolFeeBps, creatorFeeBps: d.creatorFeeBps, cashbackFeeBps: d.cashbackFeeBps }
+      ? { lpFeeBps: d.lpFeeBps, protocolFeeBps: d.protocolFeeBps, creatorFeeBps: event.creatorFee === 0n ? 0n : d.creatorFeeBps, cashbackFeeBps: d.cashbackFeeBps }
       : null,
     baseSupply: d ? d.baseSupply : null,
     lastSlot: event.slot,

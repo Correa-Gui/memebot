@@ -24,7 +24,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PUMP_AMM_IDL } from '../../ingest/src/idl.ts';
 
@@ -35,10 +35,10 @@ const PER_POOL = 3;
 const PER_KIND_PER_CATEGORY = 10;
 const MAX_CASHBACK_PER_CATEGORY = 6;
 
-type Category = 'wsol' | 'base-wsol' | 'other-quote';
+export type Category = 'wsol' | 'base-wsol' | 'other-quote';
 type Kind = 'buy' | 'buy_exact_quote_in' | 'sell';
 
-function query(sql: string): unknown[] {
+export function query(sql: string): unknown[] {
   const shCmd = `clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database ${DATABASE} --format JSONEachRow`;
   const out = execFileSync('docker', ['exec', '-i', CONTAINER, 'sh', '-c', shCmd], {
     input: sql,
@@ -51,7 +51,7 @@ function query(sql: string): unknown[] {
     .map((l) => JSON.parse(l) as unknown);
 }
 
-interface Row {
+export interface Row {
   sig: string;
   event_index: number;
   slot: string;
@@ -59,7 +59,7 @@ interface Row {
   raw_b64: string;
 }
 
-interface Ev {
+export interface Ev {
   row: Row;
   kind: Kind;
   d: Record<string, unknown>;
@@ -71,7 +71,7 @@ function big(d: Record<string, unknown>, k: string): bigint {
   return v;
 }
 
-function decode(row: Row): Ev | null {
+export function decode(row: Row): Ev | null {
   const ev = PUMP_AMM_IDL.decodeEvent(Buffer.from(row.raw_b64, 'base64'));
   if (!ev || (ev.name !== 'BuyEvent' && ev.name !== 'SellEvent')) return null;
   const d = ev.data as Record<string, unknown>;
@@ -103,7 +103,7 @@ export interface PumpSwapGoldenFixture {
   after: { base: string; quote: string };
 }
 
-function toFixture(cur: Ev, next: Ev, category: Category): PumpSwapGoldenFixture {
+export function toFixture(cur: Ev, next: Ev, category: Category): PumpSwapGoldenFixture {
   const d = cur.d;
   const isSell = cur.kind === 'sell';
   const s = (k: string): string => big(d, k).toString();
@@ -132,7 +132,7 @@ function toFixture(cur: Ev, next: Ev, category: Category): PumpSwapGoldenFixture
   };
 }
 
-function baseContinuity(cur: Ev, next: Ev): boolean {
+export function baseContinuity(cur: Ev, next: Ev): boolean {
   const b0 = big(cur.d, 'pool_base_token_reserves');
   const b1 = big(next.d, 'pool_base_token_reserves');
   return cur.kind === 'sell' ? b1 === b0 + big(cur.d, 'base_amount_in') : b1 === b0 - big(cur.d, 'base_amount_out');
@@ -226,4 +226,5 @@ function main(): void {
   console.log(`pumpswap: ${String(fixtures.length)} fixtures gravadas`);
 }
 
-main();
+// só roda como script (o extrator de pools sem criador importa os helpers acima)
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main();

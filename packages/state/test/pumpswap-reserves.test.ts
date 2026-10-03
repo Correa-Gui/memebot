@@ -18,12 +18,13 @@ interface GoldenFixture {
   ixName: 'buy' | 'buy_exact_quote_in' | 'sell';
   before: { base: string; quote: string; virtualQuote: string };
   feeBps: { lp: string; protocol: string; creator: string; cashback: string };
-  event: { baseAmount: string; quoteAmount: string; userQuoteAmount: string; lpFee: string; cashback: string };
+  event: { baseAmount: string; quoteAmount: string; userQuoteAmount: string; lpFee: string; creatorFee: string; cashback: string };
   after: { base: string; quote: string };
 }
-const golden = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'curve-math', 'test', 'fixtures', 'golden', 'pumpswap.json'), 'utf8'),
-) as GoldenFixture[];
+const goldenDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'curve-math', 'test', 'fixtures', 'golden');
+const golden = JSON.parse(readFileSync(join(goldenDir, 'pumpswap.json'), 'utf8')) as GoldenFixture[];
+/** Pools sem criador: evento com bps do criador > 0 e taxa do criador = 0. */
+const noCreator = JSON.parse(readFileSync(join(goldenDir, 'pumpswap-no-creator.json'), 'utf8')) as GoldenFixture[];
 
 function detailsOf(fx: GoldenFixture): PumpSwapSwapDetails {
   return {
@@ -57,6 +58,7 @@ function eventOf(fx: GoldenFixture, withDetails: boolean) {
     poolBaseReserves: BigInt(fx.before.base),
     poolQuoteReserves: BigInt(fx.before.quote),
     lpFee: BigInt(fx.event.lpFee),
+    creatorFee: BigInt(fx.event.creatorFee),
     ixName: fx.ixName === 'sell' ? null : fx.ixName,
     ...(withDetails ? { swapDetails: detailsOf(fx) } : {}),
   });
@@ -84,6 +86,14 @@ describe('pumpSwapReserves = estado DEPOIS do trade (evento traz o ANTES)', () =
     expect(snap.base).toBe(BigInt(fx.after.base));
     expect(snap.quote).toBe(BigInt(fx.after.quote));
     expect(snap).toMatchObject({ virtualQuote: null, feeBps: null, baseSupply: null });
+  });
+
+  it.each(noCreator)('bps efetivo do criador = 0 em pool sem criador: $description', (fx) => {
+    const snap = pumpSwapReservesAfter(eventOf(fx, true));
+    expect(BigInt(fx.feeBps.creator)).toBeGreaterThan(0n);
+    expect(snap.feeBps?.creatorFeeBps).toBe(0n);
+    expect(snap.base).toBe(BigInt(fx.after.base));
+    expect(snap.quote).toBe(BigInt(fx.after.quote));
   });
 
   it('applyEvent guarda o snapshot do último trade no TokenState', () => {

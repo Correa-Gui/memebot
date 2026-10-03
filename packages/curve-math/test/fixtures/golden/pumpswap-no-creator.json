@@ -1,0 +1,483 @@
+[
+  {
+    "description": "pumpswap sem criador sell real: pool=BTafPrEj… sig=3YZf5fZynp…",
+    "source": {
+      "sig": "3YZf5fZynpUYooysebY94auK1nMcRcANQ7kBh4k3bDSe9P6teKp5hfksaeQQ2Qmm9GjbVUP4zjRaPa9YfpFxxN3Q",
+      "eventIndex": 0,
+      "slot": "451823333",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Pi83CqUD3CrzbLxqAAAAAEvHTEcAAAAAAAAAAAAAAAAnG/4BAQAAAAAAAAAAAAAAng4HgFO2AQA4A0uyCgAAAGu9AQAAAAAAAgAAAAAAAAAXAAAAAAAAAF0AAAAAAAAAJQQAAAAAAABUvQEAAAAAAC+5AQAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvFUXUQ3daFxKx+j9AQQxKKfcf83obC8pYHu9FBWemp7/CRJv660S5+DTdcB2cTUdaHghDMAtsAal1zhlOSAN1j03St/YM6zvAYcQ7TMX2vEqSVr0F4Syz7HUyvILiKSb3dgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAEgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJXVXws6iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "sell",
+    "before": {
+      "base": "481944723197598",
+      "quote": "45940933432",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "1196214091",
+      "quoteAmount": "114027",
+      "userQuoteAmount": "112943",
+      "lpFee": "23",
+      "protocolFee": "1061",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "481945919411689",
+      "quote": "45940819428"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador sell real: pool=BTafPrEj… sig=17ocHGbxib…",
+    "source": {
+      "sig": "17ocHGbxibezLDwZFD7euo73xh4MySCWn7xG9qGUYDrDcBq3CuSQYZQEcGNQ8oRp6kWhFWagxJ4uHbQ8RogNKRH",
+      "eventIndex": 0,
+      "slot": "451827473",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Pi83CqUD3CpDcbxqAAAAABYHUf4GAAAAAAAAAAAAAAB9WOzDGgAAAAAAAAAAAAAA6dVTx1O2AQDkRUmyCgAAAKOvKwAAAAAAAgAAAAAAAAA9AgAAAAAAAF0AAAAAAAAAA2gAAAAAAABmrSsAAAAAAGNFKwAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvGpfz18AXO+aLrb2ca0K+F6jb4uCYlIE+6+dXK541jJEgLB+XSnXLxqpDJftH8ZD9ulgneZNBaw4qS71LiSEjCh9SnrhSFRbb0BrYQVp1uayVirZI4C2pD6OQpwfT3vEJtgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAATQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJXVXws6iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "sell",
+    "before": {
+      "base": "481945919411689",
+      "quote": "45940819428",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "30036526870",
+      "quoteAmount": "2863011",
+      "userQuoteAmount": "2835811",
+      "lpFee": "573",
+      "protocolFee": "26627",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "481975955938559",
+      "quote": "45937956990"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador sell real: pool=7umvzVYi… sig=3X6EHSP1Q8…",
+    "source": {
+      "sig": "3X6EHSP1Q8jVw2MAjbXSoPMS7PLoixXkjCtg32ULGD5frNAg8QkGw8vAx64w9LofmTTKWWonNkW68AYeSw5zgneh",
+      "eventIndex": 0,
+      "slot": "452421095",
+      "pool": "7umvzVYiG14JQwAdERPPbfR9cQJzXCpMt1YPM9XzXT2h",
+      "eventRawB64": "Pi83CqUD3CrY3b5qAAAAAA5xreKiAgAAAQAAAAAAAAAOca3iogIAAC6rADMBAAAAh+sSjt0vAgCxkZWxBgAAACXyBwgAAAAAAgAAAAAAAABEaQAAAAAAAF0AAAAAAAAAzB4TAAAAAADhiAcIAAAAABVq9AcAAAAAZqsgjGCKifsMh9uyG6xDecdVUereA0xOb+J9MkNF8AqMGf3yZ1P5N00S9cFaOxWJyADe8TlLeXQyLM6XXdY3kcL+Fk9URJ3JP22doVKMGacLzC0JlGkpQZpdjE2XTn6uuPdUZIUWJvJJVct4ysU2VQk1dea92Xn5nL0cWtPZgxZKwvjQ3Vy8l+MonBl8tQYqVPPZVrnOblEV+WVnqlyz5nfZFZVfiIBzHOtKdaDMlsF0+kCVxOHZlnrPxChFrmeuAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAZo8JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEPNkPhxjQMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "sell",
+    "before": {
+      "base": "615578571303815",
+      "quote": "28749173169",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "2898610974990",
+      "quoteAmount": "134738469",
+      "userQuoteAmount": "133458453",
+      "lpFee": "26948",
+      "protocolFee": "1253068",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "618477182278805",
+      "quote": "28614461648"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy_exact_quote_in real: pool=BTafPrEj… sig=4dzEsuMqRS…",
+    "source": {
+      "sig": "4dzEsuMqRSiVUKM3Sh5Asa4qon3R6rJnTbQ1S56Ms3c637TKDnwodpP2BywqugQWA4nFDM33TNhqVa4SKW9vstx9",
+      "eventIndex": 0,
+      "slot": "452431148",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Z/RSHyz1d3df6L5qAAAAAG1MCRMIAAAAcD42AAAAAAAAAAAAAAAAAHA+NgAAAAAANL7U+LSoAQDBIyMKCwAAAHA+NgAAAAAAAgAAAAAAAADBAgAAAAAAAF0AAAAAAAAA7n8AAAAAAACCvjUAAAAAAMG7NQAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvH9nmp50Gu8Ze/AwNkLMNkccgzi+hcPFJrXluwEKDHnkx6jOsb2D6FlVRPY7WXkKqGD8a8jxgue7ejD7y/Su8+dXRpT1+96fJhh/j6JXML17fAjOMoqUNUXeaNrzkRszvNgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAA9z8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO9tNXo1iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy_exact_quote_in",
+    "before": {
+      "base": "466970198982196",
+      "quote": "47414715329",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "34679114861",
+      "quoteAmount": "3554928",
+      "userQuoteAmount": "3521473",
+      "lpFee": "705",
+      "protocolFee": "32750",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "466935519867335",
+      "quote": "47418237507"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy_exact_quote_in real: pool=BTafPrEj… sig=4HiuTaZnU1…",
+    "source": {
+      "sig": "4HiuTaZnU1JgWtGhPxtdhsc2eBcX1XkKWree7FU8xFmqgVDoswkgo9vQM5tcoT3gJvc3THLkBktrCE8gEpuBYAaN",
+      "eventIndex": 0,
+      "slot": "452436795",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Z/RSHyz1d3dH7r5qAAAAAE9B58MCAAAANJQSAAAAAABtTAkTCAAAADSUEgAAAAAAx3HL5ayoAQBD4lgKCwAAADSUEgAAAAAAAgAAAAAAAADyAAAAAAAAAF0AAAAAAAAA0SsAAAAAAABjaBIAAAAAAHFnEgAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvH9nmp50Gu8Ze/AwNkLMNkccgzi+hcPFJrXluwEKDHnkx6jOsb2D6FlVRPY7WXkKqGD8a8jxgue7ejD7y/Su8+dXRpT1+96fJhh/j6JXML17fAjOMoqUNUXeaNrzkRszvNgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAA6BUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO9tNXo1iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy_exact_quote_in",
+    "before": {
+      "base": "466935519867335",
+      "quote": "47418237507",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "11876647247",
+      "quoteAmount": "1217588",
+      "userQuoteAmount": "1206129",
+      "lpFee": "242",
+      "protocolFee": "11217",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "466923643220088",
+      "quote": "47419443878"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy_exact_quote_in real: pool=BTafPrEj… sig=362ZY26Edm…",
+    "source": {
+      "sig": "362ZY26Edmgckh3sp15CxEkjYxjiSKN979g3dWKmhyo2BPZe5hCjZ9hGQk5BgUS3GukJYVtJjvm3aLRZBj6NPqJM",
+      "eventIndex": 0,
+      "slot": "452438146",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Z/RSHyz1d3ex775qAAAAALoq1nwBAAAA1v4JAAAAAABDcRibCwAAANb+CQAAAAAAeDDkIaqoAQCmSmsKCwAAANb+CQAAAAAAAgAAAAAAAACCAAAAAAAAAF0AAAAAAAAAkxcAAAAAAABD5wkAAAAAAMHmCQAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvGpjInOziMP6juZOMjKj6ZX9OP3JDIuUq3/CrdzjIegLi43/NzPF5V1J5y9y9cR7p2VdLGKIc53EuwZxnuTNEBFanrRICdUjf+vzbhsjBgaMZiHoa25Kt8ZoVUJeO6+s8tgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAyQsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO9tNXo1iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy_exact_quote_in",
+    "before": {
+      "base": "466923643220088",
+      "quote": "47419443878",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "6389377722",
+      "quoteAmount": "655062",
+      "userQuoteAmount": "648897",
+      "lpFee": "130",
+      "protocolFee": "6035",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "466917253842366",
+      "quote": "47420092905"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy_exact_quote_in real: pool=BTafPrEj… sig=5PQigYXURs…",
+    "source": {
+      "sig": "5PQigYXURsLsfRJf9PAsTaLdSVt533Rrgv7jgo315GuK48QKkD6oS3AV9krm4MAGRYGcQGkuDYHU4Nkemzzs6CMs",
+      "eventIndex": 0,
+      "slot": "452439744",
+      "pool": "BTafPrEjNu8KMwYSpdvYYHMwJKPWopVg5ByUyYDcNDn",
+      "eventRawB64": "Z/RSHyz1d3dc8b5qAAAAAEaNbA8NAAAAYsNXAAAAAAAAAAAAAAAAAGLDVwAAAAAAvgUOpaioAQDpMXUKCwAAAGLDVwAAAAAAAgAAAAAAAAB0BAAAAAAAAF0AAAAAAAAA+84AAAAAAABn9FYAAAAAAPPvVgAAAAAAAq3c1LbZH20Q6hEmK+xsOXkQ8EsyF9DLQ6Xu0uzRAvGMSvmwTUUQuEuO/detbZaBMMSOoStTYgOqwQYEuPPBucfucxahoV3LR5EkQvLo9+fhwJT/z3H8tzif5ry6MUH3B7y2pBbU2gj/8tvPosTPvjTA7zix7BrQ/dchHVKuVvFgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAfWcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO9tNXo1iwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy_exact_quote_in",
+    "before": {
+      "base": "466917253842366",
+      "quote": "47420092905",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "56093347142",
+      "quoteAmount": "5751650",
+      "userQuoteAmount": "5697523",
+      "lpFee": "1140",
+      "protocolFee": "52987",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "466861160495224",
+      "quote": "47425791568"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy_exact_quote_in real: pool=67FPWeu4… sig=3z25WxpK5A…",
+    "source": {
+      "sig": "3z25WxpK5ARwXosA6kb3QN83o6tgjYZiNJtyzkJwVLPNu7oTazGaC78oMWGcsRTX3xqcKjJKt7dQ6yxH6kRzm8ZX",
+      "eventIndex": 0,
+      "slot": "452555874",
+      "pool": "67FPWeu4iAR36zN9tTMfzozTpBrUV2GepnrMjQBq32MC",
+      "eventRawB64": "Z/RSHyz1d3fNar9qAAAAAFMvlG4ZAwAA06YzBgAAAAAAAAAAAAAAANOmMwYAAAAAQThWX0a9AgAhseVnBQAAANOmMwYAAAAAAgAAAAAAAACGUAAAAAAAAF0AAAAAAAAAUKAOAAAAAACDBiUGAAAAAP21JAYAAAAAS+QwLU5t2OgaPxmTtKetybNhqSGYK38euPVhhj5vBAddjie2MdabMDaYdA/VxhUcvYQJA2o2yDWFIIq1tWKjLTMYTN93J1tloOc4nuJQWMik9CSV0vzoO5zKVKI9YBwOql349IIrBvwoYo7Wdxe9ZoiynjmJhB4xHkFye8qP7ddgjMwd/OlhtDt3nBkVBabi079F1aTbRhitdsgtYXVFNV0OMm1Matf/fY9TP8MJCFS9H+8ykQhAD19V155Lh4BRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAASAAAAYnV5X2V4YWN0X3F1b3RlX2luAAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAKFAHAAAAAAAAAAAAAAAAAAAAAAAAAAAAABczIRlyjQMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy_exact_quote_in",
+    "before": {
+      "base": "771059898267713",
+      "quote": "23217942817",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "3407764270931",
+      "quoteAmount": "104048339",
+      "userQuoteAmount": "103069181",
+      "lpFee": "20614",
+      "protocolFee": "958544",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "767652133996782",
+      "quote": "23321032612"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy real: pool=H1Wjqmpa… sig=31n2QkbLZC…",
+    "source": {
+      "sig": "31n2QkbLZCEP3obhjCXfra4ZXxLNe9V69JoGU94xTHBAdwBNuMj9R4jc99hoixyXtSx9UNjRpG4XhKuDxp9atTK5",
+      "eventIndex": 0,
+      "slot": "452508149",
+      "pool": "H1Wjqmpa7ZBNfZDKVgd4Rs5aMDaHpvRbd2HVWXJCebvb",
+      "eventRawB64": "Z/RSHyz1d3fpOL9qAAAAAKB1sggVAAAAqS5dAgAAAAAAAAAAAAAAAKkuXQIAAAAAHXUp7BO4AACeP4qIEAAAAE6sWwIAAAAAFAAAAAAAAAAVNQEAAAAAAAUAAAAAAAAARk0AAAAAAABj4VwCAAAAAKkuXQIAAAAA7dydzLeYeddX9B2OLZmjZCCMK8qJG/5Q35KFe3RuHgSp2rjEK506J6B2hOkF66Cw/O4S8zII9A58wlfQ6pgOnj8LrjHmYLzo46sSyTZNAXZGYis/aJDiMOWHs+0/GqRlcxrUkZwxwnqPFlsAjRN+4vfbDPWOaL7aCxbT0kLRWHyNGBoMhJ+pN6bzSt7TCB75VwCqywybs9kJpLkUdSek69QRe5ZGOuprDbyDGh4HnYHacr2qjLLmyH7CUkqIrVpVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABfAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoHWyCBUAAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAoyYAAAAAAAA0Qh4YBAAAAAAAAAAAAAAAARz3HMxbbgMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy",
+    "before": {
+      "base": "202395706029341",
+      "quote": "71010238366",
+      "virtualQuote": "17584505396"
+    },
+    "feeBps": {
+      "lp": "20",
+      "protocol": "5",
+      "creator": "95",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "90340226464",
+      "quoteAmount": "39562318",
+      "userQuoteAmount": "39661225",
+      "lpFee": "79125",
+      "protocolFee": "19782",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "202305365802877",
+      "quote": "71049879809"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy real: pool=67FPWeu4… sig=VV9oritbom…",
+    "source": {
+      "sig": "VV9oritbomcUojCN7zMci13CFmRNdSwai67tQVW9PW7ptrhiKM5thewQAuNaBkqSbeLduJQR7AdHuNsSpcqS7Eu",
+      "eventIndex": 0,
+      "slot": "452565272",
+      "pool": "67FPWeu4iAR36zN9tTMfzozTpBrUV2GepnrMjQBq32MC",
+      "eventRawB64": "Z/RSHyz1d3ehdL9qAAAAACVIsZZ6AAAAqY72AAAAAAAAAAAAAAAAAKmO9gAAAAAA7gjC8Cy6AgCktwpuBQAAAKw89AAAAAAAAgAAAAAAAACCDAAAAAAAAF0AAAAAAAAAe0UCAAAAAAAuSfQAAAAAAKmO9gAAAAAAS+QwLU5t2OgaPxmTtKetybNhqSGYK38euPVhhj5vBAdjxtGwSvpiV71BbqxCIYtBRbNEnMtvET93IAmT15akWb4O2WUHJDTZS3FNKIgsRK9OUhV92YBrOisqyl9c7vFX4mHLp1EMPO8wGTAoyIg9aavndJz+P1utML5Qxuw+TlJjg3MADqIssmTTSv9koEte+r+7dN3NBImXsZgVR9fREAe0ZyjFA6fIFZjsUWe5tjKg2nvc6Y8HxZZ7EO1veKHOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJUixlnoAAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAvSIBAAAAAAAAAAAAAAAAAAAAAAAAAAAAABczIRlyjQMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy",
+    "before": {
+      "base": "767652133996782",
+      "quote": "23321032612",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "526514210853",
+      "quoteAmount": "16006316",
+      "userQuoteAmount": "16158377",
+      "lpFee": "3202",
+      "protocolFee": "148859",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "767125619785929",
+      "quote": "23337042130"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy real: pool=7umvzVYi… sig=5zKBaPPbyb…",
+    "source": {
+      "sig": "5zKBaPPbybrn4NgfYeqS1Rxupbb2NYUqndTkEs3W4XffRvAAdJ1RSb9SaQkfhsMZfDF7QScdReiPZYgCkHeMkcGZ",
+      "eventIndex": 0,
+      "slot": "452495454",
+      "pool": "7umvzVYiG14JQwAdERPPbfR9cQJzXCpMt1YPM9XzXT2h",
+      "eventRawB64": "Z/RSHyz1d3edK79qAAAAAIM1ulKfBQAANIuBDQAAAAAAAAAAAAAAADSLgQ0AAAAAMx+kPsl9AgDDMEvgBQAAAJUBYQ0AAAAAAgAAAAAAAABdrwAAAAAAAF0AAAAAAAAAQtofAAAAAADysGENAAAAADSLgQ0AAAAAZqsgjGCKifsMh9uyG6xDecdVUereA0xOb+J9MkNF8ArRzCjHzczB8nPCZTbAQQfIkwGHWLbjHaA+ioYNk60GS/U1Mh1xFiOrc9tc9rNDblZEfvRDKwsyhZGodr7484RrULtQ36TMSXe76p4vof2C6NKKIoPOq9Lnx1jiJ1e/GEXXqo+wYNgpG0xNR12v92LJa9wNrOs2wBLq0S7TqUhBYQHIIfOo8I/viNwxQkp2gK6MloFwTPHl9ciOJ5m3+YIhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgzW6Up8FAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAIe0PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEPNkPhxjQMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "wsol",
+    "ixName": "buy",
+    "before": {
+      "base": "701253246263091",
+      "quote": "25237860547",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "6181845874051",
+      "quoteAmount": "224461205",
+      "userQuoteAmount": "226593588",
+      "lpFee": "44893",
+      "protocolFee": "2087490",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "695071400389040",
+      "quote": "25462366645"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy real: pool=7umvzVYi… sig=3YtovSJygF…",
+    "source": {
+      "sig": "3YtovSJygFgvzmU8s6GCm8w7pYpzTY2qGD8higbvVnuwL71EwkC5baMuV6auKKhG8Zz79ijfrjbkMqpdErJUEtbN",
+      "eventIndex": 0,
+      "slot": "452511549",
+      "pool": "7umvzVYiG14JQwAdERPPbfR9cQJzXCpMt1YPM9XzXT2h",
+      "eventRawB64": "Z/RSHyz1d3eCPL9qAAAAAKcY6166BAAA3NF8CwAAAAAAAAAAAAAAANzRfAsAAAAAvfmzgbx5AgAh9ujpBQAAABYlYQsAAAAAAgAAAAAAAAAolQAAAAAAAF0AAAAAAAAAnhcbAAAAAAA+umELAAAAANzRfAsAAAAAZqsgjGCKifsMh9uyG6xDecdVUereA0xOb+J9MkNF8Apy3OrDfhZcnfRGRRsWyMxmiX1D3bADLZjfgvJKuLbJzP88vcQDQfm1FwMcy9v4eHNi8v9cuWLqYjxIXqgXxNKoNGIQto6wnVfxAS9OALu+TLUgNzt+r/naTgHfDEZaJsaDhHQpLmdalLQ27LCpmIlCMoqD3cYjOAKWEmfFzWEXy6JjF6U7oP1oxMlT7DDw4JuOc2h1HLKBVIbK4+mdCvndAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApxjrXroEAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAAz4sNAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEPNkPhxjQMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "wsol",
+    "ixName": "buy",
+    "before": {
+      "base": "696800490289597",
+      "quote": "25399195169",
+      "virtualQuote": "0"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "5198502893735",
+      "quoteAmount": "190915862",
+      "userQuoteAmount": "192729564",
+      "lpFee": "38184",
+      "protocolFee": "1775518",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "691601987395862",
+      "quote": "25590149215"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  },
+  {
+    "description": "pumpswap sem criador buy real: pool=Adj5KqAd… sig=6EwyUbHxg6…",
+    "source": {
+      "sig": "6EwyUbHxg6ohCXwmmDXjjVEmsiR1XJXZcmADH4ieKGzi1TLU6cD3EQWcL1FLpf5LJwyBdJ6LAHXSSggXb8w992i",
+      "eventIndex": 0,
+      "slot": "452598168",
+      "pool": "Adj5KqAdAhP9Lh8WU8stU7R3dn5R4YCZfGDMbhXuhzGq",
+      "eventRawB64": "Z/RSHyz1d3fhlr9qAAAAAB4weImsAAAABnvtAAAAAAAPj/TkJwAAAAZ77QAAAAAApT1YfYxIAwCaggJhAAAAAOc+6wAAAAAAAgAAAAAAAAAMDAAAAAAAAF0AAAAAAAAAEzACAAAAAADzSusAAAAAAAZ77QAAAAAAjyGqUq4aH6qrL+uwgM34+XxMxDuewg/5hKnAm6JUDdoFubtiXAov6L280QZn62eXszI4R68HS3XuRTrKgk+Aw555YR5J/UtkKZKMMFy0De7wYM+ats/+dwOhuZ0RSWuKVy0hIXm2pNbNeH87E8Rt6525bUmu8lsuWGnpCcegSA2NGBoMhJ+pN6bzSt7TCB75VwCqywybs9kJpLkUdSek69QRe5ZGOuprDbyDGh4HnYHacr2qjLLmyH7CUkqIrVpVAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHjB4iawAAAADAAAAYnV5AAAAAAAAAAAAAAAAAAAAAIgTAAAAAAAACRgBAAAAAAAIRh4YBAAAAAAAAAAAAAAAAW/OfteAYwMAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "category": "other-quote",
+    "ixName": "buy",
+    "before": {
+      "base": "924193165688229",
+      "quote": "1627554458",
+      "virtualQuote": "17584506376"
+    },
+    "feeBps": {
+      "lp": "2",
+      "protocol": "93",
+      "creator": "30",
+      "cashback": "0"
+    },
+    "event": {
+      "baseAmount": "741040730142",
+      "quoteAmount": "15417063",
+      "userQuoteAmount": "15563526",
+      "lpFee": "3084",
+      "protocolFee": "143379",
+      "creatorFee": "0",
+      "cashback": "0"
+    },
+    "after": {
+      "base": "923452124958087",
+      "quote": "1642974605"
+    },
+    "coinCreator": "11111111111111111111111111111111"
+  }
+]

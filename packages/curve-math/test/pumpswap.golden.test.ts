@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { pumpSwapBuyExactBaseOut, pumpSwapBuyExactQuoteIn, pumpSwapSell } from '../src/pumpswap.ts';
+import { PUMPSWAP_NO_COIN_CREATOR, effectivePumpSwapFeeBps, pumpSwapBuyExactBaseOut, pumpSwapBuyExactQuoteIn, pumpSwapSell } from '../src/pumpswap.ts';
 import type { PumpSwapFeeBps, PumpSwapReserves } from '../src/pumpswap.ts';
 
 interface PumpSwapGoldenFixture {
@@ -22,10 +22,14 @@ interface PumpSwapGoldenFixture {
     cashback: string;
   };
   after: { base: string; quote: string };
+  /** Só nas fixtures de pool sem criador (`pumpswap-no-creator.json`). */
+  coinCreator?: string;
 }
 
 const fixturesPath = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'golden', 'pumpswap.json');
 const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf8')) as PumpSwapGoldenFixture[];
+const noCreatorPath = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'golden', 'pumpswap-no-creator.json');
+const noCreatorFixtures = JSON.parse(readFileSync(noCreatorPath, 'utf8')) as PumpSwapGoldenFixture[];
 
 function reservesOf(fx: PumpSwapGoldenFixture): PumpSwapReserves {
   return { base: BigInt(fx.before.base), quote: BigInt(fx.before.quote), virtualQuote: BigInt(fx.before.virtualQuote) };
@@ -70,8 +74,13 @@ describe('PumpSwap — fixtures golden (swap exato, trades reais)', () => {
   });
 
   it.each(fixtures)('$description', (fx) => {
+    expectExact(fx);
+  });
+});
+
+function expectExact(fx: PumpSwapGoldenFixture): void {
     const r = reservesOf(fx);
-    const fees = feeBpsOf(fx);
+    const fees = effectivePumpSwapFeeBps(feeBpsOf(fx), fx.coinCreator !== PUMPSWAP_NO_COIN_CREATOR);
     const e = fx.event;
     const expectedFees = {
       lpFee: BigInt(e.lpFee),
@@ -102,5 +111,28 @@ describe('PumpSwap — fixtures golden (swap exato, trades reais)', () => {
       expect({ lpFee: res.lpFee, protocolFee: res.protocolFee, creatorFee: res.creatorFee, cashbackFee: res.cashbackFee }).toEqual(expectedFees);
       expect(res.reservesAfter).toEqual(expectedAfter);
     }
+}
+
+/**
+ * Pools SEM criador (`coin_creator` = chave padrão): o evento traz `coin_creator_fee_basis_points` > 0,
+ * mas o programa não cobra a taxa do criador (achado de 2026-10-03 na verificação em massa de 11,36 M de
+ * trades; ver `effectivePumpSwapFeeBps`). Extraídas por `scripts/extract-pumpswap-no-creator-fixtures.ts`.
+ */
+describe('PumpSwap — fixtures golden de pool sem criador', () => {
+  it('cobertura: compra (as duas instruções) e venda, todas com bps do criador > 0 e taxa do criador = 0', () => {
+    for (const ix of ['buy', 'buy_exact_quote_in', 'sell'] as const) expect(noCreatorFixtures.filter((f) => f.ixName === ix).length).toBeGreaterThanOrEqual(3);
+    for (const f of noCreatorFixtures) {
+      expect(f.coinCreator).toBe(PUMPSWAP_NO_COIN_CREATOR);
+      expect(BigInt(f.feeBps.creator)).toBeGreaterThan(0n);
+      expect(f.event.creatorFee).toBe('0');
+    }
+  });
+
+  it.each(noCreatorFixtures)('$description', (fx) => {
+    expectExact(fx);
+  });
+
+  it('com o bps do criador do evento (sem a regra) NENHUMA bate — a regra é necessária', () => {
+    for (const fx of noCreatorFixtures) expect(() => { expectExact({ ...fx, coinCreator: 'x' }); }).toThrow();
   });
 });
