@@ -50,6 +50,14 @@ Fontes de sinal (todas entram como **features**, nunca como gatilho automático 
 
 - Perguntas ao usuário (menus de opção) também em português, com a recomendação e o motivo explicados.
 
+## 2.2 Economia de uso
+- Não lance agentes em paralelo nem em background sem pedido explícito.
+- Não fique vigiando processos longos: o processo grava o resultado em
+  data/reports/ e o usuário pede o resumo depois.
+- Saídas grandes (logs, tabelas, reports) vão para arquivo; na conversa, só um
+  resumo curto com o caminho do arquivo.
+- Modelo padrão: Sonnet. Opus só quando o usuário pedir.
+
 ## 3. Regras inegociáveis
 
 ### Segurança de chaves
