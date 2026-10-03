@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import type { AppConfig, Logger } from '@memebot/core';
 import { parseCurveInitialParams, parseFeeConfigAccount, worstCaseCurveFees } from '@memebot/curve-math';
 import type { CurveFeeBps, CurveInitialParams } from '@memebot/curve-math';
@@ -14,6 +15,7 @@ import type { Recorder } from '@memebot/recorder';
 import { DEFAULT_STOP_FILE_PATH, buildEffectiveRiskLimits, isStopFilePresent } from '@memebot/risk';
 import { loadStrategyConfig } from '@memebot/strategy';
 import { PUMP_FUN_PROGRAM_ID } from '../../../../config/protocol.ts';
+import { CLOCK_SKEW_ALERT_MS, SkewAlarm } from '../clock-skew.ts';
 import { openRecordingSession, waitForShutdown } from '../recording.ts';
 import { HourlyScheduler, StreamWatch, parseRunMarker, restartAlertLines, type RunMarker } from './alerts.ts';
 import { PaperClock } from './clock.ts';
@@ -76,10 +78,23 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
   const limits = buildEffectiveRiskLimits(config);
   let engine: PaperEngine | null = null;
   const strategyHash = createHash('sha256').update(strategyYaml).digest('hex');
+  const telegram = new TelegramNotifier({ botToken: cfg.TELEGRAM_BOT_TOKEN, chatId: cfg.TELEGRAM_CHAT_ID, logger: log });
+  const skewAlarm = new SkewAlarm();
 
   const session = await openRecordingSession(cfg, log, {
     mode: 'paper',
     extraConfigHash: strategyHash,
+    onClockSkew: (stats) => {
+      const t = skewAlarm.check(stats);
+      if (t?.kind === 'high') {
+        telegram.send(formatAlertMessage('relógio local desviado dos eventos', [
+          `desvio (mediana received_at − ts): ${(t.medianMs / 1_000).toFixed(1).replace('.', ',')} s (limite ${String(CLOCK_SKEW_ALERT_MS / 1_000)} s)`,
+          'causa provável: relógio do sistema fora de sincronia ou stream atrasado',
+          'estratégia: não afetada (o "agora" vem do ts dos eventos)',
+        ]));
+      }
+      if (t?.kind === 'normal') telegram.send(formatAlertMessage('desvio do relógio normalizado', [`desvio: ${(t.medianMs / 1_000).toFixed(1).replace('.', ',')} s`]));
+    },
     onGap: (gap) => {
       if (gap.kind === 'reconnect') engine?.recordStreamGap();
     },
@@ -102,7 +117,6 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     },
   });
   const { runId, recorder, rpc } = session;
-  const telegram = new TelegramNotifier({ botToken: cfg.TELEGRAM_BOT_TOKEN, chatId: cfg.TELEGRAM_CHAT_ID, logger: log });
 
   try {
     const protocol = await loadProtocolInputs(session.initialProtocolConfig, recorder, log);
@@ -125,8 +139,10 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     const costs = (await loadCosts()) ?? estimateTxCosts([], costParams);
 
     const seed = seedFromString(runId);
+    // "agora" da estratégia = tempo dos eventos (paper/clock.ts); o início do run (dia do limite de
+    // perda, hora do resumo) ainda não tem evento e usa o relógio de parede, só uma vez.
     const clock = new PaperClock();
-    const startMs = clock.nowMs();
+    const startMs = Date.now();
     const sinks = {
       decision: (d: Parameters<Recorder['recordDecision']>[0]) => {
         recorder.recordDecision(d);
@@ -145,6 +161,7 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
       latencyMs: cfg.PAPER_LATENCY_MS, failRate: cfg.PAPER_FAIL_RATE,
       tokenAccountRentLamports: rent.lamports, baseFeeLamportsPerSignature: LAMPORTS_PER_SIGNATURE,
       seed, startMs, sinks, tradeAlerts: cfg.TELEGRAM_MODE === 'all',
+      streamSilenceMs: () => clock.silenceMs(),
     });
     engine = e;
     const restart = restartAlertLines(readRunMarker(), Date.now());
@@ -174,7 +191,8 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     }
 
     await session.startIngest((ev) => {
-      if (ev.kind !== 'tx_cost') clock.observeEvent(ev.ts);
+      if (ev.kind === 'tx_cost') return; // engine ignora; o ts é o da tx amostrada, não da chegada
+      clock.observeEvent(ev.ts);
       e.onEvent(ev, clock.nowMs());
     });
 
@@ -182,7 +200,7 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     timers.push(setInterval(() => {
       try {
         e.setStopFile(isStopFilePresent(DEFAULT_STOP_FILE_PATH));
-        e.onTick(clock.nowMs());
+        if (clock.ready) e.onTick(clock.nowMs());
       } catch (err) {
         log.error({ err: err instanceof Error ? `${err.name}: ${err.message}` : String(err) }, 'erro no tick do paper');
       }
@@ -220,7 +238,10 @@ export async function runPaper(cfg: AppConfig, log: Logger): Promise<void> {
     timers.push(setInterval(() => {
       try {
         const now = Date.now();
-        const st = streamWatch.check(now, e.lastStreamReceivedAt);
+        // stream parado: relógio monotônico (tempo desde a última mensagem), não o ts dos eventos
+        const mono = performance.now();
+        const silence = clock.silenceMs();
+        const st = streamWatch.check(mono, silence === null ? null : mono - silence);
         if (st?.kind === 'down') telegram.send(formatAlertMessage('stream sem eventos', [`sem eventos há: ${String(Math.round(st.silentMs / 1_000))} s`, 'entradas: bloqueadas pelo kill switch de stream parado']));
         if (st?.kind === 'up') telegram.send(formatAlertMessage('stream voltou', [`tempo sem eventos: ${String(Math.round(st.silentMs / 1_000))} s`]));
         if (hourly.due(now)) {

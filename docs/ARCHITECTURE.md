@@ -325,7 +325,13 @@ export class PaperEngine {
 // (pré-carregados do banco não têm histórico), sem posição/ordem pendente, idade em [minAgeSec, maxAgeSec],
 // no máximo 1×/s por mint. `decisions` grava uma linha só quando o resultado do mint muda (primeiro reject,
 // mudança de motivo, enter, cada exit) — o report conta tokens (mints distintos) por motivo.
-// Relógio: PaperClock.nowMs = max(maior ts de evento, parede − 2 s, último valor) — monotônico; ticks de 1 s.
+// Relógio (03/10): PaperClock.nowMs = max(maior ts de evento, maior ts + (monotônico desde a última chegada) − 2 s,
+// último valor) — o "agora" da estratégia é o tempo dos eventos, como no replay `event`; o relógio de parede não entra
+// (relógio local 30 s errado não muda decisões: teste em engine.test.ts). Stream parado e kill switch `stream_stale`
+// usam PaperClock.silenceMs() (monotônico desde a última mensagem; opção `streamSilenceMs` do engine; ausente no
+// replay = nowMs − maior ts). Ticks de 1 s só depois do primeiro evento. Desvio relógio local × ts: log por minuto
+// `ingest.clockSkew` {samples, medianMs, minMs, maxMs} de received_at − ts (apps/bot/src/clock-skew.ts), no
+// `pnpm status` e alerta no Telegram (paper) quando |mediana| > 5 s (uma vez ao passar, uma ao normalizar).
 // Adaptador: apps/bot/src/paper/run-paper.ts (ClickHouse, RPC, Telegram, data/STOP, sinais/IPC de parada). Na partida
 // envia "paper iniciado" (run, versão + sha256 do YAML, tamanho, custos por tipo, hora de Brasília com UTC);
 // o log por minuto `paper` inclui telegram { enabled, sent, failed, dropped }.
@@ -500,7 +506,8 @@ export function executeReplay(inputs: ReplayInputs, variants: ReplayVariant[], p
   `ts` e o "agora" ficou ~18–21 s à frente dos eventos. Com `ts` de resolução de 1 s, as janelas de 60 s/120 s das
   features (buy/sell, compradores únicos, volume, média de preço) passaram a enxergar só os ~40 s mais antigos e a idade
   do token ficou ~20 s inflada — outro conjunto de tokens passa no gatilho. `paper_wall` reproduz o paper que rodou;
-  `event` é o que um paper com relógio certo faria. Corrigir o relógio/`PaperClock` é pré-requisito para o próximo paper.
+  `event` é o que um paper com relógio certo faria. Desde 03/10 o `PaperClock` usa o tempo dos eventos (ver §4): papers
+  novos se comparam com o replay `event`; `paper_wall` fica só para os runs anteriores.
 - **Sweep (`pnpm replay:sweep`):** padrão `--clock=paper-wall`; o ajuste começa no início dos dados, então tem
   aquecimento SÓ DE ESTADO (`eligibleFromMs`, `--warmup-min=120`: tokens criados nele nunca são elegíveis) e os dois
   períodos usam a mesma pré-carga de criadores (`creatorPreloadMs`, `--creator-preload-h=2`) — cada período começa

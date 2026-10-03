@@ -11,12 +11,12 @@ import type { CostSchedule, ProtocolSchedule } from './schedules.ts';
  *
  * Relógio (`SimulatedClock`): `agora = max(agora, ts do evento)`. O `ts` on-chain tem resolução de 1 s,
  * então todas as decisões caem em segundos cheios. Ticks sintéticos a cada segundo cheio T (T ≤ agora),
- * emitidos ANTES dos eventos com ts = T — o equivalente aos ticks de 1 s do paper ao vivo (que usa
- * `PaperClock = max(ts do evento, parede − 2 s)`), para saídas por tempo e preenchimentos que vencem sem
+ * emitidos ANTES dos eventos com ts = T — o equivalente aos ticks de 1 s do paper ao vivo (cujo `PaperClock`
+ * também usa o ts dos eventos desde 03/10), para saídas por tempo e preenchimentos que vencem sem
  * evento do mint. Em cada instante (tick ou evento), antes do engine: custos (`CostSchedule`) e
  * `protocol_config` (`ProtocolSchedule`) devidos até ali e, ao cruzar `entriesUntilMs`, `stopEntries()`.
  *
- * Modo de relógio `paper_wall` (só para comparar com um paper ao vivo já rodado): emula o `PaperClock`
+ * Modo de relógio `paper_wall` (só para comparar com papers rodados ATÉ 02/10): emula o `PaperClock` antigo
  * usando o `received_at` gravado como "parede": `agora = max(agora, ts, received_at − 2 s)`. O padrão
  * (`event`) é o tempo do evento puro — o único que não depende do relógio da máquina que gravou.
  *

@@ -92,6 +92,12 @@ export interface PaperEngineOptions {
    * amostra das hipóteses não ser cortada pelo limite de perda diária — nunca no paper/live ao vivo.
    */
   killSwitchEnabled?: boolean;
+  /**
+   * Tempo sem mensagens do stream para o kill switch `stream_stale` (`null` = nenhuma ainda). Ao vivo:
+   * relógio monotônico local desde a última chegada (`PaperClock.silenceMs`). Ausente (replay): diferença
+   * entre `nowMs` e o maior ts de evento visto.
+   */
+  streamSilenceMs?: () => number | null;
 }
 
 /** Saúde do ingest na hora (vem do adaptador de gravação; o engine não vê WS/HTTP). */
@@ -132,7 +138,7 @@ function minBig(a: bigint, b: bigint): bigint {
 }
 
 export class PaperEngine {
-  private readonly o: Required<Omit<PaperEngineOptions, 'fees' | 'costs' | 'curveParams'>>;
+  private readonly o: Required<Omit<PaperEngineOptions, 'fees' | 'costs' | 'curveParams' | 'streamSilenceMs'>> & Pick<PaperEngineOptions, 'streamSilenceMs'>;
   private killSwitchAlerted: string | null = null;
   private readonly market = new MarketStore();
   private exec: PaperExecutorState;
@@ -414,7 +420,7 @@ export class PaperEngine {
         fees: this.params.fees,
         riskState: this.risk,
         portfolio: { openMints: open, openExposureLamports: exposure },
-        killSwitch: { lastStreamEventMs: this.lastStreamEventMs, balance: null, stopFilePresent: this.stopFilePresent },
+        killSwitch: { lastStreamEventMs: this.lastStreamInClockFrame(nowMs), balance: null, stopFilePresent: this.stopFilePresent },
         ...(this.o.killSwitchEnabled ? {} : { killSwitchEnabled: false }),
       },
       fixedClock(nowMs),
@@ -552,10 +558,11 @@ export class PaperEngine {
     this.hour.netPnlLamports += delta;
   }
 
-  private streamStatus(nowMs: number): string {
-    if (this.lastStreamReceivedAtMs === null) return 'aguardando eventos';
-    const ageSeconds = Math.floor(Math.max(0, nowMs - this.lastStreamReceivedAtMs) / 1_000);
-    return ageSeconds <= 30 ? `ativo (último evento há ${String(ageSeconds)}s)` : `sem eventos há ${String(ageSeconds)}s`;
+  /** Último evento do stream no referencial do `nowMs` (o kill switch compara `nowMs − isto` com 30 s). */
+  private lastStreamInClockFrame(nowMs: number): number | null {
+    if (!this.o.streamSilenceMs) return this.lastStreamEventMs;
+    const silence = this.o.streamSilenceMs();
+    return silence === null ? null : nowMs - silence;
   }
 
   private handleFills(fills: readonly Fill[]): void {

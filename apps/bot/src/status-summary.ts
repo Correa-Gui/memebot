@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CLOCK_SKEW_ALERT_MS } from './clock-skew.ts';
 
 /** Plano free do Helius (créditos HTTP por mês; 1 crédito por requisição de RPC padrão). */
 export const HELIUS_FREE_MONTHLY_CREDITS = 1_000_000;
@@ -13,6 +14,7 @@ const IngestLine = z.object({
   http: z.object({ requestsPerMin: z.number(), rateLimitedPerMin: z.number() }),
   ws: z.object({ mbPerMin: z.number(), messagesPerMin: z.number(), reconnectsPerMin: z.number() }),
   costSamples: z.object({ recordedPerMin: z.number(), notFoundPerMin: z.number(), failedPerMin: z.number() }).optional(),
+  clockSkew: z.object({ samples: z.number(), medianMs: z.number(), minMs: z.number(), maxMs: z.number() }).nullable().optional(),
 });
 
 export interface IngestStatusSummary {
@@ -21,6 +23,8 @@ export interface IngestStatusSummary {
   toMs: number;
   avg: { eventsPerMin: number; wsMbPerMin: number; httpRequestsPerMin: number; http429PerMin: number; costSamplesPerMin: number };
   totals: { wsReconnects: number; costSamplesNotFound: number; costSamplesFailed: number };
+  /** Desvio relógio local × ts dos eventos (mediana de received_at − ts por minuto); null em logs antigos. */
+  clockSkew: { minutes: number; lastMedianMs: number; maxAbsMedianMs: number; alert: boolean } | null;
   projection: {
     wsGbPerDay: number;
     wsGbPerMonth: number;
@@ -61,6 +65,8 @@ export function summarizeIngestLog(lines: readonly string[], lastN: number): Ing
   const wsMbPerMin = mean((x) => x.ws.mbPerMin);
   const httpRequestsPerMin = mean((x) => x.http.requestsPerMin);
   const httpRequestsPerMonth = httpRequestsPerMin * MINUTES_PER_DAY * DAYS_PER_MONTH;
+  const skews = window.flatMap((x) => (x.clockSkew ? [x.clockSkew.medianMs] : []));
+  const lastSkew = skews.at(-1);
   return {
     minutes: n,
     fromMs: first.time,
@@ -76,6 +82,12 @@ export function summarizeIngestLog(lines: readonly string[], lastN: number): Ing
       wsReconnects: sum((x) => x.ws.reconnectsPerMin),
       costSamplesNotFound: sum((x) => x.costSamples?.notFoundPerMin ?? 0),
       costSamplesFailed: sum((x) => x.costSamples?.failedPerMin ?? 0),
+    },
+    clockSkew: lastSkew === undefined ? null : {
+      minutes: skews.length,
+      lastMedianMs: lastSkew,
+      maxAbsMedianMs: Math.max(...skews.map(Math.abs)),
+      alert: Math.abs(lastSkew) > CLOCK_SKEW_ALERT_MS,
     },
     projection: {
       wsGbPerDay: (wsMbPerMin * MINUTES_PER_DAY) / 1_024,
@@ -128,6 +140,9 @@ export function formatStatus(s: IngestStatusSummary): string {
     `  HTTP (RPC_URL)    ${f(s.avg.httpRequestsPerMin)} requisições  (429: ${f(s.avg.http429PerMin)})`,
     `  amostras de custo ${f(s.avg.costSamplesPerMin)}`,
     `  reconexões WS na janela: ${String(s.totals.wsReconnects)}; amostras não encontradas: ${String(s.totals.costSamplesNotFound)}; falhas: ${String(s.totals.costSamplesFailed)}`,
+    s.clockSkew
+      ? `  desvio relógio local × ts dos eventos (mediana received_at − ts): último min ${f(s.clockSkew.lastMedianMs / 1_000)} s; máx |mediana| na janela ${f(s.clockSkew.maxAbsMedianMs / 1_000)} s${s.clockSkew.alert ? `  ⚠ ACIMA DE ${String(CLOCK_SKEW_ALERT_MS / 1_000)} s` : ' (normal ≈ +1 a +2 s)'}`
+      : '  desvio do relógio: (sem campo clockSkew no log — versão antiga do bot)',
     '',
     'Projeção (ritmo médio da janela; mês = 30 dias)',
     `  WebSocket   ${f(s.projection.wsGbPerDay, 2)} GB/dia   ${f(s.projection.wsGbPerMonth, 1)} GB/mês`,

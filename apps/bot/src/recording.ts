@@ -14,6 +14,7 @@ import {
 } from '@memebot/ingest';
 import { Recorder } from '@memebot/recorder';
 import { BoundedQueue } from './bounded-queue.ts';
+import { ClockSkewTracker, type ClockSkewStats } from './clock-skew.ts';
 import { configHash, endpointHost, gitCommit, idlHash, newRunId, STREAM_GAP_PROVISIONAL_RATIO } from './run-info.ts';
 
 /**
@@ -38,6 +39,8 @@ export interface RecordingOptions {
   onProtocolConfig?: (snapshots: ProtocolConfigSnapshot[]) => void;
   /** Recebe lacunas detectadas no WebSocket além de gravá-las no ClickHouse. */
   onGap?: (gap: IngestGap) => void;
+  /** Desvio relógio local × ts dos eventos do último minuto (chamado junto do log `ingest`). */
+  onClockSkew?: (stats: ClockSkewStats | null) => void;
 }
 
 export interface RecordingSession {
@@ -117,6 +120,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
   let ingest: IngestService | null = null;
   let healthCounters = (): { streamGapMs: number; http429: number } => ({ streamGapMs: 0, http429: 0 });
   const metadataQueue = new BoundedQueue(cfg.METADATA_CONCURRENCY, 5_000);
+  const skew = new ClockSkewTracker();
 
   const startIngest = async (consumer?: (e: PumpEvent) => void): Promise<void> => {
     // amostra é descartável: sem retry, para não gastar a cota do RPC que o resolver de pools precisa
@@ -145,6 +149,8 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
 
     const onEvent = (e: PumpEvent): void => {
       recorder.recordEvent(e);
+      // tx_cost tem o ts da tx amostrada (pode ser antiga), não da chegada pelo stream
+      if (e.kind !== 'tx_cost') skew.observe(e.receivedAtMs, e.ts);
       if (consumer) {
         try {
           consumer(e);
@@ -205,6 +211,7 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
         const streamGapMs = ws.closedGapMs + (ws.openGapSince === null ? 0 : nowMs - ws.openGapSince);
         recorder.recordRunHealth({ uptimeMs, streamGapMs, ...endpoints });
         const mem = process.memoryUsage();
+        const clockSkew = skew.take();
         // Todas as requisições HTTP ao RPC_URL (cada tentativa = 1 crédito no Helius): protocol_config e
         // rent (cliente `rpc`) + resolvedor de pools e amostrador de custos (clientes próprios, sem retry).
         const httpRequestsPerMin =
@@ -246,9 +253,12 @@ export async function openRecordingSession(cfg: AppConfig, log: Logger, opts: Re
               rpc429PerMin: sampler.rateLimited - lastCost.rateLimited,
               lastError: sampler.stats.lastError,
             },
+            // received_at − ts (mediana/mín/máx do minuto): relógio local × tempo dos eventos
+            clockSkew,
           },
           'ingest',
         );
+        opts.onClockSkew?.(clockSkew);
         last = { ...s };
         lastRpc = { ...rpc.stats };
         lastSamplerRpc = { ...samplerRpc.stats };

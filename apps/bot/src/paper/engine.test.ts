@@ -12,7 +12,7 @@ import { loadStrategyConfig } from '@memebot/strategy';
 import type { StrategyV0Config } from '@memebot/strategy';
 import { describe, expect, it } from 'vitest';
 import { PaperClock } from './clock.ts';
-import { PaperEngine } from './engine.ts';
+import { PaperEngine, type PaperEngineOptions } from './engine.ts';
 
 const silent = createLogger({ destination: new Writable({ write: (_c, _e, cb) => { cb(); } }) });
 const CONFIG = loadStrategyConfig(fileURLToPath(new URL('../../../../config/strategy.v0.yaml', import.meta.url)));
@@ -52,7 +52,14 @@ interface Harness {
   notes: string[];
 }
 
-function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean; config?: StrategyV0Config; killSwitchEnabled?: boolean } = {}): Harness {
+function harnessWith(extra: Pick<PaperEngineOptions, 'streamSilenceMs'>): Harness {
+  return harness({}, extra);
+}
+
+function harness(
+  overrides: { failRate?: number; seed?: number; tradeAlerts?: boolean; config?: StrategyV0Config; killSwitchEnabled?: boolean } = {},
+  extra: Pick<PaperEngineOptions, 'streamSilenceMs'> = {},
+): Harness {
   const decisions: DecisionRecord[] = [];
   const fills: Fill[] = [];
   const notes: string[] = [];
@@ -72,6 +79,7 @@ function harness(overrides: { failRate?: number; seed?: number; tradeAlerts?: bo
     sinks: { decision: (d) => decisions.push(d), fill: (f) => fills.push(f), notify: (m) => notes.push(m.text), log: silent },
     ...(overrides.tradeAlerts === undefined ? {} : { tradeAlerts: overrides.tradeAlerts }),
     ...(overrides.killSwitchEnabled === undefined ? {} : { killSwitchEnabled: overrides.killSwitchEnabled }),
+    ...extra,
   });
   return { engine, decisions, fills, notes };
 }
@@ -285,17 +293,87 @@ describe('PaperEngine — hipóteses do replay (desligadas por padrão)', () => 
 });
 
 describe('PaperClock', () => {
-  it('usa o maior ts de evento; sem eventos anda pela parede − 2 s; nunca volta', () => {
-    let wall = 10_000;
-    const c = new PaperClock(() => wall);
-    expect(c.nowMs()).toBe(8_000);
-    c.observeEvent(9_500);
-    expect(c.nowMs()).toBe(9_500);
-    c.observeEvent(9_000);
-    expect(c.nowMs()).toBe(9_500);
-    wall = 20_000;
-    expect(c.nowMs()).toBe(18_000);
-    wall = 0;
-    expect(c.nowMs()).toBe(18_000);
+  it('agora = maior ts de evento; em silêncio anda pelo monotônico desde a última chegada − 2 s; nunca volta', () => {
+    let mono = 1_000;
+    const c = new PaperClock(() => mono);
+    expect(c.ready).toBe(false);
+    expect(c.silenceMs()).toBeNull();
+    expect(() => c.nowMs()).toThrow();
+    c.observeEvent(T0);
+    expect(c.nowMs()).toBe(T0);
+    mono = 1_900; // chegadas normais: o termo monotônico fica atrás do ts
+    c.observeEvent(T0 + 1_000);
+    c.observeEvent(T0 + 500); // ts antigo fora de ordem: não volta
+    mono = 2_500;
+    expect(c.nowMs()).toBe(T0 + 1_000);
+    expect(c.silenceMs()).toBe(600);
+    mono = 12_500; // 10,6 s de silêncio
+    expect(c.nowMs()).toBe(T0 + 1_000 + 10_600 - 2_000);
+    expect(c.silenceMs()).toBe(10_600);
+    c.observeEvent(T0 + 3_000); // evento atrasado depois do silêncio: o relógio não volta
+    expect(c.nowMs()).toBe(T0 + 9_600);
+  });
+});
+
+describe('PaperEngine ao vivo — relógio local errado não muda decisões', () => {
+  /**
+   * Emula o adaptador `run-paper.ts`: o tempo real (monotônico) anda; cada evento chega 700 ms depois do
+   * seu ts on-chain e é carimbado com `receivedAtMs = parede` (tempo real + desvio do relógio local);
+   * ticks a cada 1 s de tempo real. O engine recebe `PaperClock.nowMs()` e o silêncio monotônico.
+   */
+  function driveLive(events: readonly PumpEvent[], wallOffsetMs: number, untilMs: number): Harness {
+    let realMs = T0 - 10_000;
+    const clock = new PaperClock(() => realMs);
+    const h = harnessWith({ streamSilenceMs: () => clock.silenceMs() });
+    const arrivals = events.map((e) => ({ e, at: (e.kind === 'tx_cost' ? 0 : e.ts) + 700 })).sort((a, b) => a.at - b.at);
+    let i = 0;
+    for (let tick = T0 + 300; tick <= untilMs; tick += 1_000) {
+      while (i < arrivals.length && (arrivals[i]?.at ?? Infinity) <= tick) {
+        const a = arrivals[i++];
+        if (!a || a.e.kind === 'tx_cost') continue;
+        realMs = a.at;
+        const ev = { ...a.e, receivedAtMs: realMs + wallOffsetMs };
+        clock.observeEvent(ev.ts);
+        h.engine.onEvent(ev, clock.nowMs());
+      }
+      realMs = tick;
+      if (clock.ready) h.engine.onTick(clock.nowMs());
+    }
+    return h;
+  }
+
+  it('relógio local 30 s adiantado (e 30 s atrasado): mesmas decisões, fills e PnL', () => {
+    const events = [...healthyToken('W', T0), ...healthyToken('X', T0 + 400, 'creator-x')].sort((a, b) => (a.kind === 'tx_cost' || b.kind === 'tx_cost' ? 0 : a.ts - b.ts));
+    const until = T0 + 75_000 + CONFIG.exits.timeStopSec * 1000 + 5_000;
+    const right = driveLive(events, 0, until);
+    const ahead = driveLive(events, 30_000, until);
+    const behind = driveLive(events, -30_000, until);
+    expect(right.decisions.filter((d) => d.type === 'enter').length).toBeGreaterThan(0);
+    expect(right.decisions.some((d) => d.type === 'exit')).toBe(true);
+    expect(ahead.decisions).toEqual(right.decisions);
+    expect(ahead.fills).toEqual(right.fills);
+    expect(behind.decisions).toEqual(right.decisions);
+    expect(ahead.engine.runNetPnlLamports).toBe(right.engine.runNetPnlLamports);
+  });
+
+  it('entradas e idade do token iguais às do replay (agora = ts do evento)', () => {
+    const events = healthyToken('Y', T0);
+    const live = driveLive(events, 30_000, T0 + 72_000);
+    const replay = harness();
+    run(replay, events, T0 + 72_000);
+    const enter = (h: Harness) => h.decisions.find((d) => d.type === 'enter');
+    expect(enter(live)?.ts).toBe(enter(replay)?.ts);
+    expect(enter(live)?.features).toEqual(enter(replay)?.features);
+  });
+
+  it('kill switch stream_stale usa o silêncio monotônico informado, não o ts dos eventos', () => {
+    // ts dos eventos contínuos (sem lacuna), mas o adaptador mede 31 s sem mensagens → bloqueia
+    const stale = harnessWith({ streamSilenceMs: () => 31_000 });
+    run(stale, healthyToken('Z', T0), T0 + 75_000);
+    expect(stale.decisions.map((d) => d.reason)).toEqual(['kill_switch:stream_stale']);
+    // silêncio de 29 s → não bloqueia
+    const ok = harnessWith({ streamSilenceMs: () => 29_000 });
+    run(ok, healthyToken('Z', T0), T0 + 75_000);
+    expect(ok.decisions.filter((d) => d.type === 'enter')).toHaveLength(1);
   });
 });
