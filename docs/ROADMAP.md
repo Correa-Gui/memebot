@@ -117,11 +117,12 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
 
 ## Fase 4 — Backtest determinístico (dias 9–15) → M3 **(condicional: só se o paper trading da v0 mostrar resultado — ver `docs/STRATEGY.md` §7)**
 
-- [ ] `EventSource` de replay a partir do ClickHouse, `Clock` simulado.
-- [ ] `apps/backtest` com config versionada; resultado gravado em `runs` com hash da config e commit git.
-- [ ] Teste: mesmo intervalo, duas execuções, decisões idênticas.
-- [ ] Comparar backtest × paper do mesmo período (diferença deve ser pequena; se não for, corrigir antes de seguir).
-- [ ] Separação treino/validação **por tempo** (nunca aleatória) para qualquer ajuste de parâmetro.
+*(Antecipada em 2026-10-02 a pedido do usuário, para testar hipóteses de entrada offline depois do paper v0.1 negativo.)*
+- [x] `EventSource` de replay a partir do ClickHouse, `Clock` simulado. *(2026-10-02: `ClickHouseReplaySource` em blocos de slots, ordem (slot, received_at, recv_seq, event_index), `SimulatedClock` + ticks de 1 s, custos/protocol_config "como eram na hora" — `docs/ARCHITECTURE.md` §9.)*
+- [x] ~~`apps/backtest`~~ `pnpm replay` / `pnpm replay:sweep` (`apps/bot/src/replay/`) com config versionada; resultado gravado em `runs` (mode `replay`) com hash da config + parâmetros e commit git (`--write`), `decisions`/`fills` com run id próprio (`pnpm report` funciona igual). Sem migração nova.
+- [x] Teste: mesmo intervalo, duas execuções, decisões e fills idênticos (deep equal) — `apps/bot/src/replay/replay.test.ts`.
+- [~] Comparar backtest × paper do mesmo período. *(2026-10-02, run `paper-2026-10-02T03-36-33-931Z-2e4393`: PnL líquido paper −0,2071 × replay −0,2009 (relógio do evento) / −0,2014 (relógio do paper emulado) — < 10%, mas os dois são cortados pelo kill switch de 0,2 SOL. O conjunto de operações diverge muito no relógio do evento por um defeito do PAPER, não do replay: o relógio do Windows está ~23 s adiantado e o `PaperClock` (parede − 2 s) ficou ~18–21 s à frente dos eventos; emulando esse relógio (`--clock=paper-wall`) o replay reproduz as entradas do paper com Δt = 0. Emulado, 69 das 73 entradas do replay batem com o paper (Δt mediano 0; 60 com o mesmo motivo de saída); o resto vem da ordem dos sorteios de falha e do kill switch disparar mais cedo. Pendente: sincronizar o relógio/robustecer o PaperClock e repetir a comparação, no relógio do evento, num paper novo.)*
+- [x] Separação treino/validação **por tempo** (nunca aleatória) para qualquer ajuste de parâmetro. *(`pnpm replay:sweep`, relógio `paper_wall`: ajuste com entradas 02/10 00:16 → 07:14 UTC (aquecimento só de estado desde 01/10 22:16), validação 07:14 → 11:53 UTC, sem sobreposição, mesma pré-carga de 2 h de criadores nos dois.)*
 
 **Aceite:** divergência backtest × paper < 10% no PnL líquido do mesmo período; replay determinístico.
 

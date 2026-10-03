@@ -34,7 +34,7 @@ Princípio central: **um único caminho de decisão** para replay, paper e live.
 | `record` | WebSocket ao vivo | sistema | nenhum | eventos |
 | `paper` | WebSocket ao vivo | sistema | `PaperExecutor` | eventos, decisões, fills simulados |
 | `live` | WebSocket ao vivo | sistema | `LiveExecutor` | eventos, decisões, fills reais |
-| `replay` | ClickHouse | simulado (tempo do evento) | `PaperExecutor` | decisões, fills simulados |
+| `replay` | ClickHouse (`ClickHouseReplaySource`) | simulado (`SimulatedClock`, ts do evento + ticks de 1 s) | `PaperExecutor` (mesmo `PaperEngine` do paper) | decisões, fills simulados (opcional, `--write`) — ver §9 |
 
 ## 3. Estrutura do repositório
 
@@ -63,7 +63,7 @@ memebot/
 │   └── monitor/               # alertas Telegram (entrada/saída/resumo por hora)
 ├── apps/
 │   ├── bot/                   # entrypoint: --mode=record|paper|live; src/paper/ (orquestrador), src/report.ts (pnpm report)
-│   ├── backtest/              # replay de intervalos gravados
+│   ├── backtest/              # (não criado: o replay da Fase 4 vive em apps/bot/src/replay/, ver §9)
 │   └── report/                # relatórios de execuções
 ├── research/                  # Python: notebooks, treino, export ONNX
 ├── infra/                     # systemd units, scripts de deploy, hardening
@@ -305,11 +305,22 @@ export class MarketStore { readonly state: MarketState; apply(e: PumpEvent): str
 export class PaperEngine {
   constructor(o: { runId; config: StrategyV0Config; limits: EffectiveRiskLimits; curveParams; fees: CurveFeeBps; costs: TxCostEstimate;
     latencyMs; failRate; tokenAccountRentLamports; baseFeeLamportsPerSignature; seed; startMs;
-    sinks: { decision(d: DecisionRecord): void; fill(f: Fill): void; notify(text: string): void; log: Logger } });
-  onEvent(e: PumpEvent, nowMs: number): void; // settleBeforeEvent → MarketStore.apply → saídas do mint → avaliação de entrada
-  onTick(nowMs: number): void;                // settleOnTick → saídas de todas as posições → compactação (1×/min)
+    sinks: { decision(d: DecisionRecord): void; fill(f: Fill): void; notify(text: string): void; log: Logger };
+    tradeAlerts?: boolean; killSwitchEnabled?: boolean /* padrão true; false só no replay de pesquisa (§9) */ });
+  onEvent(e: PumpEvent, nowMs: number): void; // settleBeforeEvent → MarketStore.apply → saídas do mint → sinal pendente → avaliação de entrada
+  onTick(nowMs: number): void;                // settleOnTick → saídas de todas as posições → sinais pendentes → compactação (1×/min)
   setCosts / setFees / setCurveParams / setStopFile; stopEntries(); seedSkeletons(); takeMinuteStats(); takeHourlySummary(nowMs);
+  readonly pendingSignalCount: number;        // sinais pendentes (hipóteses a/c); sempre 0 com a v0.1
 }
+// Hipóteses de entrada do experimento de 2026-10-02 (STRATEGY §8), todas DESLIGADAS por padrão (v0.1 = entrada imediata):
+//  - entry.maxPriceAboveMean120sPct (b): último passo de evaluate → reject 'maxPriceAboveMean120sPct' (feature priceVsMean120s).
+//  - entry.confirmation {windowSec, maxDipPct} (a) / entry.pullback {retracePct, windowSec, minUniqueBuyers60s} (c), exclusivas:
+//    o enter de evaluate vira PendingSignal (packages/strategy/src/pending.ts, puro: createPendingSignal, observePendingPrice,
+//    decidePendingSignal → wait | fire | cancel(motivo), confirmPendingEntry → reavalia universo + filtros duros §3 no disparo,
+//    rejeição '<modo>:<filtro>', enter 'momentum_confirmed'|'momentum_pullback' com features do disparo + signal_* + espera).
+//    O engine guarda um sinal por mint (não reavalia o mint enquanto pendente; protegido da compactação) e no disparo segue o
+//    caminho normal (approveEntry → executor). Equivalência "opções ausentes = v0.1" testada em engine.test.ts.
+// risco: ApproveEntryInput.killSwitchEnabled?: boolean — false ignora o kill switch (só pesquisa offline); demais limites valem.
 // Volume (~15–20 mil eventos/min): avalia só `trade` de curva de mint cuja criação foi vista AO VIVO no run
 // (pré-carregados do banco não têm histórico), sem posição/ordem pendente, idade em [minAgeSec, maxAgeSec],
 // no máximo 1×/s por mint. `decisions` grava uma linha só quando o resultado do mint muda (primeiro reject,
@@ -459,3 +470,67 @@ resume a janela e projeta por dia/mês.
   aceitável na v0 (só curva); trades do PumpSwap ficam com `mint = ''` até a pool ser resolvida ou o
   `pool_created` aparecer.
 - Runs com qualquer endpoint público (HTTP **ou** WS) são marcadas `provisional`.
+
+## 9. Replay determinístico (Fase 4)
+
+Código em `apps/bot/src/replay/` (não há `apps/backtest`: o replay reusa diretamente o `PaperEngine` de
+`apps/bot/src/paper/engine.ts` e as funções puras do `pnpm report`). Comandos: `pnpm replay` (um período, uma ou
+mais configs; `--write` grava, `--compare-run` compara com um paper) e `pnpm replay:sweep` (hipóteses × ajuste/validação).
+
+```ts
+// EventSource (packages/core) de replay: lê events_trade (curva + PumpSwap filtrado), events_token e events_lifecycle
+// (curve_completed, pool_created) em BLOCOS DE SLOTS (1.500 ≈ 10 min, com pré-carga do próximo bloco), zod em toda
+// linha, ordena cada bloco e remove duplicatas exatas (kind|sig|event_index). Blocos por slot ⇒ ordem global exata.
+export class ClickHouseReplaySource implements EventSource { constructor(query: QueryFn, o: { fromMs; toMs; liveCreatedFromMs; liveCreatedToMs; chunkSlots? }) }
+// Ordem total: (slot, received_at, recv_seq, event_index, tipo, sig). Dentro do slot, a chegada ao ingest é a única
+// aproximação da posição da tx no bloco (logsSubscribe não informa o índice). O paper ao vivo usa a chegada pura.
+export function compareReplayEvents(a: ReplayEvent, b: ReplayEvent): number;
+// Laço: o MESMO PaperEngine (um por variante, todos na mesma passada de eventos), SimulatedClock, sem I/O.
+export class ReplayDriver { onEvent(e: ReplayEvent): void; advanceTo(t: number): void; readonly idle: boolean }
+export function executeReplay(inputs: ReplayInputs, variants: ReplayVariant[], params: ReplayParams): Promise<ReplayResult>;
+```
+
+- **Relógio:** `agora = max(agora, ts do evento)` (ts on-chain, resolução de 1 s ⇒ decisões em segundos cheios). Ticks
+  sintéticos a cada segundo cheio T ≤ agora, emitidos ANTES dos eventos com ts = T (saídas por tempo e ordens que vencem
+  sem evento do mint). Modo `--clock=paper-wall` (só para reproduzir um paper já rodado): `agora = max(agora, ts,
+  received_at − 2 s)`, emulando o `PaperClock` com o `received_at` gravado como parede (toda linha de evento tem
+  `received_at`; nenhum trecho do bloco de 01–02/10 ficou sem). **Os dois modos dão resultados bem diferentes nos dados
+  de 01–02/10** porque o relógio do Windows que gravou estava ~23 s adiantado (medido em 02/10: relógio local 17:13:32 ×
+  `Date` HTTP 17:13:09; `received_at − ts` de 19 a 23 s, crescendo ~0,27 s/h): no paper ao vivo `parede − 2 s` venceu o
+  `ts` e o "agora" ficou ~18–21 s à frente dos eventos. Com `ts` de resolução de 1 s, as janelas de 60 s/120 s das
+  features (buy/sell, compradores únicos, volume, média de preço) passaram a enxergar só os ~40 s mais antigos e a idade
+  do token ficou ~20 s inflada — outro conjunto de tokens passa no gatilho. `paper_wall` reproduz o paper que rodou;
+  `event` é o que um paper com relógio certo faria. Corrigir o relógio/`PaperClock` é pré-requisito para o próximo paper.
+- **Sweep (`pnpm replay:sweep`):** padrão `--clock=paper-wall`; o ajuste começa no início dos dados, então tem
+  aquecimento SÓ DE ESTADO (`eligibleFromMs`, `--warmup-min=120`: tokens criados nele nunca são elegíveis) e os dois
+  períodos usam a mesma pré-carga de criadores (`creatorPreloadMs`, `--creator-preload-h=2`) — cada período começa
+  com 2 h de histórico de criadores. Corte em 60% do tempo elegível (00:16:24 → 11:53:08 UTC ⇒ 07:14 UTC).
+- **Parâmetros "como eram na hora":** `protocol_config` (Global/FeeConfig do Pump.fun) vigente no início e aplicado
+  quando o relógio passa por cada linha nova; custos = `estimateTxCosts` sobre as amostras de `tx_costs` com
+  `t − PAPER_COST_LOOKBACK_HOURS ≤ sampled_at ≤ t`, recalculados no início e a cada `PAPER_COST_RELOAD_MS` (como o
+  paper); rent = `OBSERVED_TOKEN_ACCOUNT_RENT_LAMPORTS` (1.513.840, o mesmo valor que o RPC devolveu ao paper de 02/10);
+  latência/falha de `.env` (`PAPER_LATENCY_MS`, `PAPER_FAIL_RATE`) ou `--latency-ms/--fail-rate`; seed fixa (`--seed`,
+  padrão 1) ou `--seed-from-run=<run id>` (a mesma derivação do paper).
+- **Início limpo:** pré-carga de `token_created` das 24 h anteriores como esqueleto (igual ao paper); só tokens CRIADOS
+  dentro do período são elegíveis (o engine só avalia criações "vistas ao vivo"). Por isso não há aquecimento de estado:
+  as features de um token elegível começam na criação dele, e o único estado entre tokens (filtro de criador) vem da
+  pré-carga. Entradas até `to` (exclusivo); depois, drenagem de até 30 min de eventos reais só para as saídas (para antes
+  se não sobrar posição) — posições abertas no corte contam no período em que abriram e nunca atravessam para o seguinte.
+- **PumpSwap:** só os trades dos mints criados no período (filtro na consulta). Os demais (~80% do volume gravado) não
+  mudam nenhuma decisão: só trades de curva entram nas features, só tokens criados no run são avaliados e tokens sem
+  criação conhecida são descartados na compactação. O executor continua recusando swap no PumpSwap (graduação fecha no
+  último preço da curva).
+- **Lacunas de gravação** (`gaps.ts`): ≥ 4 s seguidos sem nenhum trade de curva (o normal é 30–60/s) ∪ `ingest_gaps`
+  `reconnect`. Com `--exclude-gaps=on` (padrão do sweep), token cuja janela [criação, criação + maxAgeSec] cruza uma lacuna
+  vira só esqueleto (nunca avaliado). Operações que cruzam lacuna são marcadas no resumo (PnL com/sem elas).
+- **Kill switch:** ligado por padrão (como no paper). `--kill-switch=off` (padrão do sweep) passa `killSwitchEnabled:
+  false` ao engine, só para a amostra das hipóteses não ser cortada pelo limite de perda diária.
+- **Gravação (`--write`):** `runs` (mode `replay`, `config_hash` = sha256 do YAML + parâmetros, `git_commit`, `started_at`
+  = início do período), `decisions` e `fills` com run id determinístico `replay-<rótulo>-<início>-<hash8>` (não regrava um
+  run id existente). `pnpm report --run=<id>` funciona igual ao paper. Nenhuma migração nova foi necessária.
+- **Memória:** blocos de ~10 min (ClickHouse e Node), estado por engine compactado como no paper; 10 variantes numa
+  passada ficaram em ~0,5–0,6 GB no Node (`--max-old-space-size=1792` nos scripts).
+- **Testes** (`replay.test.ts`, sem rede): mesmo intervalo 2× → decisões e fills idênticos (deep equal); várias variantes na
+  mesma passada = cada uma sozinha; decisões em segundos cheios e fills com +800 ms; fim das entradas; exclusão por
+  lacuna; kill switch ligado/desligado; agendas de custos/protocolo sem olhar o futuro; `ClickHouseReplaySource` com
+  `QueryFn` falso (blocos, conversão, ordem, duplicatas, `stop()`); comparação replay × paper.

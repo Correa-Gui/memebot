@@ -92,3 +92,36 @@ critério quando a Fase 4 do `docs/ROADMAP.md` existir):
 |---|---|---|---|
 | v0 | — | versão inicial | — |
 | v0.1 | 2026-10-01 | `maxSameSlotAsCreatePct` passa a ignorar as compras do criador no slot de criação (proxy de bundle = só outras carteiras); a compra inicial do criador vira a feature informativa `creatorInitialBuyPct` e continua coberta por `maxCreatorHoldingPct`. Motivo: no paper de 01/10, o criador comprou na mesma tx do create em 693 de 956 tokens (72%; mediana 0,5% do supply, p90 6,7%). Limites inalterados. Efeito medido: dos 331 tokens acima de 10% no slot, 286 continuam acima só com outras carteiras (o filtro muda para 45 tokens). | ainda sem backtest (Fase 4 condicional) — avaliar no paper |
+
+### Experimentos de entrada offline — 2026-10-02 (Fase 4, `pnpm replay:sweep`; a v0.1 do paper NÃO mudou)
+
+Motivo: paper v0.1 de 02/10 (`paper-2026-10-02T03-36-33-931Z-2e4393`) com PnL líquido −0,207 SOL, 69% das saídas por
+stop em mediana 29 s e entrada em topo local. Hipóteses implementadas como opções DESLIGADAS por padrão (config
+`entry.*`, `docs/ARCHITECTURE.md` §4) e testadas só em replay, com arquivos próprios em `config/variants/`:
+(a) confirmação 10/30/60 s (`a-confirm-*`, queda máx. 10% na janela, fechar ≥ preço do sinal, filtros duros
+reavaliados); (b) não perseguir 10/20/40% acima da média de 120 s (`b-nochase-*`); (c) recuo 15/25/35% do máximo desde
+o sinal, em até 180 s, com `uniqueBuyers60s ≥ 15` (`c-pullback-*`); (d) melhor de (a)–(c) pelo AJUSTE + vender tudo
+em +40% (`d-confirm60s-tp40all` = a-confirm-60s). Condições: relógio `paper_wall`, kill switch desligado, tokens com
+lacuna excluídos, latência 800 ms, falha 10%, seed 1; ajuste = entradas 02/10 00:16 → 07:14 UTC (aquecimento só de
+estado desde 22:16), validação = 07:14 → 11:53 UTC; pré-carga de 2 h de criadores nos dois.
+
+| Variante | Ajuste: ops / líquido (SOL) | Validação: ops / líquido (SOL) | Positiva nos dois? |
+|---|---|---|---|
+| v0.1 (baseline) | 116 / −0,3873 | 115 / +0,0025 | não |
+| a-confirm-10s | 61 / −0,0827 | 70 / +0,1080 | não |
+| a-confirm-30s | 40 / −0,2194 | 59 / +0,0898 | não |
+| a-confirm-60s | 26 / +0,0469 | 43 / −0,0147 | não |
+| b-nochase-10 | 46 / −0,0037 | 42 / −0,0581 | não |
+| b-nochase-20 | 78 / −0,1147 | 75 / −0,0584 | não |
+| b-nochase-40 | 107 / −0,2348 | 107 / +0,0829 | não |
+| c-pullback-15 | 60 / −0,2069 | 69 / +0,2399 | não |
+| c-pullback-25 | 38 / −0,0289 | 42 / −0,0306 | não |
+| c-pullback-35 | 21 / +0,0291 | 27 / −0,1611 | não |
+| d-confirm60s-tp40all | 29 / +0,0612 | 45 / −0,0394 | não |
+
+Resultado: **nenhuma variante foi positiva nos dois períodos**; todos os IC 95% da expectativa por operação incluem 0
+(exceto c-pullback-35 na validação, negativo). Com 11 variantes e 20–115 operações por célula, a melhor do ajuste
+(a-confirm-60s) inverteu o sinal na validação — padrão típico de sobreajuste/ruído. No relógio `event` (apêndice em
+`data/reports/replay-sweep-v2-event.txt`) só b-nochase-20 fica positiva nos dois (+0,075 / +0,143), também com IC
+incluindo 0 — o ranking muda com o relógio, outro sinal de que a amostra não distingue as hipóteses. Nada promovido a
+v0.2; próxima decisão depende de um paper com o relógio corrigido e de mais dias de dados.
