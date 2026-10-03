@@ -52,6 +52,14 @@ export interface ReplayParams {
    * do paper ao vivo com o received_at gravado — só para reproduzir/explicar um run de paper).
    */
   clockMode?: 'event' | 'paper_wall';
+  /**
+   * Aquecimento só de estado: tokens criados antes deste instante (padrão `fromMs`) nunca são elegíveis — os eventos
+   * deles entram no estado (filtro de criador, compactação), mas o engine não os avalia. Usado no sweep para o período
+   * de ajuste (começo dos dados) ter o mesmo histórico de criadores que o de validação.
+   */
+  eligibleFromMs?: number;
+  /** Janela da pré-carga de `token_created` antes de `fromMs` (padrão 24 h, como o paper). */
+  creatorPreloadMs?: number;
 }
 
 export interface ReplayInputs {
@@ -81,6 +89,8 @@ export interface ReplayResult {
   driver: ReplayDriverStats;
   protocol: { globalTsMs: number; feeTsMs: number };
   seededSkeletons: number;
+  /** Tokens criados no aquecimento (antes de `eligibleFromMs`): só estado, nunca avaliados. */
+  warmupTokens: number;
   /** Fim real dos eventos processados (o replay para cedo se não houver mais posição depois do fim das entradas). */
   endMs: number;
 }
@@ -133,6 +143,8 @@ export async function executeReplay(inputs: ReplayInputs, variants: readonly Rep
   for (const r of runs) seeded = r.engine.seedSkeletons(inputs.skeletons);
 
   const maxAgeSec = Math.max(...variants.map((v) => v.config.entry.maxAgeSec));
+  const eligibleFromMs = params.eligibleFromMs ?? params.fromMs;
+  let warmupTokens = 0;
   const driver = new ReplayDriver({
     engines: runs.map((r) => r.engine),
     fromMs: params.fromMs,
@@ -140,7 +152,13 @@ export async function executeReplay(inputs: ReplayInputs, variants: readonly Rep
     costs,
     protocol,
     clockMode: params.clockMode ?? 'event',
-    ...(params.excludeGapTokens ? { excludeToken: (_mint: string, createdAtMs: number) => tokenAffectedByGap(inputs.gaps, createdAtMs, maxAgeSec) } : {}),
+    excludeToken: (_mint: string, createdAtMs: number) => {
+      if (createdAtMs < eligibleFromMs) {
+        warmupTokens++;
+        return true;
+      }
+      return params.excludeGapTokens && tokenAffectedByGap(inputs.gaps, createdAtMs, maxAgeSec);
+    },
   });
   const hardEnd = params.entriesUntilMs + params.drainMs;
   await inputs.source.start((e) => {
@@ -162,6 +180,7 @@ export async function executeReplay(inputs: ReplayInputs, variants: readonly Rep
     driver: driver.stats,
     protocol: { globalTsMs: initial.globalTsMs, feeTsMs: initial.feeTsMs },
     seededSkeletons: seeded,
+    warmupTokens,
     endMs,
   };
 }

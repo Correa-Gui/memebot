@@ -147,6 +147,24 @@ describe('executeReplay — mesmo PaperEngine, relógio simulado', () => {
     expect(r.variants[0]?.decisions.some((d) => d.mint === 'C' && d.type === 'enter')).toBe(true);
   });
 
+  it('aquecimento só de estado: tokens criados antes de eligibleFromMs nunca são avaliados', async () => {
+    const r = await executeReplay(inputs(scenario()), [variant()], { ...PARAMS, eligibleFromMs: T0 + 100_000 });
+    expect(r.warmupTokens).toBe(2);
+    expect(r.variants[0]?.decisions.some((d) => d.mint === 'A' || d.mint === 'B')).toBe(false);
+    expect(r.variants[0]?.decisions.some((d) => d.mint === 'C' && d.type === 'enter')).toBe(true);
+  });
+
+  it('relógio paper_wall: agora = max(ts, received_at − 2 s) — janelas truncadas pelo atraso de chegada', async () => {
+    const late = scenario().map((e) => ({ ...e, receivedAtMs: e.ts + 20_000 }));
+    const r = await executeReplay(inputs(late), [variant()], { ...PARAMS, clockMode: 'paper_wall' });
+    const firstEnter = r.variants[0]?.decisions.find((d) => d.type === 'enter');
+    const ev = await executeReplay(inputs(scenario()), [variant()], PARAMS);
+    const evEnter = ev.variants[0]?.decisions.find((d) => d.type === 'enter');
+    // mesmo "agora" (idade 60 s no relógio), mas com 18 s de trades ainda não chegados: janela de 60 s efetiva de ~42 s
+    expect(firstEnter?.ts).toBe(evEnter?.ts);
+    expect(Number(firstEnter?.features['uniqueBuyers60s'])).toBeLessThan(Number(evEnter?.features['uniqueBuyers60s']));
+  });
+
   it('kill switch: ligado por padrão (perda diária bloqueia); desligado só quando pedido', async () => {
     const lossy = { ...CONFIG, risk: { ...CONFIG.risk, maxDailyLossSol: 0.001 } };
     const on = await executeReplay(inputs(scenario()), [variant(lossy)], { ...PARAMS, failRate: 0 });

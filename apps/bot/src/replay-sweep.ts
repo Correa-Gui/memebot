@@ -19,9 +19,15 @@ import { summarizeVariant, type VariantSummary } from './replay/summary.ts';
  * · --seed=<n> (padrão 1) · --group=<n> variantes por passada (padrão todas) · --write (grava os runs) · --out=<prefixo>.
  */
 
-/** Bloco contínuo de 2026-10-01/02 (primeiro e último ts gravados) e o corte de 60% (documentado no relatório). */
+/**
+ * Bloco contínuo de 2026-10-01/02 (primeiro e último ts gravados). O ajuste começa no início dos dados, então não há
+ * `token_created` anterior para a pré-carga: as primeiras `--warmup-min` (120) min são SÓ de estado (tokens criados
+ * nelas nunca são elegíveis) e os DOIS períodos usam a mesma pré-carga de `--creator-preload-h` (2) h — cada um começa
+ * com exatamente 2 h de histórico de criadores. Corte = 60% do tempo ELEGÍVEL total (00:16:24 → 11:53:08 UTC = 41.804 s;
+ * 60% ⇒ 07:14:26), arredondado para 07:14:00 UTC.
+ */
 const DEFAULT_FROM = '2026-10-01T22:16:24Z';
-const DEFAULT_CUT = '2026-10-02T06:26:00Z';
+const DEFAULT_CUT = '2026-10-02T07:14:00Z';
 const DEFAULT_TO = '2026-10-02T11:53:08Z';
 
 const brt = (ms: number): string => `${new Date(ms - 3 * 3_600_000).toISOString().slice(5, 16).replace('T', ' ')} BRT (${new Date(ms).toISOString().slice(11, 16)} UTC)`;
@@ -31,7 +37,7 @@ const pct = (x: number): string => (Number.isFinite(x) ? `${(x * 100).toFixed(0)
 async function main(): Promise<void> {
   const { values } = parseArgs({
     args: process.argv.slice(2),
-    options: { from: { type: 'string' }, cut: { type: 'string' }, to: { type: 'string' }, variants: { type: 'string' }, seed: { type: 'string' }, group: { type: 'string' }, write: { type: 'boolean' }, out: { type: 'string' } },
+    options: { from: { type: 'string' }, cut: { type: 'string' }, to: { type: 'string' }, clock: { type: 'string' }, 'warmup-min': { type: 'string' }, 'creator-preload-h': { type: 'string' }, variants: { type: 'string' }, seed: { type: 'string' }, group: { type: 'string' }, write: { type: 'boolean' }, out: { type: 'string' } },
     strict: true,
   });
   const fromMs = Date.parse(values.from ?? DEFAULT_FROM);
@@ -40,7 +46,10 @@ async function main(): Promise<void> {
   if (!(fromMs < cutMs && cutMs < toMs)) throw new Error('--from < --cut < --to');
   const files = values.variants
     ? values.variants.split(',').map((s) => s.trim()).filter(Boolean)
-    : ['config/strategy.v0.yaml', ...readdirSync('config/variants').filter((f) => f.endsWith('.yaml')).sort().map((f) => `config/variants/${f}`)];
+    : ['config/strategy.v0.yaml', ...readdirSync('config/variants').filter((f) => f.endsWith('.yaml') && !f.startsWith('d-')).sort().map((f) => `config/variants/${f}`)];
+  const clockMode = values.clock === 'event' ? 'event' : 'paper_wall';
+  const warmupMs = Number(values['warmup-min'] ?? '120') * 60_000;
+  const preloadMs = Number(values['creator-preload-h'] ?? '2') * 3_600_000;
   const variants: ReplayVariant[] = files.map((f) => loadVariant(f));
   const group = Number(values.group ?? String(variants.length));
 
@@ -49,8 +58,8 @@ async function main(): Promise<void> {
   const client = createReplayClient(cfg);
   const query: QueryFn = async (q, params) => (await client.query({ query: q, query_params: params, format: 'JSONEachRow' })).json<unknown>();
   const periods = [
-    { name: 'ajuste', fromMs, toMs: cutMs },
-    { name: 'validação', fromMs: cutMs, toMs },
+    { name: 'ajuste', fromMs, eligibleFromMs: fromMs + warmupMs, toMs: cutMs },
+    { name: 'validação', fromMs: cutMs, eligibleFromMs: cutMs, toMs },
   ];
   const results = new Map<string, Map<string, VariantSummary>>();
   const notes: string[] = [];
@@ -59,10 +68,10 @@ async function main(): Promise<void> {
       const byLabel = new Map<string, VariantSummary>();
       for (let i = 0; i < variants.length; i += group) {
         const chunk = variants.slice(i, i + group);
-        const params = paramsFromConfig(cfg, { fromMs: p.fromMs, entriesUntilMs: p.toMs, drainMs: 30 * 60_000, seed: Number(values.seed ?? '1'), killSwitchEnabled: false, excludeGapTokens: true });
+        const params = paramsFromConfig(cfg, { fromMs: p.fromMs, entriesUntilMs: p.toMs, drainMs: 30 * 60_000, seed: Number(values.seed ?? '1'), killSwitchEnabled: false, excludeGapTokens: true, clockMode, eligibleFromMs: p.eligibleFromMs, creatorPreloadMs: preloadMs });
         const run = await runPeriod(query, chunk, params, log);
         const r = run.result;
-        notes.push(`${p.name} [${chunk.map((v) => v.label).join(', ')}]: ${brt(p.fromMs)} → ${brt(p.toMs)}; eventos ${String(r.driver.events)}; tokens excluídos por lacuna ${String(r.driver.excludedTokens)}; esqueletos ${String(r.seededSkeletons)}; lacunas ${String(run.gaps.length)} (${run.gaps.map((g) => `${new Date(g.fromMs).toISOString().slice(11, 19)}–${new Date(g.toMs).toISOString().slice(11, 19)}`).join(', ')}); execução ${String(Math.round(run.runMs / 1000))} s; latência ${String(params.latencyMs)} ms; falha ${String(params.failRate)}; seed ${String(params.seed)}`);
+        notes.push(`${p.name} [${chunk.map((v) => v.label).join(', ')}]: eventos desde ${brt(p.fromMs)}, entradas ${brt(p.eligibleFromMs)} → ${brt(p.toMs)}; relógio ${clockMode}; eventos ${String(r.driver.events)}; tokens só-estado (aquecimento) ${String(r.warmupTokens)}; tokens excluídos por lacuna ${String(r.driver.excludedTokens - r.warmupTokens)}; esqueletos pré-carregados ${String(r.seededSkeletons)} (${String(preloadMs / 3_600_000)} h); lacunas ${String(run.gaps.length)} (${run.gaps.map((g) => `${new Date(g.fromMs).toISOString().slice(11, 19)}–${new Date(g.toMs).toISOString().slice(11, 19)}`).join(', ')}); execução ${String(Math.round(run.runMs / 1000))} s; latência ${String(params.latencyMs)} ms; falha ${String(params.failRate)}; seed ${String(params.seed)}`);
         for (const v of r.variants) {
           const s = summarizeVariant(v, run.gaps);
           byLabel.set(v.label, s);
@@ -91,8 +100,8 @@ async function main(): Promise<void> {
   const widths = header.map((h, i) => Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length)));
   const line = (r: string[]): string => r.map((c, i) => (i === 0 ? c.padEnd(widths[i] ?? 0) : c.padStart(widths[i] ?? 0))).join('  ');
   const out: string[] = [];
-  out.push(`Hipóteses de entrada — replay offline (kill switch desligado, tokens com lacuna excluídos, relógio = ts dos eventos)`);
-  out.push(`AJUSTE ${brt(fromMs)} → ${brt(cutMs)} | VALIDAÇÃO ${brt(cutMs)} → ${brt(toMs)} (sem sobreposição; SOL; IC 95% bootstrap da média por operação fechada)`);
+  out.push(`Hipóteses de entrada — replay offline (relógio ${clockMode}, kill switch desligado, tokens com lacuna excluídos, pré-carga de criadores ${String(preloadMs / 3_600_000)} h)`);
+  out.push(`AJUSTE entradas ${brt(fromMs + warmupMs)} → ${brt(cutMs)} (aquecimento só de estado desde ${brt(fromMs)}) | VALIDAÇÃO ${brt(cutMs)} → ${brt(toMs)} (sem sobreposição; SOL; IC 95% bootstrap da média por operação fechada)`);
   out.push('');
   out.push(line(header));
   out.push(widths.map((w) => '-'.repeat(w)).join('  '));

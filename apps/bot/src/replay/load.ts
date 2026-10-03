@@ -54,7 +54,7 @@ export async function runPeriod(query: QueryFn, variants: readonly ReplayVariant
   const endMs = params.entriesUntilMs + params.drainMs;
   const maxAgeMs = Math.max(...variants.map((v) => v.config.entry.maxAgeSec)) * 1000;
   const [skeletons, costSamples, protocolRows, gaps] = await Promise.all([
-    loadSkeletons(query, params.fromMs - CREATOR_LOOKBACK_MS, params.fromMs),
+    loadSkeletons(query, params.fromMs - (params.creatorPreloadMs ?? CREATOR_LOOKBACK_MS), params.fromMs),
     loadCostSamples(query, params.fromMs - params.costLookbackMs, endMs),
     loadProtocolRows(query, endMs),
     loadGaps(query, params.fromMs, params.entriesUntilMs + maxAgeMs),
