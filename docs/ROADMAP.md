@@ -143,8 +143,15 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
 
 Cada item só entra na estratégia se o backtest fora da amostra melhorar o PnL líquido.
 - [ ] Coleta de **rugs rotulados** (queda de TVL / inatividade, conforme a literatura) para treino futuro. *(Movido da Fase 2: não é bloqueante para curve-math/estado; só importa se chegarmos ao modelo de risco.)*
-- [ ] `research/`: dataset de features aos N minutos de vida + rótulo (rug / sobreviveu / retorno futuro).
-- [ ] XGBoost de risco; export ONNX; `signals/risk-model` com o mesmo cálculo de features do TS (teste de paridade Python × TS).
+- [x] `research/`: dataset de features aos N minutos de vida + rótulo (rug / sobreviveu / retorno futuro).
+  *(2026-10-03, adiantado a pedido do usuário. `pnpm ml:dataset` (`apps/bot/src/ml/dataset.ts`, mesmo estado/features/
+  curve-math do bot): amostra a cada 15 s de 30 s a 15 min de vida com trade no intervalo; 13 features da v0 + janelas
+  15/30/60/120/300 s + hora BRT (71 no total); rótulo = compra simulada em t + 800 ms com custos medianos reais e saída
+  +40%/−20%/10 min (binário + retorno líquido); tokens com lacuna excluídos. 100.930 amostras, 13.970 tokens.)*
+- [~] XGBoost de risco; export ONNX; `signals/risk-model` com o mesmo cálculo de features do TS (teste de paridade Python × TS).
+  *(2026-10-03, `research/ml_v1/train.py`, divisão por tempo e por token 60/20/20: XGBoost AUC teste 0,768 (logística
+  0,669), mas operando acima do limiar escolhido na validação o retorno líquido no TESTE é −4,7%/op [IC95% −8,3%; −1,1%]
+  (481 ops) — critério (IC > 0) NÃO cumprido; sem ONNX/paridade/replay. Detalhes: `data/reports/ml-v1.txt`.)*
 - [ ] `wallets/`: métricas por carteira (PnL, acerto, tempo médio de posição, se vende tudo de uma vez); lista de smart money recalculada diariamente; feature "n de smart wallets comprando".
 - [ ] `social/`: fonte de posts de contas monitoradas (lista em `config/social-accounts.yaml`). Avaliar custo da API do X antes de assinar.
 - [ ] `signals/narrative`: cliente Jev atrás de `NarrativeClassifier`, com timeout, cache por (post, mint) e log em `signals_log`.

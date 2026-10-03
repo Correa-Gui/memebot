@@ -136,3 +136,11 @@ g0 −0,447 | −0,114; g0-tp40 −0,493 | −0,081; g1 −1,167 | −0,159; g1-
 g2-tp40 −0,172 | +0,004 (12 ops). Referência v0.1 (curva) na mesma passada: −0,458 | +0,212. Nenhuma positiva nos dois
 períodos; todos os IC 95% da média por operação incluem 0 ou são negativos; stop loss domina as saídas (~50–60%).
 Tabela completa: `data/reports/replay-graduated-2026-10-03.txt`.
+
+**2026-10-03 — ml-v1 (Fase 5 adiantada; nada promovido).** Dataset de 100.930 pontos (13.970 tokens da curva, a cada
+15 s entre 30 s e 15 min de vida), rótulo "bateu +40% antes de −20%" com compra simulada em t + 800 ms e custos
+medianos reais. Divisão por tempo/token 60/20/20. XGBoost: AUC teste 0,768 (logística 0,669); precisão no top 5%
+0,32 contra base 0,13 — o modelo ORDENA, mas o retorno líquido operando acima do limiar da validação (1 operação por
+token) é −4,7% por operação no teste, IC 95% [−8,3%; −1,1%] (sem modelo: −6,0%). Sinais mais usados (SHAP): preço
+marginal, nº de trades em 15–60 s, concentração (top 10, criador), progresso da curva, holders, compra no mesmo slot.
+Detalhes: `data/reports/ml-v1.txt`.

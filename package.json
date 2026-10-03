@@ -19,7 +19,8 @@
     "funnel": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/funnel.ts",
     "report": "node --experimental-strip-types --disable-warning=ExperimentalWarning apps/bot/src/report.ts",
     "replay": "node --experimental-strip-types --disable-warning=ExperimentalWarning --max-old-space-size=1792 apps/bot/src/replay.ts",
-    "replay:sweep": "node --experimental-strip-types --disable-warning=ExperimentalWarning --max-old-space-size=1792 apps/bot/src/replay-sweep.ts"
+    "replay:sweep": "node --experimental-strip-types --disable-warning=ExperimentalWarning --max-old-space-size=1792 apps/bot/src/replay-sweep.ts",
+    "ml:dataset": "node --experimental-strip-types --disable-warning=ExperimentalWarning --max-old-space-size=3072 apps/bot/src/ml-dataset.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
