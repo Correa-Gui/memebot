@@ -17,6 +17,7 @@ import {
 import { quoteInForBudget } from '@memebot/risk';
 import { MarketStore, computeWindowStats } from '@memebot/state';
 import type { TokenSkeleton, TokenState } from '@memebot/state';
+import { SmartMoneyTracker } from './smart-money.ts';
 
 /**
  * Dataset de ML (Fase 5, itens 1–2) gerado a partir dos eventos gravados, com o MESMO estado, as MESMAS
@@ -152,6 +153,7 @@ export interface DatasetStats {
 
 export class DatasetBuilder {
   private readonly store = new MarketStore();
+  private readonly smartMoney = new SmartMoneyTracker();
   private readonly timers = new TimerHeap();
   private seq = 0;
   private readonly openLabels = new Map<string, Set<Label>>();
@@ -188,6 +190,7 @@ export class DatasetBuilder {
     if (e.kind === 'tx_cost') return;
     this.runTimers((due) => due < e.ts);
     const mint = this.store.apply(e);
+    this.smartMoney.onEvent(e);
     this.stats.events++;
     if (mint === null) return;
     if (e.kind === 'token_created') {
@@ -222,6 +225,9 @@ export class DatasetBuilder {
     }
     if (e.ts - this.lastCompaction >= 60_000) this.compact(e.ts);
   }
+
+  /** Warm-up only: updates wallet history without changing the token/label market state. */
+  seedSmartMoneyEvent(e: PumpEvent): void { this.smartMoney.seed(e); }
 
   /** Fim dos eventos: resolve o que restou (amostras sem horizonte completo são descartadas). */
   finish(endMs: number): void {
@@ -390,6 +396,7 @@ export class DatasetBuilder {
       creatorInitialBuyPct: nz(creatorInitialBuyPct(token)),
       hourBrt: new Date(t - BRT_OFFSET_MS).getUTCHours(),
       tradesTotal: token.trades.length,
+      ...this.smartMoney.features(token.mint, t),
     };
     const cur = token.curveReserves ? marginalPrice({ virtualQuote: token.curveReserves.virtualQuote, virtualToken: token.curveReserves.virtualToken }) : Number.NaN;
     f.marginalPrice = cur;

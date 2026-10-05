@@ -1,0 +1,369 @@
+{
+  "cutoff": "2026-10-05T18:37:07.729Z",
+  "from": "2026-10-03T22:56:12.222Z",
+  "split": "2026-10-04T20:46:40.000Z",
+  "gapKindsAtCutoff": [
+    {
+      "kind": "trailing_bytes",
+      "rows": "45880706",
+      "first_at": "2026-10-03 19:41:31.889",
+      "last_at": "2026-10-05 18:37:07.715",
+      "runs": "2"
+    },
+    {
+      "kind": "unknown_event",
+      "rows": "100457",
+      "first_at": "2026-10-03 19:42:17.444",
+      "last_at": "2026-10-05 18:36:40.348",
+      "runs": "2"
+    },
+    {
+      "kind": "pool_unresolved",
+      "rows": "23894",
+      "first_at": "2026-09-30 01:18:56.403",
+      "last_at": "2026-09-30 02:35:53.287",
+      "runs": "5"
+    },
+    {
+      "kind": "pool_resolve_failed",
+      "rows": "219",
+      "first_at": "2026-10-01 22:16:50.417",
+      "last_at": "2026-10-05 18:22:36.378",
+      "runs": "4"
+    },
+    {
+      "kind": "reconnect",
+      "rows": "7",
+      "first_at": "2026-10-01 22:44:20.296",
+      "last_at": "2026-10-03 19:48:45.570",
+      "runs": "6"
+    },
+    {
+      "kind": "log_truncated",
+      "rows": "1",
+      "first_at": "2026-10-04 17:08:05.878",
+      "last_at": "2026-10-04 17:08:05.878",
+      "runs": "1"
+    }
+  ],
+  "gapKindsInBlock": [
+    {
+      "kind": "trailing_bytes",
+      "rows": "43860355",
+      "first_at": "2026-10-03 22:56:17.982",
+      "last_at": "2026-10-05 18:37:07.715",
+      "runs": "1"
+    },
+    {
+      "kind": "unknown_event",
+      "rows": "95762",
+      "first_at": "2026-10-03 22:56:21.195",
+      "last_at": "2026-10-05 18:36:40.348",
+      "runs": "1"
+    },
+    {
+      "kind": "pool_resolve_failed",
+      "rows": "70",
+      "first_at": "2026-10-05 03:56:16.391",
+      "last_at": "2026-10-05 18:22:36.378",
+      "runs": "1"
+    },
+    {
+      "kind": "log_truncated",
+      "rows": "1",
+      "first_at": "2026-10-04 17:08:05.878",
+      "last_at": "2026-10-04 17:08:05.878",
+      "runs": "1"
+    }
+  ],
+  "health": [
+    {
+      "run_id": "record-2026-10-03T22-56-13-825Z-3a0786",
+      "minute_rows": "2620",
+      "first_at": "2026-10-03 22:57:17.280",
+      "last_at": "2026-10-05 18:36:22.618",
+      "uptime_ms": "157208749",
+      "stream_gap_ms": "0"
+    }
+  ],
+  "reconnects": [
+    {
+      "reconnects": "0",
+      "lost_ms": "0",
+      "max_ms": "0",
+      "over_10m": "0"
+    }
+  ],
+  "old6325437At": "2026-10-04T02:56:59.630Z",
+  "old6325437ByKind": [
+    {
+      "kind": "trailing_bytes",
+      "rows": 6287315
+    },
+    {
+      "kind": "pool_unresolved",
+      "rows": 23894
+    },
+    {
+      "kind": "unknown_event",
+      "rows": 14072
+    },
+    {
+      "kind": "pool_resolve_failed",
+      "rows": 149
+    },
+    {
+      "kind": "reconnect",
+      "rows": 7
+    },
+    {
+      "kind": "log_truncated",
+      "rows": 0
+    }
+  ],
+  "trailingBytesEventTypes": [
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "event_name": "SellEvent",
+      "rows": "19600649",
+      "min_bytes": "8",
+      "max_bytes": "8",
+      "example": "SellEvent: 8 bytes além do IDL"
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "event_name": "BuyEvent",
+      "rows": "16371954",
+      "min_bytes": "8",
+      "max_bytes": "8",
+      "example": "BuyEvent: 8 bytes além do IDL"
+    },
+    {
+      "program": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+      "event_name": "TradeEvent",
+      "rows": "7887752",
+      "min_bytes": "8",
+      "max_bytes": "8",
+      "example": "TradeEvent: 8 bytes além do IDL"
+    }
+  ],
+  "unknownEventPrograms": [
+    {
+      "program": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+      "rows": "55416",
+      "example": "discriminador fora do IDL raw=dCtNvRF6SCsTiMFqAAAAAKMvE8E3hVtkPaPETfcEZ1km+TraAkgKXD5vn6OqmMZnhG7BBRcQltFstLP2CR3Tc4RaLN"
+    },
+    {
+      "program": "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+      "rows": "40346",
+      "example": "discriminador fora do IDL raw=gqQkYeSCh6UniMFqAAAAAOmktEFfLl6bz9k57JJQ2nbUsjKV+frWB4667VcYEe7PB8xt7gE7pu6NVqfnOBUMVsvTZK"
+    }
+  ],
+  "follower": {
+    "human probable": {
+      "wallets": 8,
+      "delay_1s": {
+        "entries": 1915,
+        "mints": 1248,
+        "pnlSol": 10.27672139886032,
+        "meanSol": 0.005366434150840898,
+        "ci95Sol": [
+          -0.5036203864296319,
+          30.559344809966355
+        ],
+        "positive": 679
+      },
+      "delay_5s": {
+        "entries": 1915,
+        "mints": 1248,
+        "pnlSol": 8.960550239206443,
+        "meanSol": 0.004679138506113025,
+        "ci95Sol": [
+          -1.7749945807699246,
+          29.58777080053344
+        ],
+        "positive": 636
+      },
+      "delay_30s": {
+        "entries": 1915,
+        "mints": 1248,
+        "pnlSol": 9.183850901478495,
+        "meanSol": 0.004795744596072321,
+        "ci95Sol": [
+          -1.5821815264455066,
+          29.623029081504754
+        ],
+        "positive": 626
+      }
+    },
+    "bot probable": {
+      "wallets": 21,
+      "delay_1s": {
+        "entries": 6708,
+        "mints": 3169,
+        "pnlSol": -3.2168961257955524,
+        "meanSol": -0.000479561139802557,
+        "ci95Sol": [
+          -6.706516226370532,
+          0.6415215258593233
+        ],
+        "positive": 2158
+      },
+      "delay_5s": {
+        "entries": 6705,
+        "mints": 3166,
+        "pnlSol": -2.976295255276235,
+        "meanSol": -0.00044389190981002763,
+        "ci95Sol": [
+          -7.867937762028829,
+          4.566694122452028
+        ],
+        "positive": 2096
+      },
+      "delay_30s": {
+        "entries": 6687,
+        "mints": 3149,
+        "pnlSol": -5.53263743694959,
+        "meanSol": -0.0008273721305442785,
+        "ci95Sol": [
+          -9.079851653168422,
+          -1.7855071569867813
+        ],
+        "positive": 1998
+      }
+    },
+    "sniper": {
+      "wallets": 20,
+      "delay_1s": {
+        "entries": 1437,
+        "mints": 1359,
+        "pnlSol": -2.5231637043453428,
+        "meanSol": -0.0017558550482570236,
+        "ci95Sol": [
+          -3.7943800732104886,
+          -1.1127960741671972
+        ],
+        "positive": 417
+      },
+      "delay_5s": {
+        "entries": 1422,
+        "mints": 1344,
+        "pnlSol": -1.661593135777403,
+        "meanSol": -0.0011684902501950794,
+        "ci95Sol": [
+          -2.926383937245327,
+          -0.35596355446255173
+        ],
+        "positive": 394
+      },
+      "delay_30s": {
+        "entries": 1388,
+        "mints": 1311,
+        "pnlSol": -1.4636993333227297,
+        "meanSol": -0.0010545384245840993,
+        "ci95Sol": [
+          -2.601899563370552,
+          -0.36166911869116447
+        ],
+        "positive": 339
+      }
+    },
+    "creator": {
+      "wallets": 1,
+      "delay_1s": {
+        "entries": 64,
+        "mints": 64,
+        "pnlSol": -0.06965221710123204,
+        "meanSol": -0.0010883158922067506,
+        "ci95Sol": [
+          -0.3265268383813242,
+          0.24983973582070212
+        ],
+        "positive": 17
+      },
+      "delay_5s": {
+        "entries": 64,
+        "mints": 64,
+        "pnlSol": -0.0931044657103269,
+        "meanSol": -0.001454757276723858,
+        "ci95Sol": [
+          -0.3659270001359829,
+          0.22254671309403212
+        ],
+        "positive": 17
+      },
+      "delay_30s": {
+        "entries": 64,
+        "mints": 64,
+        "pnlSol": -0.2577066878097197,
+        "meanSol": -0.004026666997026871,
+        "ci95Sol": [
+          -0.4742113270523718,
+          -0.030441411767871535
+        ],
+        "positive": 15
+      }
+    },
+    "total": {
+      "wallets": 50,
+      "delay_1s": {
+        "entries": 10124,
+        "mints": 4378,
+        "pnlSol": 4.467009351618184,
+        "meanSol": 0.00044122968704249154,
+        "ci95Sol": [
+          -8.876853499458887,
+          26.237072507260716
+        ],
+        "positive": 3271
+      },
+      "delay_5s": {
+        "entries": 10106,
+        "mints": 4360,
+        "pnlSol": 4.22955738244243,
+        "meanSol": 0.00041851943226226305,
+        "ci95Sol": [
+          -9.948628383907442,
+          28.84976698524472
+        ],
+        "positive": 3143
+      },
+      "delay_30s": {
+        "entries": 10054,
+        "mints": 4312,
+        "pnlSol": 1.929807443396432,
+        "meanSol": 0.00019194424541440542,
+        "ci95Sol": [
+          -11.444467845697602,
+          24.613330560887743
+        ],
+        "positive": 2978
+      }
+    }
+  },
+  "finalSummary": {
+    "flags": {
+      "bot": 37,
+      "sniper": 20,
+      "creator": 12,
+      "human": 8
+    },
+    "creatorFlagCount": 12,
+    "top5ShareA": 0.639431830942645,
+    "top5ShareB": 0.7834851531887305,
+    "medianPairDelta": 46.837826949,
+    "medianPairDeltaBootCI95": [
+      36.874452839,
+      67.11349396600001
+    ],
+    "averagePairDelta": 281.6042103306999,
+    "averagePairDeltaBootCI95": [
+      107.45466732423998,
+      497.1700194897801
+    ],
+    "pairedBeats": 42,
+    "top50A": 17682.527103546992,
+    "top50B": 14151.964351755996,
+    "controlsB": 71.75383522099997
+  }
+}

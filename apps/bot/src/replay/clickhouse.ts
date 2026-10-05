@@ -67,6 +67,8 @@ export interface ClickHouseReplaySourceOptions {
    * (com `swapDetails`: offset virtual, bps, base_supply — sem eles o swap não é simulável).
    */
   graduated?: boolean;
+  /** Also reads resolved SOL/WSOL PumpSwap trades for causal wallet-performance features. */
+  allWalletTrades?: boolean;
 }
 
 export interface SourceStats {
@@ -95,7 +97,7 @@ export class ClickHouseReplaySource implements EventSource {
     this.o = o;
   }
 
-  async start(onEvent: (e: PumpEvent | SocialEvent) => void): Promise<void> {
+  async start(onEvent: (e: PumpEvent | SocialEvent) => void, onWalletTrade?: (e: PumpSwapTradeEvent) => void): Promise<void> {
     const bounds = z.object({ lo: u, hi: u }).parse((await this.query(
       'SELECT min(slot) AS lo, max(slot) AS hi FROM events_trade WHERE ts >= fromUnixTimestamp64Milli({from:Int64}) AND ts < fromUnixTimestamp64Milli({to:Int64})',
       { from: this.o.fromMs, to: this.o.toMs },
@@ -103,13 +105,19 @@ export class ClickHouseReplaySource implements EventSource {
     if (bounds.hi < bounds.lo || bounds.hi === 0n) return;
     const step = BigInt(this.o.chunkSlots ?? 1_500);
     // pré-carga do próximo bloco enquanto o atual é processado (I/O × CPU em paralelo)
-    let next: Promise<ReplayEvent[]> | null = this.loadChunk(bounds.lo, bounds.lo + step);
+    const liveMints = new Set<string>();
+    let next: Promise<{ events: ReplayEvent[]; walletOnly: Set<string> }> | null = this.loadChunk(bounds.lo, bounds.lo + step);
     for (let a = bounds.lo; a <= bounds.hi && next; a += step) {
-      const events = await next;
+      const chunk = await next;
       const nb = a + step;
       next = !this.stopped && nb <= bounds.hi ? this.loadChunk(nb, nb + step) : null;
-      for (const e of events) {
+      for (const e of chunk.events) {
         if (this.stopped) break;
+        if (e.kind === 'token_created') liveMints.add(e.mint);
+        if (onWalletTrade && e.kind === 'trade' && e.venue === 'pumpswap' && chunk.walletOnly.has(`${e.sig}:${e.eventIndex}`) && !liveMints.has(e.mint)) {
+          onWalletTrade?.(e);
+          continue;
+        }
         onEvent(e);
       }
       if (this.stopped) break;
@@ -122,7 +130,7 @@ export class ClickHouseReplaySource implements EventSource {
     return Promise.resolve();
   }
 
-  private async loadChunk(a: bigint, b: bigint): Promise<ReplayEvent[]> {
+  private async loadChunk(a: bigint, b: bigint): Promise<{ events: ReplayEvent[]; walletOnly: Set<string> }> {
     const p = { from: this.o.fromMs, to: this.o.toMs, a: a.toString(), b: b.toString(), liveFrom: this.o.liveCreatedFromMs, liveTo: this.o.liveCreatedToMs };
     const live = 'SELECT mint FROM events_token WHERE ts >= fromUnixTimestamp64Milli({liveFrom:Int64}) AND ts < fromUnixTimestamp64Milli({liveTo:Int64})';
     const graduatedMints = "SELECT mint FROM events_lifecycle WHERE kind = 'curve_completed' AND ts >= fromUnixTimestamp64Milli({liveFrom:Int64}) AND ts < fromUnixTimestamp64Milli({liveTo:Int64})";
@@ -135,16 +143,30 @@ export class ClickHouseReplaySource implements EventSource {
       : `SELECT ${TIME}, pool, mint, trader, side, quote_mint, quote_amount, token_amount, user_quote_amount, pool_base_reserves, pool_quote_reserves, lp_fee, ` +
         `protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'pumpswap' AND ${WINDOW} AND (mint IN (${live}) OR ` +
         `(mint = '' AND pool IN (SELECT pool FROM events_lifecycle WHERE kind = 'pool_created' AND mint IN (${live}))))`;
-    const [curve, swap, tokens, life] = await Promise.all([
-      this.query(
-        `SELECT ${TIME}, mint, trader, side, quote_mint, quote_amount, token_amount, virtual_quote_reserves AS vq, virtual_token_reserves AS vt, ` +
-          `real_quote_reserves AS rq, real_token_reserves AS rt, protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'curve' AND ${WINDOW}`,
-        p,
-      ),
-      this.query(swapQuery, p),
-      this.query(`SELECT ${TIME}, mint, creator, name, symbol, uri, bonding_curve, quote_mint, token_total_supply FROM events_token WHERE ${WINDOW}`, p),
-      this.query(`SELECT ${TIME}, kind, mint, bonding_curve, pool, quote_mint, creator FROM events_lifecycle WHERE ${WINDOW}`, p),
-    ]);
+    const walletSwapQuery = this.o.allWalletTrades
+      ? `SELECT ${TIME}, pool, mint, trader, side, quote_mint, quote_amount, token_amount, user_quote_amount, pool_base_reserves, pool_quote_reserves, lp_fee, ` +
+        `protocol_fee, creator_fee, ix_name FROM v_trades WHERE venue = 'pumpswap' AND ${WINDOW} AND mint != '' ` +
+        `AND quote_mint IN ('11111111111111111111111111111111','So11111111111111111111111111111111111111112')`
+      : null;
+    const readCurve = () => this.query(
+      `SELECT ${TIME}, mint, trader, side, quote_mint, quote_amount, token_amount, virtual_quote_reserves AS vq, virtual_token_reserves AS vt, ` +
+        `real_quote_reserves AS rq, real_token_reserves AS rt, protocol_fee, creator_fee, ix_name FROM events_trade WHERE venue = 'curve' AND ${WINDOW}`,
+      p,
+    );
+    const readSwap = () => this.query(swapQuery, p);
+    const readTokens = () => this.query(`SELECT ${TIME}, mint, creator, name, symbol, uri, bonding_curve, quote_mint, token_total_supply FROM events_token WHERE ${WINDOW}`, p);
+    const readLife = () => this.query(`SELECT ${TIME}, kind, mint, bonding_curve, pool, quote_mint, creator FROM events_lifecycle WHERE ${WINDOW}`, p);
+    let curve: unknown[]; let swap: unknown[]; let tokens: unknown[]; let life: unknown[]; let walletSwaps: unknown[] = [];
+    if (walletSwapQuery) {
+      // Keep this memory-sensitive feature pass serial within each slot chunk.
+      curve = await readCurve();
+      swap = await readSwap();
+      tokens = await readTokens();
+      life = await readLife();
+      walletSwaps = await this.query(walletSwapQuery, p);
+    } else {
+      [curve, swap, tokens, life] = await Promise.all([readCurve(), readSwap(), readTokens(), readLife()]);
+    }
     const out: ReplayEvent[] = [];
     for (const x of curve) {
       const r = CurveRow.parse(x);
@@ -160,6 +182,16 @@ export class ClickHouseReplaySource implements EventSource {
       out.push({
         ...(details ? { swapDetails: details } : {}),
         kind: 'trade', venue: 'pumpswap', ...base(r), pool: r.pool, mint: r.mint, quoteMint: r.quote_mint, poolUnresolved: r.mint === '', trader: r.trader,
+        side: r.side, tokenAmount: r.token_amount, quoteAmount: r.quote_amount, userQuoteAmount: r.user_quote_amount ?? 0n,
+        poolBaseReserves: r.pool_base_reserves ?? 0n, poolQuoteReserves: r.pool_quote_reserves ?? 0n, lpFee: r.lp_fee ?? 0n,
+        protocolFee: r.protocol_fee, creatorFee: r.creator_fee, ixName: r.ix_name,
+      } satisfies PumpSwapTradeEvent);
+    }
+    const businessKeys = new Set(out.filter((e) => e.kind === 'trade' && e.venue === 'pumpswap').map((e) => `${e.sig}:${e.eventIndex}`));
+    for (const x of walletSwaps) {
+      const r = SwapRow.parse(x);
+      out.push({
+        kind: 'trade', venue: 'pumpswap', ...base(r), pool: r.pool, mint: r.mint, quoteMint: r.quote_mint, poolUnresolved: false, trader: r.trader,
         side: r.side, tokenAmount: r.token_amount, quoteAmount: r.quote_amount, userQuoteAmount: r.user_quote_amount ?? 0n,
         poolBaseReserves: r.pool_base_reserves ?? 0n, poolQuoteReserves: r.pool_quote_reserves ?? 0n, lpFee: r.lp_fee ?? 0n,
         protocolFee: r.protocol_fee, creatorFee: r.creator_fee, ixName: r.ix_name,
@@ -185,7 +217,8 @@ export class ClickHouseReplaySource implements EventSource {
       const k = e.kind === 'trade' ? `trade_${e.venue}` : e.kind;
       this.stats.byKind[k] = (this.stats.byKind[k] ?? 0) + 1;
     }
-    return events;
+    const walletOnly = new Set(events.filter((e) => e.kind === 'trade' && e.venue === 'pumpswap' && !businessKeys.has(`${e.sig}:${e.eventIndex}`)).map((e) => `${e.sig}:${e.eventIndex}`));
+    return { events, walletOnly };
   }
 }
 

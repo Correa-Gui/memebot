@@ -30,7 +30,10 @@ async function main(): Promise<void> {
   const cfg = loadConfigFromEnvFile();
   const log = createLogger({ name: 'ml-dataset' });
   const client = createReplayClient(cfg);
-  const query: QueryFn = async (q, params) => (await client.query({ query: q, query_params: params, format: 'JSONEachRow' })).json<unknown>();
+  const query: QueryFn = async (q, params) => (await client.query({
+    query: q, query_params: params, format: 'JSONEachRow',
+    clickhouse_settings: { max_threads: 1, max_memory_usage: '350000000', max_bytes_before_external_group_by: '64000000', max_bytes_before_external_sort: '64000000', max_block_size: '1024' },
+  })).json<unknown>();
   mkdirSync(dirname(outPath), { recursive: true });
   const out = createWriteStream(outPath);
   let header: string[] | null = null;
@@ -49,12 +52,10 @@ async function main(): Promise<void> {
     for (const [i, [fromMs, toMs]] of blocks.entries()) {
       const t0 = Date.now();
       const lookbackMs = cfg.PAPER_COST_LOOKBACK_HOURS * 3_600_000;
-      const [skeletons, costRows, protocolRows, gaps] = await Promise.all([
-        loadSkeletons(query, fromMs - 24 * 3_600_000, fromMs),
-        loadCostSamples(query, fromMs - lookbackMs, toMs),
-        loadProtocolRows(query, toMs),
-        loadGaps(query, fromMs, toMs),
-      ]);
+      const skeletons = await loadSkeletons(query, fromMs - 24 * 3_600_000, fromMs);
+      const costRows = await loadCostSamples(query, fromMs - lookbackMs, toMs);
+      const protocolRows = await loadProtocolRows(query, toMs);
+      const gaps = await loadGaps(query, fromMs, toMs);
       const costs = [...costRows].sort((a, b) => a.sampledAtMs - b.sampledAtMs);
       const cache = new Map<number, { priority: bigint; tip: bigint }>();
       const costsAt = (t: number): { priority: bigint; tip: bigint } => {
@@ -83,14 +84,19 @@ async function main(): Promise<void> {
         },
       });
       builder.seedSkeletons(skeletons);
-      const source = new ClickHouseReplaySource(query, { fromMs, toMs, liveCreatedFromMs: fromMs, liveCreatedToMs: toMs });
+      const warmFromMs = fromMs - 24 * 3_600_000;
+      const warmup = new ClickHouseReplaySource(query, {
+        fromMs: warmFromMs, toMs: fromMs, liveCreatedFromMs: warmFromMs, liveCreatedToMs: fromMs, allWalletTrades: true,
+      });
+      await warmup.start((e) => { if (e.kind === 'trade') builder.seedSmartMoneyEvent(e); });
+      const source = new ClickHouseReplaySource(query, { fromMs, toMs, liveCreatedFromMs: fromMs, liveCreatedToMs: toMs, allWalletTrades: true });
       await source.start((e) => {
         if (e.kind === 'social_post' || e.kind === 'tx_cost') return;
         const p = protocol.due(e.ts);
         if (p?.fees) builder.setFees(p.fees);
         if (p?.curveParams) builder.setCurveParams(p.curveParams);
         builder.onEvent(e);
-      });
+      }, (e) => builder.seedSmartMoneyEvent(e));
       builder.finish(toMs);
       log.info({ block: i, from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString(), gaps: gaps.length, ...builder.stats, sec: Math.round((Date.now() - t0) / 1000) }, 'bloco concluído');
     }

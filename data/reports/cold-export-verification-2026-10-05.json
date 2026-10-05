@@ -1,0 +1,49 @@
+{
+    "through":  "2026-10-05T18:37:07.729Z",
+    "format":  "Parquet ZSTD",
+    "manifest":  "data/cold/manifest.json",
+    "entries":  708,
+    "missing":  0,
+    "rowCountMismatches":  0,
+    "byteMismatches":  0,
+    "parquetMagicFailures":  0,
+    "checks":  "For each part: source rows == ClickHouse file() rows; remote and local SHA-256 equal; PAR1 header/footer; file bytes match manifest.",
+    "tables":  [
+                   {
+                       "table":  "events_trade",
+                       "parts":  354,
+                       "rows":  59391065,
+                       "bytes":  14962001160,
+                       "partsVerified":  354
+                   },
+                   {
+                       "table":  "pumpswap_trade_extra",
+                       "parts":  348,
+                       "rows":  48623038,
+                       "bytes":  4727858691,
+                       "partsVerified":  348
+                   },
+                   {
+                       "table":  "ingest_gaps",
+                       "parts":  6,
+                       "rows":  46005284,
+                       "bytes":  3110414292,
+                       "partsVerified":  6
+                   }
+               ],
+    "totalBytes":  22800274143,
+    "ttlApplied":  {
+                       "events_trade_raw_b64_days":  14,
+                       "pumpswap_trade_extra_days":  60,
+                       "ingest_gaps_days":  60
+                   },
+    "ttlBlocked":  {
+                       "events_trade_sig":  "ClickHouse 24.8 rejects TTL because sig is in ORDER BY (mint, slot, sig, event_index)."
+                   },
+    "recorder":  "online",
+    "diskMeasurement":  {
+        "measuredAtUtc":  "2026-10-05T20:41:45Z",
+        "CFreeGiB":  17.76,
+        "coldParquetGiB":  21.23
+    }
+}
