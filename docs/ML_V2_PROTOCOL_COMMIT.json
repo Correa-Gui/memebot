@@ -1,0 +1,12 @@
+{
+  "protocol_path": "docs/ML_V2_PROTOCOL.md",
+  "protocol_commit": "fa42ee6a527746ed5d4b0de839836bc55707047f",
+  "protocol_sha256_git_blob": "b5f68dd33e88a5f1544f1d39a6c1742e1d4f3549cbcf8c093abc2e1e304a44a4",
+  "source_reference_commit": "ceac2df336051e1ae33d561dc46141129ae4c1fe",
+  "development_cutoff_utc": "2026-10-05T18:37:07.000Z",
+  "test_end_utc": null,
+  "status": "awaiting_explicit_user_authorization_and_test_end",
+  "training_executed": false,
+  "test_evaluation_executed": false,
+  "post_cutoff_data_accessed_in_this_task": false
+}
