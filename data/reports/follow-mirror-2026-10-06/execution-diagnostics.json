@@ -1,0 +1,140 @@
+[
+  {
+    "delay": 1,
+    "policy": "mirror",
+    "fills": 31580,
+    "positive": 2772,
+    "pnl_sol": -29.582794013,
+    "pnl_with_old_network_37275_sol": -29.075630014,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      21.0,
+      55748.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      1.0,
+      10.0,
+      14856.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.4166666666666667,
+      60.8,
+      989.1333333333333
+    ]
+  },
+  {
+    "delay": 1,
+    "policy": "fixed",
+    "fills": 18939,
+    "positive": 2704,
+    "pnl_sol": -31.118708334,
+    "pnl_with_old_network_37275_sol": -30.810509783,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      40.0,
+      51567.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      1.0,
+      10.0,
+      14856.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.5,
+      12.166666666666666,
+      869.45
+    ]
+  },
+  {
+    "delay": 5,
+    "policy": "mirror",
+    "fills": 31433,
+    "positive": 2596,
+    "pnl_sol": -31.680128668,
+    "pnl_with_old_network_37275_sol": -31.175200975,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      37.0,
+      55731.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      5.0,
+      33.0,
+      14856.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.4166666666666667,
+      60.9,
+      988.85
+    ]
+  },
+  {
+    "delay": 5,
+    "policy": "fixed",
+    "fills": 18662,
+    "positive": 2566,
+    "pnl_sol": -43.847767604,
+    "pnl_with_old_network_37275_sol": -43.543898329,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      82.0,
+      51567.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      5.0,
+      33.0,
+      14856.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.5833333333333334,
+      12.816666666666666,
+      869.45
+    ]
+  },
+  {
+    "delay": 30,
+    "policy": "mirror",
+    "fills": 31189,
+    "positive": 2385,
+    "pnl_sol": -30.973352657,
+    "pnl_with_old_network_37275_sol": -30.472271238,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      100.0,
+      55147.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      30.0,
+      146.0,
+      18961.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.43333333333333335,
+      61.0,
+      979.1166666666667
+    ]
+  },
+  {
+    "delay": 30,
+    "policy": "fixed",
+    "fills": 18098,
+    "positive": 2358,
+    "pnl_sol": -66.223511036,
+    "pnl_with_old_network_37275_sol": -65.928232404,
+    "extra_wait_seconds_p50_p95_max": [
+      0.0,
+      184.0,
+      51567.0
+    ],
+    "entry_after_signal_seconds_p50_p95_max": [
+      30.0,
+      146.0,
+      18961.0
+    ],
+    "hold_minutes_p50_p95_max": [
+      0.8,
+      15.05,
+      869.45
+    ]
+  }
+]

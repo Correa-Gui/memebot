@@ -1,0 +1,1644 @@
+{
+  "exploratory": true,
+  "from": "2026-10-03T22:56:12.222Z",
+  "split": "2026-10-04T20:46:40.000Z",
+  "end": "2026-10-05T18:37:07.729Z",
+  "inputSha256": {
+    "selection": "ed98cb324dcd74ee1469789047f988573ca9177872ddfcfe98c6f3bf4d62c47e",
+    "previous": "87b1c755970a50eb9019081a9138ebbc5aeb3e2d3f223cd8371cfd92b3040ca3"
+  },
+  "inputSignals": 10124,
+  "eligibleSignals": 9630,
+  "lateSignalsExcluded": 494,
+  "networkCostHours": [
+    {
+      "utc": "2026-10-04T20:00:00.000Z",
+      "fee": "43528",
+      "samples": 14126
+    },
+    {
+      "utc": "2026-10-04T21:00:00.000Z",
+      "fee": "45000",
+      "samples": 14113
+    },
+    {
+      "utc": "2026-10-04T22:00:00.000Z",
+      "fee": "45600",
+      "samples": 14557
+    },
+    {
+      "utc": "2026-10-04T23:00:00.000Z",
+      "fee": "47992",
+      "samples": 15134
+    },
+    {
+      "utc": "2026-10-05T00:00:00.000Z",
+      "fee": "49000",
+      "samples": 15118
+    },
+    {
+      "utc": "2026-10-05T01:00:00.000Z",
+      "fee": "52632",
+      "samples": 15084
+    },
+    {
+      "utc": "2026-10-05T02:00:00.000Z",
+      "fee": "53050",
+      "samples": 15079
+    },
+    {
+      "utc": "2026-10-05T03:00:00.000Z",
+      "fee": "55000",
+      "samples": 15068
+    },
+    {
+      "utc": "2026-10-05T04:00:00.000Z",
+      "fee": "55000",
+      "samples": 15073
+    },
+    {
+      "utc": "2026-10-05T05:00:00.000Z",
+      "fee": "55000",
+      "samples": 15060
+    },
+    {
+      "utc": "2026-10-05T06:00:00.000Z",
+      "fee": "55000",
+      "samples": 15017
+    },
+    {
+      "utc": "2026-10-05T07:00:00.000Z",
+      "fee": "55000",
+      "samples": 15039
+    },
+    {
+      "utc": "2026-10-05T08:00:00.000Z",
+      "fee": "55000",
+      "samples": 15037
+    },
+    {
+      "utc": "2026-10-05T09:00:00.000Z",
+      "fee": "55000",
+      "samples": 15020
+    },
+    {
+      "utc": "2026-10-05T10:00:00.000Z",
+      "fee": "55000",
+      "samples": 15023
+    },
+    {
+      "utc": "2026-10-05T11:00:00.000Z",
+      "fee": "55000",
+      "samples": 15006
+    },
+    {
+      "utc": "2026-10-05T12:00:00.000Z",
+      "fee": "55001",
+      "samples": 14952
+    },
+    {
+      "utc": "2026-10-05T13:00:00.000Z",
+      "fee": "55777",
+      "samples": 14926
+    },
+    {
+      "utc": "2026-10-05T14:00:00.000Z",
+      "fee": "59886",
+      "samples": 14898
+    },
+    {
+      "utc": "2026-10-05T15:00:00.000Z",
+      "fee": "59886",
+      "samples": 14869
+    },
+    {
+      "utc": "2026-10-05T16:00:00.000Z",
+      "fee": "61387",
+      "samples": 14842
+    },
+    {
+      "utc": "2026-10-05T17:00:00.000Z",
+      "fee": "55001",
+      "samples": 14817
+    },
+    {
+      "utc": "2026-10-05T18:00:00.000Z",
+      "fee": "55001",
+      "samples": 14751
+    }
+  ],
+  "stats": {
+    "swap_reconstruction_exact": 2652459,
+    "market_observations": 3567658,
+    "duplicates": 7,
+    "unsupported_curve_cashback": 497
+  },
+  "summary": [
+    {
+      "kind": "human probable",
+      "delay": 1,
+      "wallets": 8,
+      "signals": 1831,
+      "noEntry": 0,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -3.891999769000003,
+        "ci95Sol": [
+          -6.014956685000007,
+          -1.7027931459999968
+        ],
+        "mints": 1182,
+        "entries": 1831,
+        "closed": 1811,
+        "unfilled": 20,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.2030436,
+        "networkFeesSol": 0.203542607,
+        "reasons": {
+          "timeout": 471,
+          "leader_sale": 1148,
+          "stop50": 192,
+          "no_executable_exit_before_B_end": 20
+        },
+        "closedOnly": {
+          "pnlSol": -2.8908714200000007,
+          "ci95Sol": [
+            -4.9635587480000085,
+            -0.7375460889999998
+          ],
+          "mints": 1164
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -3.8536410480000027,
+          "ci95Sol": [
+            -5.934947555999996,
+            -1.7515174819999986
+          ],
+          "mints": 1159
+        }
+      },
+      "fixed": {
+        "pnlSol": -3.1365017750000024,
+        "ci95Sol": [
+          -4.330885244,
+          -1.902983272
+        ],
+        "mints": 1182,
+        "entries": 1831,
+        "closed": 1819,
+        "unfilled": 12,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.216461186,
+        "networkFeesSol": 0.195602344,
+        "reasons": {
+          "timeout": 476,
+          "take40": 394,
+          "stop20": 949,
+          "no_executable_exit_before_B_end": 12
+        },
+        "closedOnly": {
+          "pnlSol": -2.5357952459999984,
+          "ci95Sol": [
+            -3.7283080370000015,
+            -1.289672867
+          ],
+          "mints": 1170
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -2.997881738000002,
+          "ci95Sol": [
+            -4.194667985999995,
+            -1.777449886999998
+          ],
+          "mints": 1159
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": -0.7554979940000021,
+        "ci95Sol": [
+          -2.6634179779999996,
+          1.373090297999997
+        ],
+        "mints": 1182
+      },
+      "historicMatched": {
+        "entries": 1831,
+        "pnlSol": 10.286669757000006,
+        "ci95Sol": [
+          -0.5079072259999994,
+          30.90766065000001
+        ],
+        "mints": 1182
+      }
+    },
+    {
+      "kind": "human probable",
+      "delay": 5,
+      "wallets": 8,
+      "signals": 1831,
+      "noEntry": 0,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -4.405481211999997,
+        "ci95Sol": [
+          -6.579222014000007,
+          -2.1461128469999995
+        ],
+        "mints": 1182,
+        "entries": 1831,
+        "closed": 1808,
+        "unfilled": 23,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.196974472,
+        "networkFeesSol": 0.203398676,
+        "reasons": {
+          "timeout": 470,
+          "leader_sale": 1137,
+          "stop50": 201,
+          "no_executable_exit_before_B_end": 23
+        },
+        "closedOnly": {
+          "pnlSol": -3.264692267999997,
+          "ci95Sol": [
+            -5.3568555270000004,
+            -1.0536437439999997
+          ],
+          "mints": 1162
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -4.445521117999996,
+          "ci95Sol": [
+            -6.609076171000003,
+            -2.3619621189999993
+          ],
+          "mints": 1159
+        }
+      },
+      "fixed": {
+        "pnlSol": -3.9126952759999996,
+        "ci95Sol": [
+          -5.140537455000002,
+          -2.6319305100000023
+        ],
+        "mints": 1182,
+        "entries": 1831,
+        "closed": 1817,
+        "unfilled": 14,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.206011727,
+        "networkFeesSol": 0.195524178,
+        "reasons": {
+          "timeout": 467,
+          "take40": 380,
+          "stop20": 970,
+          "no_executable_exit_before_B_end": 14
+        },
+        "closedOnly": {
+          "pnlSol": -3.211889206,
+          "ci95Sol": [
+            -4.367993467999993,
+            -2.0286278760000025
+          ],
+          "mints": 1168
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -3.7455186929999993,
+          "ci95Sol": [
+            -4.992855788999999,
+            -2.5119140380000013
+          ],
+          "mints": 1159
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": -0.49278593600000026,
+        "ci95Sol": [
+          -2.4112232729999996,
+          1.5815818809999986
+        ],
+        "mints": 1182
+      },
+      "historicMatched": {
+        "entries": 1831,
+        "pnlSol": 8.953240033999995,
+        "ci95Sol": [
+          -1.7497499359999984,
+          29.700954192
+        ],
+        "mints": 1182
+      }
+    },
+    {
+      "kind": "human probable",
+      "delay": 30,
+      "wallets": 8,
+      "signals": 1831,
+      "noEntry": 0,
+      "censored": 1,
+      "mirror": {
+        "pnlSol": -4.692278690000004,
+        "ci95Sol": [
+          -6.873734683999984,
+          -2.3715013509999996
+        ],
+        "mints": 1181,
+        "entries": 1830,
+        "closed": 1809,
+        "unfilled": 21,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.183892405,
+        "networkFeesSol": 0.203182158,
+        "reasons": {
+          "timeout": 466,
+          "leader_sale": 1110,
+          "stop50": 233,
+          "no_executable_exit_before_B_end": 21
+        },
+        "closedOnly": {
+          "pnlSol": -3.649384858000001,
+          "ci95Sol": [
+            -5.863738784999992,
+            -1.494021170000001
+          ],
+          "mints": 1163
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -4.717831781000001,
+          "ci95Sol": [
+            -6.893653154999997,
+            -2.5275311510000003
+          ],
+          "mints": 1158
+        }
+      },
+      "fixed": {
+        "pnlSol": -4.756663334000003,
+        "ci95Sol": [
+          -5.984867066999992,
+          -3.5141001599999995
+        ],
+        "mints": 1181,
+        "entries": 1830,
+        "closed": 1808,
+        "unfilled": 22,
+        "unknownInventory": 66,
+        "dexFeesSol": 2.191209483,
+        "networkFeesSol": 0.194982735,
+        "reasons": {
+          "timeout": 496,
+          "take40": 353,
+          "stop20": 959,
+          "no_executable_exit_before_B_end": 22
+        },
+        "closedOnly": {
+          "pnlSol": -3.6554166579999947,
+          "ci95Sol": [
+            -4.795511509000006,
+            -2.480911753999998
+          ],
+          "mints": 1160
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -4.538047902999999,
+          "ci95Sol": [
+            -5.76696003299999,
+            -3.1791473319999985
+          ],
+          "mints": 1158
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 0.06438464399999927,
+        "ci95Sol": [
+          -1.9529274680000026,
+          2.2190970510000043
+        ],
+        "mints": 1181
+      },
+      "historicMatched": {
+        "entries": 1830,
+        "pnlSol": 9.319516474999995,
+        "ci95Sol": [
+          -1.5104947429999989,
+          30.13378749099996
+        ],
+        "mints": 1181
+      }
+    },
+    {
+      "kind": "bot probable",
+      "delay": 1,
+      "wallets": 21,
+      "signals": 6365,
+      "noEntry": 16,
+      "censored": 2,
+      "mirror": {
+        "pnlSol": -17.340797168000005,
+        "ci95Sol": [
+          -22.362349357999996,
+          -11.778455109000019
+        ],
+        "mints": 3017,
+        "entries": 6347,
+        "closed": 6204,
+        "unfilled": 143,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.649535116,
+        "networkFeesSol": 1.130917272,
+        "reasons": {
+          "leader_sale": 5637,
+          "stop50": 359,
+          "timeout": 208,
+          "no_executable_exit_before_B_end": 143
+        },
+        "closedOnly": {
+          "pnlSol": -10.270251317000003,
+          "ci95Sol": [
+            -15.104891435,
+            -4.931764832000006
+          ],
+          "mints": 2883
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -17.176866051000005,
+          "ci95Sol": [
+            -22.03447547200001,
+            -11.792410362000018
+          ],
+          "mints": 3002
+        }
+      },
+      "fixed": {
+        "pnlSol": -17.32752599700004,
+        "ci95Sol": [
+          -20.24265201699997,
+          -14.487478847000002
+        ],
+        "mints": 3017,
+        "entries": 6347,
+        "closed": 6227,
+        "unfilled": 120,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.653694633,
+        "networkFeesSol": 0.675017548,
+        "reasons": {
+          "take40": 1580,
+          "stop20": 3964,
+          "timeout": 683,
+          "no_executable_exit_before_B_end": 120
+        },
+        "closedOnly": {
+          "pnlSol": -11.321121085000001,
+          "ci95Sol": [
+            -13.950249091000014,
+            -8.685689421999983
+          ],
+          "mints": 2901
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -17.27379105800004,
+          "ci95Sol": [
+            -20.205015058999994,
+            -14.417817091999993
+          ],
+          "mints": 3002
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": -0.013271170999997622,
+        "ci95Sol": [
+          -4.410805543999998,
+          5.076713499999987
+        ],
+        "mints": 3017
+      },
+      "historicMatched": {
+        "entries": 6347,
+        "pnlSol": -2.5999518719999966,
+        "ci95Sol": [
+          -6.199008653999982,
+          1.382085580000001
+        ],
+        "mints": 3017
+      }
+    },
+    {
+      "kind": "bot probable",
+      "delay": 5,
+      "wallets": 21,
+      "signals": 6365,
+      "noEntry": 19,
+      "censored": 4,
+      "mirror": {
+        "pnlSol": -19.291181014999992,
+        "ci95Sol": [
+          -23.855174790999957,
+          -14.089354703999993
+        ],
+        "mints": 3012,
+        "entries": 6342,
+        "closed": 6192,
+        "unfilled": 150,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.602031644,
+        "networkFeesSol": 1.129012688,
+        "reasons": {
+          "leader_sale": 5563,
+          "stop50": 418,
+          "timeout": 211,
+          "no_executable_exit_before_B_end": 150
+        },
+        "closedOnly": {
+          "pnlSol": -11.892350361000005,
+          "ci95Sol": [
+            -16.22226841199995,
+            -6.67402770700001
+          ],
+          "mints": 2874
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -19.12407137399999,
+          "ci95Sol": [
+            -23.53953927500002,
+            -14.16325808000004
+          ],
+          "mints": 2997
+        }
+      },
+      "fixed": {
+        "pnlSol": -23.780126689000028,
+        "ci95Sol": [
+          -26.771600445000058,
+          -20.80745081699998
+        ],
+        "mints": 3012,
+        "entries": 6342,
+        "closed": 6122,
+        "unfilled": 220,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.549190674,
+        "networkFeesSol": 0.669201509,
+        "reasons": {
+          "take40": 1487,
+          "stop20": 3932,
+          "timeout": 703,
+          "no_executable_exit_before_B_end": 220
+        },
+        "closedOnly": {
+          "pnlSol": -12.768434872999975,
+          "ci95Sol": [
+            -15.318550328999963,
+            -10.197895147999992
+          ],
+          "mints": 2804
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -23.72816448400003,
+          "ci95Sol": [
+            -26.598220540000014,
+            -20.780816304000027
+          ],
+          "mints": 2997
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 4.488945673999992,
+        "ci95Sol": [
+          0.15492933400000564,
+          9.494034694000007
+        ],
+        "mints": 3012
+      },
+      "historicMatched": {
+        "entries": 6342,
+        "pnlSol": -2.2796916459999954,
+        "ci95Sol": [
+          -7.041779389999996,
+          4.872906041999992
+        ],
+        "mints": 3012
+      }
+    },
+    {
+      "kind": "bot probable",
+      "delay": 30,
+      "wallets": 21,
+      "signals": 6365,
+      "noEntry": 37,
+      "censored": 10,
+      "mirror": {
+        "pnlSol": -19.010094008999967,
+        "ci95Sol": [
+          -23.145109493000046,
+          -14.44096382799999
+        ],
+        "mints": 2992,
+        "entries": 6318,
+        "closed": 6154,
+        "unfilled": 164,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.575843396,
+        "networkFeesSol": 1.12238154,
+        "reasons": {
+          "leader_sale": 5508,
+          "timeout": 212,
+          "no_executable_exit_before_B_end": 164,
+          "stop50": 434
+        },
+        "closedOnly": {
+          "pnlSol": -10.975994682999977,
+          "ci95Sol": [
+            -14.95056734999995,
+            -6.315225874999996
+          ],
+          "mints": 2842
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -18.83153132899998,
+          "ci95Sol": [
+            -23.052791837,
+            -14.316111475000032
+          ],
+          "mints": 2977
+        }
+      },
+      "fixed": {
+        "pnlSol": -34.73660045100005,
+        "ci95Sol": [
+          -38.183801659000075,
+          -31.478005591000073
+        ],
+        "mints": 2992,
+        "entries": 6318,
+        "closed": 5866,
+        "unfilled": 452,
+        "unknownInventory": 30,
+        "dexFeesSol": 7.382961594,
+        "networkFeesSol": 0.654443587,
+        "reasons": {
+          "take40": 1382,
+          "no_executable_exit_before_B_end": 452,
+          "timeout": 858,
+          "stop20": 3626
+        },
+        "closedOnly": {
+          "pnlSol": -12.112553546000003,
+          "ci95Sol": [
+            -14.66476973000001,
+            -9.495481942999977
+          ],
+          "mints": 2605
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -34.68163467800003,
+          "ci95Sol": [
+            -37.99771416199997,
+            -31.45214939900003
+          ],
+          "mints": 2977
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 15.726506442000037,
+        "ci95Sol": [
+          11.519311205999989,
+          20.645165956000017
+        ],
+        "mints": 2992
+      },
+      "historicMatched": {
+        "entries": 6318,
+        "pnlSol": -4.305576041000003,
+        "ci95Sol": [
+          -7.818232203999998,
+          -0.3398966499999978
+        ],
+        "mints": 2992
+      }
+    },
+    {
+      "kind": "sniper",
+      "delay": 1,
+      "wallets": 20,
+      "signals": 1377,
+      "noEntry": 1,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -8.130222664000007,
+        "ci95Sol": [
+          -9.984945705000017,
+          -6.003937497000009
+        ],
+        "mints": 1300,
+        "entries": 1376,
+        "closed": 1314,
+        "unfilled": 62,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.601928686,
+        "networkFeesSol": 0.33982611,
+        "reasons": {
+          "stop50": 131,
+          "leader_sale": 1172,
+          "no_executable_exit_before_B_end": 62,
+          "timeout": 11
+        },
+        "closedOnly": {
+          "pnlSol": -5.594469224000009,
+          "ci95Sol": [
+            -7.294489430000011,
+            -3.619840217999991
+          ],
+          "mints": 1239
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -8.325709179000006,
+          "ci95Sol": [
+            -10.158202069,
+            -6.2043963580000225
+          ],
+          "mints": 1297
+        }
+      },
+      "fixed": {
+        "pnlSol": -10.495816658000006,
+        "ci95Sol": [
+          -12.209104421000003,
+          -8.784198452000012
+        ],
+        "mints": 1300,
+        "entries": 1376,
+        "closed": 1225,
+        "unfilled": 151,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.563692569,
+        "networkFeesSol": 0.137164554,
+        "reasons": {
+          "timeout": 80,
+          "take40": 340,
+          "no_executable_exit_before_B_end": 151,
+          "stop20": 805
+        },
+        "closedOnly": {
+          "pnlSol": -2.9378538169999993,
+          "ci95Sol": [
+            -4.234937624000002,
+            -1.7370178079999972
+          ],
+          "mints": 1149
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -10.526108010000005,
+          "ci95Sol": [
+            -12.09946167700001,
+            -8.951684710999988
+          ],
+          "mints": 1297
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 2.3655939939999997,
+        "ci95Sol": [
+          0.17664562300000056,
+          4.705311327999997
+        ],
+        "mints": 1300
+      },
+      "historicMatched": {
+        "entries": 1376,
+        "pnlSol": -2.3374967689999986,
+        "ci95Sol": [
+          -3.694314083000002,
+          -1.0908231540000004
+        ],
+        "mints": 1300
+      }
+    },
+    {
+      "kind": "sniper",
+      "delay": 5,
+      "wallets": 20,
+      "signals": 1377,
+      "noEntry": 16,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -7.8851729969999855,
+        "ci95Sol": [
+          -9.582241440999985,
+          -5.951241852999992
+        ],
+        "mints": 1285,
+        "entries": 1361,
+        "closed": 1312,
+        "unfilled": 49,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.57365346,
+        "networkFeesSol": 0.334144008,
+        "reasons": {
+          "stop50": 132,
+          "leader_sale": 1169,
+          "no_executable_exit_before_B_end": 49,
+          "timeout": 11
+        },
+        "closedOnly": {
+          "pnlSol": -5.857300864000003,
+          "ci95Sol": [
+            -7.464156010999973,
+            -4.032036618000001
+          ],
+          "mints": 1237
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -8.063654190999985,
+          "ci95Sol": [
+            -9.803429420999999,
+            -6.3114254749999805
+          ],
+          "mints": 1282
+        }
+      },
+      "fixed": {
+        "pnlSol": -16.051520653000026,
+        "ci95Sol": [
+          -17.93602860700004,
+          -14.165069841000017
+        ],
+        "mints": 1285,
+        "entries": 1361,
+        "closed": 1075,
+        "unfilled": 286,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.461378262,
+        "networkFeesSol": 0.128404308,
+        "reasons": {
+          "timeout": 93,
+          "no_executable_exit_before_B_end": 286,
+          "stop20": 672,
+          "take40": 310
+        },
+        "closedOnly": {
+          "pnlSol": -1.7364565660000002,
+          "ci95Sol": [
+            -2.9452282709999995,
+            -0.52404183
+          ],
+          "mints": 1002
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -16.08102613900003,
+          "ci95Sol": [
+            -17.993561288000027,
+            -14.23085275100001
+          ],
+          "mints": 1282
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 8.166347655999989,
+        "ci95Sol": [
+          5.767772827999993,
+          10.627885984000025
+        ],
+        "mints": 1285
+      },
+      "historicMatched": {
+        "entries": 1361,
+        "pnlSol": -1.4110215150000003,
+        "ci95Sol": [
+          -2.656247690000001,
+          -0.1484498939999998
+        ],
+        "mints": 1285
+      }
+    },
+    {
+      "kind": "sniper",
+      "delay": 30,
+      "wallets": 20,
+      "signals": 1377,
+      "noEntry": 45,
+      "censored": 2,
+      "mirror": {
+        "pnlSol": -7.190583963999991,
+        "ci95Sol": [
+          -8.993343764999997,
+          -5.327673512000008
+        ],
+        "mints": 1255,
+        "entries": 1330,
+        "closed": 1272,
+        "unfilled": 58,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.54193328,
+        "networkFeesSol": 0.328113801,
+        "reasons": {
+          "stop50": 112,
+          "leader_sale": 1146,
+          "no_executable_exit_before_B_end": 58,
+          "timeout": 14
+        },
+        "closedOnly": {
+          "pnlSol": -4.815497472999997,
+          "ci95Sol": [
+            -6.455695768999985,
+            -2.9102116390000026
+          ],
+          "mints": 1198
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -7.410231686999991,
+          "ci95Sol": [
+            -9.158558865999995,
+            -5.485767213000004
+          ],
+          "mints": 1252
+        }
+      },
+      "fixed": {
+        "pnlSol": -26.471530856000108,
+        "ci95Sol": [
+          -28.338787859000067,
+          -24.525261945000032
+        ],
+        "mints": 1255,
+        "entries": 1330,
+        "closed": 833,
+        "unfilled": 497,
+        "unknownInventory": 4,
+        "dexFeesSol": 1.288823014,
+        "networkFeesSol": 0.114151317,
+        "reasons": {
+          "take40": 210,
+          "no_executable_exit_before_B_end": 497,
+          "timeout": 139,
+          "stop20": 484
+        },
+        "closedOnly": {
+          "pnlSol": -1.5951633749999974,
+          "ci95Sol": [
+            -2.6286790120000014,
+            -0.6590272019999998
+          ],
+          "mints": 769
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -26.50163866000011,
+          "ci95Sol": [
+            -28.481890093000082,
+            -24.54528743300007
+          ],
+          "mints": 1252
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 19.280946891999992,
+        "ci95Sol": [
+          16.775608044,
+          21.78126653900003
+        ],
+        "mints": 1255
+      },
+      "historicMatched": {
+        "entries": 1330,
+        "pnlSol": -1.2703434040000023,
+        "ci95Sol": [
+          -2.3237160359999907,
+          -0.2144346909999998
+        ],
+        "mints": 1255
+      }
+    },
+    {
+      "kind": "creator",
+      "delay": 1,
+      "wallets": 1,
+      "signals": 57,
+      "noEntry": 0,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -0.21977441200000003,
+        "ci95Sol": [
+          -0.814680026,
+          0.8092456669999999
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 57,
+        "unfilled": 0,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.06691372,
+        "networkFeesSol": 0.01002251,
+        "reasons": {
+          "leader_sale": 35,
+          "stop50": 17,
+          "timeout": 5
+        },
+        "closedOnly": {
+          "pnlSol": -0.21977441200000003,
+          "ci95Sol": [
+            -0.814680026,
+            0.8092456669999999
+          ],
+          "mints": 57
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.21977441200000003,
+          "ci95Sol": [
+            -0.814680026,
+            0.8092456669999999
+          ],
+          "mints": 57
+        }
+      },
+      "fixed": {
+        "pnlSol": -0.15886390399999997,
+        "ci95Sol": [
+          -0.354108811,
+          0.049523774999999985
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 57,
+        "unfilled": 0,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.0685403,
+        "networkFeesSol": 0.00636533,
+        "reasons": {
+          "stop20": 42,
+          "take40": 14,
+          "timeout": 1
+        },
+        "closedOnly": {
+          "pnlSol": -0.15886390399999997,
+          "ci95Sol": [
+            -0.354108811,
+            0.049523774999999985
+          ],
+          "mints": 57
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.15886390399999997,
+          "ci95Sol": [
+            -0.354108811,
+            0.049523774999999985
+          ],
+          "mints": 57
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": -0.060910507999999905,
+        "ci95Sol": [
+          -0.7051088560000002,
+          0.9877159539999998
+        ],
+        "mints": 57
+      },
+      "historicMatched": {
+        "entries": 57,
+        "pnlSol": -0.03372282399999995,
+        "ci95Sol": [
+          -0.2957924769999999,
+          0.256304558
+        ],
+        "mints": 57
+      }
+    },
+    {
+      "kind": "creator",
+      "delay": 5,
+      "wallets": 1,
+      "signals": 57,
+      "noEntry": 0,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -0.09829344399999995,
+        "ci95Sol": [
+          -0.7657452430000001,
+          1.0842993149999995
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 57,
+        "unfilled": 0,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.067497175,
+        "networkFeesSol": 0.010037396,
+        "reasons": {
+          "leader_sale": 35,
+          "stop50": 16,
+          "timeout": 6
+        },
+        "closedOnly": {
+          "pnlSol": -0.09829344399999995,
+          "ci95Sol": [
+            -0.7657452430000001,
+            1.0842993149999995
+          ],
+          "mints": 57
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.09829344399999995,
+          "ci95Sol": [
+            -0.7657452430000001,
+            1.0842993149999995
+          ],
+          "mints": 57
+        }
+      },
+      "fixed": {
+        "pnlSol": -0.10342498600000001,
+        "ci95Sol": [
+          -0.31625995200000007,
+          0.12726212
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 57,
+        "unfilled": 0,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.068605042,
+        "networkFeesSol": 0.00636533,
+        "reasons": {
+          "stop20": 41,
+          "take40": 15,
+          "timeout": 1
+        },
+        "closedOnly": {
+          "pnlSol": -0.10342498600000001,
+          "ci95Sol": [
+            -0.31625995200000007,
+            0.12726212
+          ],
+          "mints": 57
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.10342498600000001,
+          "ci95Sol": [
+            -0.31625995200000007,
+            0.12726212
+          ],
+          "mints": 57
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 0.00513154200000006,
+        "ci95Sol": [
+          -0.7128492640000001,
+          1.2165938280000004
+        ],
+        "mints": 57
+      },
+      "historicMatched": {
+        "entries": 57,
+        "pnlSol": -0.044155944,
+        "ci95Sol": [
+          -0.2924779080000002,
+          0.27323931100000004
+        ],
+        "mints": 57
+      }
+    },
+    {
+      "kind": "creator",
+      "delay": 30,
+      "wallets": 1,
+      "signals": 57,
+      "noEntry": 0,
+      "censored": 0,
+      "mirror": {
+        "pnlSol": -0.08039599400000001,
+        "ci95Sol": [
+          -0.7227018479999998,
+          0.986942768
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 57,
+        "unfilled": 0,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.068643109,
+        "networkFeesSol": 0.009973895,
+        "reasons": {
+          "leader_sale": 35,
+          "stop50": 17,
+          "timeout": 5
+        },
+        "closedOnly": {
+          "pnlSol": -0.08039599400000001,
+          "ci95Sol": [
+            -0.7227018479999998,
+            0.986942768
+          ],
+          "mints": 57
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.08039599400000001,
+          "ci95Sol": [
+            -0.7227018479999998,
+            0.986942768
+          ],
+          "mints": 57
+        }
+      },
+      "fixed": {
+        "pnlSol": -0.25871639500000004,
+        "ci95Sol": [
+          -0.47773167700000024,
+          -0.04094854300000002
+        ],
+        "mints": 57,
+        "entries": 57,
+        "closed": 56,
+        "unfilled": 1,
+        "unknownInventory": 0,
+        "dexFeesSol": 0.066613575,
+        "networkFeesSol": 0.006303943,
+        "reasons": {
+          "stop20": 43,
+          "take40": 12,
+          "timeout": 1,
+          "no_executable_exit_before_B_end": 1
+        },
+        "closedOnly": {
+          "pnlSol": -0.20865500800000003,
+          "ci95Sol": [
+            -0.401725733,
+            -0.002527187000000014
+          ],
+          "mints": 56
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -0.25871639500000004,
+          "ci95Sol": [
+            -0.47773167700000024,
+            -0.04094854300000002
+          ],
+          "mints": 57
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 0.1783204010000001,
+        "ci95Sol": [
+          -0.44278737500000004,
+          1.1797238929999996
+        ],
+        "mints": 57
+      },
+      "historicMatched": {
+        "entries": 57,
+        "pnlSol": -0.19399488,
+        "ci95Sol": [
+          -0.39412128599999996,
+          0.01678766499999997
+        ],
+        "mints": 57
+      }
+    },
+    {
+      "kind": "total",
+      "delay": 1,
+      "wallets": 50,
+      "signals": 9630,
+      "noEntry": 17,
+      "censored": 2,
+      "mirror": {
+        "pnlSol": -29.58279401299998,
+        "ci95Sol": [
+          -35.43755835800012,
+          -23.042277862000113
+        ],
+        "mints": 4156,
+        "entries": 9611,
+        "closed": 9386,
+        "unfilled": 225,
+        "unknownInventory": 100,
+        "dexFeesSol": 11.521421122,
+        "networkFeesSol": 1.684308499,
+        "reasons": {
+          "timeout": 695,
+          "leader_sale": 7992,
+          "stop50": 699,
+          "no_executable_exit_before_B_end": 225
+        },
+        "closedOnly": {
+          "pnlSol": -18.975366372999957,
+          "ci95Sol": [
+            -25.086160560999996,
+            -12.463795755000032
+          ],
+          "mints": 3951
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -29.57599068999998,
+          "ci95Sol": [
+            -35.880585593999996,
+            -22.78337009600002
+          ],
+          "mints": 4129
+        }
+      },
+      "fixed": {
+        "pnlSol": -31.11870833400005,
+        "ci95Sol": [
+          -34.85892358500012,
+          -27.64284608000007
+        ],
+        "mints": 4156,
+        "entries": 9611,
+        "closed": 9328,
+        "unfilled": 283,
+        "unknownInventory": 100,
+        "dexFeesSol": 11.502388688,
+        "networkFeesSol": 1.014149776,
+        "reasons": {
+          "timeout": 1240,
+          "take40": 2328,
+          "stop20": 5760,
+          "no_executable_exit_before_B_end": 283
+        },
+        "closedOnly": {
+          "pnlSol": -16.95363405200003,
+          "ci95Sol": [
+            -20.46701291100004,
+            -13.70095357800005
+          ],
+          "mints": 3883
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -30.95664471000004,
+          "ci95Sol": [
+            -34.439302319000014,
+            -27.188774164000062
+          ],
+          "mints": 4129
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 1.5359143209999915,
+        "ci95Sol": [
+          -4.0672086469999815,
+          7.490303940000012
+        ],
+        "mints": 4156
+      },
+      "historicMatched": {
+        "entries": 9611,
+        "pnlSol": 5.315498292,
+        "ci95Sol": [
+          -7.796490179999994,
+          27.350749206999982
+        ],
+        "mints": 4156
+      }
+    },
+    {
+      "kind": "total",
+      "delay": 5,
+      "wallets": 50,
+      "signals": 9630,
+      "noEntry": 35,
+      "censored": 4,
+      "mirror": {
+        "pnlSol": -31.68012866800006,
+        "ci95Sol": [
+          -37.6397750599999,
+          -25.171160098999923
+        ],
+        "mints": 4136,
+        "entries": 9591,
+        "closed": 9369,
+        "unfilled": 222,
+        "unknownInventory": 100,
+        "dexFeesSol": 11.440156751,
+        "networkFeesSol": 1.676592768,
+        "reasons": {
+          "timeout": 698,
+          "leader_sale": 7904,
+          "stop50": 767,
+          "no_executable_exit_before_B_end": 222
+        },
+        "closedOnly": {
+          "pnlSol": -21.112636936999944,
+          "ci95Sol": [
+            -26.882094373999887,
+            -14.594248459000013
+          ],
+          "mints": 3939
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -31.73154012700006,
+          "ci95Sol": [
+            -37.520234707999954,
+            -25.309454950999964
+          ],
+          "mints": 4109
+        }
+      },
+      "fixed": {
+        "pnlSol": -43.84776760400011,
+        "ci95Sol": [
+          -47.70629728900011,
+          -39.87012743400015
+        ],
+        "mints": 4136,
+        "entries": 9591,
+        "closed": 9071,
+        "unfilled": 520,
+        "unknownInventory": 100,
+        "dexFeesSol": 11.285185705,
+        "networkFeesSol": 0.999495325,
+        "reasons": {
+          "timeout": 1264,
+          "take40": 2192,
+          "stop20": 5615,
+          "no_executable_exit_before_B_end": 520
+        },
+        "closedOnly": {
+          "pnlSol": -17.820205631000025,
+          "ci95Sol": [
+            -20.994881166999967,
+            -14.440702374
+          ],
+          "mints": 3642
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -43.65813430200013,
+          "ci95Sol": [
+            -47.62507583900009,
+            -39.767074635000014
+          ],
+          "mints": 4109
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 12.167638935999998,
+        "ci95Sol": [
+          6.3782017279999765,
+          18.82505267999998
+        ],
+        "mints": 4136
+      },
+      "historicMatched": {
+        "entries": 9591,
+        "pnlSol": 5.218370928999998,
+        "ci95Sol": [
+          -9.13631943,
+          28.69678931499985
+        ],
+        "mints": 4136
+      }
+    },
+    {
+      "kind": "total",
+      "delay": 30,
+      "wallets": 50,
+      "signals": 9630,
+      "noEntry": 82,
+      "censored": 13,
+      "mirror": {
+        "pnlSol": -30.97335265700003,
+        "ci95Sol": [
+          -36.412984329999986,
+          -24.906159433000077
+        ],
+        "mints": 4088,
+        "entries": 9535,
+        "closed": 9292,
+        "unfilled": 243,
+        "unknownInventory": 100,
+        "dexFeesSol": 11.37031219,
+        "networkFeesSol": 1.663651394,
+        "reasons": {
+          "timeout": 697,
+          "leader_sale": 7799,
+          "stop50": 796,
+          "no_executable_exit_before_B_end": 243
+        },
+        "closedOnly": {
+          "pnlSol": -19.52127300799999,
+          "ci95Sol": [
+            -24.94739235100005,
+            -13.668036372000023
+          ],
+          "mints": 3869
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -31.03999079100001,
+          "ci95Sol": [
+            -36.66521852499995,
+            -24.916080131000083
+          ],
+          "mints": 4061
+        }
+      },
+      "fixed": {
+        "pnlSol": -66.223511036,
+        "ci95Sol": [
+          -70.437893635,
+          -61.89419063800003
+        ],
+        "mints": 4088,
+        "entries": 9535,
+        "closed": 8563,
+        "unfilled": 972,
+        "unknownInventory": 100,
+        "dexFeesSol": 10.929607666,
+        "networkFeesSol": 0.969881582,
+        "reasons": {
+          "timeout": 1494,
+          "take40": 1957,
+          "no_executable_exit_before_B_end": 972,
+          "stop20": 5112
+        },
+        "closedOnly": {
+          "pnlSol": -17.571788587000018,
+          "ci95Sol": [
+            -20.71280167800002,
+            -14.31942733800001
+          ],
+          "mints": 3236
+        },
+        "knownInventoryOnly": {
+          "pnlSol": -65.98003763599998,
+          "ci95Sol": [
+            -70.14913979399999,
+            -61.793210606000024
+          ],
+          "mints": 4061
+        }
+      },
+      "pairedDelta": {
+        "pnlSol": 35.25015837900005,
+        "ci95Sol": [
+          29.488543235000005,
+          41.868345455999886
+        ],
+        "mints": 4088
+      },
+      "historicMatched": {
+        "entries": 9535,
+        "pnlSol": 3.549602150000019,
+        "ci95Sol": [
+          -9.41437554700001,
+          26.972300276999874
+        ],
+        "mints": 4088
+      }
+    }
+  ],
+  "historicSummary": [
+    {
+      "delay_sec": 1,
+      "signals": 10124,
+      "entries": 10124,
+      "no_entry": 0,
+      "tp": 2783,
+      "sl": 5736,
+      "timeout": 1605,
+      "open": 0,
+      "total_pnl_sol": 4.467009351618184,
+      "mean_pnl_sol": 0.0004412296870424915,
+      "positive": 3271,
+      "unique_mints": 4378,
+      "bootstrap_mint_cluster_total_pnl_ci95_sol": [
+        -8.752899277437002,
+        27.223780687799273
+      ]
+    },
+    {
+      "delay_sec": 5,
+      "signals": 10124,
+      "entries": 10106,
+      "no_entry": 18,
+      "tp": 2652,
+      "sl": 5544,
+      "timeout": 1910,
+      "open": 0,
+      "total_pnl_sol": 4.22955738244243,
+      "mean_pnl_sol": 0.0004185194322622631,
+      "positive": 3143,
+      "unique_mints": 4360,
+      "bootstrap_mint_cluster_total_pnl_ci95_sol": [
+        -9.759529336319666,
+        28.29129146593421
+      ]
+    },
+    {
+      "delay_sec": 30,
+      "signals": 10124,
+      "entries": 10054,
+      "no_entry": 70,
+      "tp": 2403,
+      "sl": 5035,
+      "timeout": 2616,
+      "open": 0,
+      "total_pnl_sol": 1.929807443396432,
+      "mean_pnl_sol": 0.00019194424541440542,
+      "positive": 2978,
+      "unique_mints": 4312,
+      "bootstrap_mint_cluster_total_pnl_ci95_sol": [
+        -10.96439452557865,
+        25.074721722086082
+      ]
+    }
+  ]
+}

@@ -1,0 +1,350 @@
+[
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k049.json",
+    "bytes": 269560,
+    "sha256": "4dc9a3f65575d03067a1e120ebfa7e91e7ff496640d6de42383c18b01092873f",
+    "rows": 198
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k050.json",
+    "bytes": 5634238,
+    "sha256": "a9cb7223f9f23e10aa34a268fa5066b58359ec46b7254009e2cc60bfaab728cf",
+    "rows": 3750
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k051.json",
+    "bytes": 5301868,
+    "sha256": "c6b12ab37bbe48973e7ec08c44339e4df2d1b349883df1160751bb8d2b91aee0",
+    "rows": 3774
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k052.json",
+    "bytes": 4881949,
+    "sha256": "75bbef62644b7b9c929e6a6d95c6d3c6975dee749bb294f7e575ef9263c84379",
+    "rows": 3174
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k053.json",
+    "bytes": 5315100,
+    "sha256": "13ca50a6e5790cedf574c5f47c66ee7739a07ec5e1d1fadafb9741284c02b12e",
+    "rows": 3528
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k054.json",
+    "bytes": 5488805,
+    "sha256": "127deac14a8b25619c43643c6e5d79495026cd4fd11607bd6c7d4853bdbafc41",
+    "rows": 3690
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k055.json",
+    "bytes": 4781214,
+    "sha256": "a10ced057331ae63163d677e7dccade414e71cfa12fbc3db0cdcdcac377f766a",
+    "rows": 3090
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k056.json",
+    "bytes": 4966902,
+    "sha256": "62eef440e155907d576a05738024c10d4ad0efa8af3e641f4dba93da5f8efaae",
+    "rows": 3264
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k057.json",
+    "bytes": 4490405,
+    "sha256": "fe4852d90cecfa0a6ebf51d3acbc8c7a4acf927fe81136d8f116039aba357ffb",
+    "rows": 3198
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k065.json",
+    "bytes": 4480777,
+    "sha256": "22be35ed6a1709798fd48cbd94788e777134dfecdbf7b67ce9d88f58b611dc4c",
+    "rows": 3090
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k066.json",
+    "bytes": 5369656,
+    "sha256": "6bf901cf817ed04a54e0818759aae662c6363d1fee3c1cfdf62bf0466d0af5ed",
+    "rows": 3462
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k067.json",
+    "bytes": 5763792,
+    "sha256": "f4acf0a6939ca7494d1188b7ee314874ac363863e63a40ac76d425c42514e43c",
+    "rows": 3660
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k068.json",
+    "bytes": 4232570,
+    "sha256": "7299d0060a196a70172f5f3d0223cda0d803bc013912843f4b3a9fb3c580cbe9",
+    "rows": 3132
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k069.json",
+    "bytes": 4595041,
+    "sha256": "6eacaedcfbf50afb8c232b1d0774d9029076814e5a42debd43a5b19f2bab090a",
+    "rows": 2724
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k070.json",
+    "bytes": 5119408,
+    "sha256": "6242fc9be9cfb999a5b32a017b0865c9644d38632d6cff21e735d24fa2aa24ff",
+    "rows": 3234
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k071.json",
+    "bytes": 5025498,
+    "sha256": "a59d8072028457d39fdc9e99c87393085de23215d4e683e8104f7e8db677e439",
+    "rows": 3558
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k072.json",
+    "bytes": 4235567,
+    "sha256": "2e4133f5fd748655c2129c9b5bd5c2879e79b8f997c6cc80eb7a1ef33e7930c8",
+    "rows": 2916
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k074.json",
+    "bytes": 1375760,
+    "sha256": "dc33565c4f655f522cf98537e8a3959a1378bf0cf20e35fe7114957f7e684858",
+    "rows": 1002
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k075.json",
+    "bytes": 75063,
+    "sha256": "c289c02626b5ae8e3a19652d509f4accd6a17deee15c6abcaf213fd118d7e623",
+    "rows": 54
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k076.json",
+    "bytes": 87273,
+    "sha256": "83d45bacae0611acd153bfa1265476e419b53841764a769f04f15cf4f71b569b",
+    "rows": 66
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k077.json",
+    "bytes": 89654,
+    "sha256": "9781cbf1845b57dac6e75174b16992da0b2863cab93746c8c4f01418af9e32ba",
+    "rows": 66
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k078.json",
+    "bytes": 68936,
+    "sha256": "0c157f9d97db19818011ec5271c11a1caef241b4fdecfc43312396a9f81bc4da",
+    "rows": 48
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k080.json",
+    "bytes": 196372,
+    "sha256": "c903074be32d4fbc9accc1ae9b8c4bf62e7ecb52a75d236d5b59ff418c9e25ab",
+    "rows": 150
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k081.json",
+    "bytes": 111489,
+    "sha256": "b446e55917036d5658ed2ffbc6019ce02edc4120f70418258f73cb15491605f6",
+    "rows": 84
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k082.json",
+    "bytes": 68369,
+    "sha256": "f9d9ddf90f937a0c8372462b87b535385e59ef0144542b07a0573e69022f210d",
+    "rows": 54
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k083.json",
+    "bytes": 111529,
+    "sha256": "7fd0254e6b5de46ed7b211031ee51dec38effb2893c4e02998d2c61240d1ddf8",
+    "rows": 78
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k084.json",
+    "bytes": 52995,
+    "sha256": "1c2ea32557df1b0430b857a2bbd148e7a6e6b8f68a110cef87df0e7fd588a800",
+    "rows": 42
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k085.json",
+    "bytes": 36866,
+    "sha256": "f93fa53fb4acbf82315a74cd0af8f347879bb5be910d49fb775f7177216ab1fe",
+    "rows": 30
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k086.json",
+    "bytes": 228453,
+    "sha256": "d5a3fb1a5acfce245a21c1e9819f2111c18bec55a47db4905b395defa33dccdf",
+    "rows": 162
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k087.json",
+    "bytes": 106394,
+    "sha256": "7223d171a56d6b785fe6f7d5f7d3dab488cfa834531a67a724fd24e67cbcf84b",
+    "rows": 84
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k088.json",
+    "bytes": 233134,
+    "sha256": "70931c569241fc77e2a7e1c1d8920c0be27b40c88ba1e89990242be14d355710",
+    "rows": 162
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k089.json",
+    "bytes": 29426,
+    "sha256": "39109751281b9b49d82733cd5de82692682f6f77c9fbc5b710e7f79940c7b270",
+    "rows": 24
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k090.json",
+    "bytes": 73529,
+    "sha256": "89958306b64914a8518e840d0200864404d391eae2cd9b1d0f55c588f3b395ec",
+    "rows": 60
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k097.json",
+    "bytes": 123705,
+    "sha256": "a4214c425ae9dc6f184de99a8c76c264c465721eb0e423afb7da385aa9467bab",
+    "rows": 84
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k098.json",
+    "bytes": 77016,
+    "sha256": "8de83985607d7ccb494b8d8e972c14ececf067dff999bebaaa89e08334ab9cc4",
+    "rows": 54
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k099.json",
+    "bytes": 176355,
+    "sha256": "602bcd6e2953ed2e372523774f651dcfe32a9cebe8485ead0ce8af571129a0eb",
+    "rows": 126
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k100.json",
+    "bytes": 30320,
+    "sha256": "de8e6592a9b0b67f85538bb5430dee29fa41adc37ef6e2e58d670ffbcb9d3b1e",
+    "rows": 24
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k101.json",
+    "bytes": 97556,
+    "sha256": "6ab4efe52baf36c575e53c0da8b0e7fc8b9522f807ae68e231372f9cc84b6e18",
+    "rows": 72
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k102.json",
+    "bytes": 46979,
+    "sha256": "448f9bbd5da55dc9c0fa0a832a4839965a5d0c2a73c9daf43e068397e30d2033",
+    "rows": 36
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k103.json",
+    "bytes": 246554,
+    "sha256": "8f495b06cf47aff99afb664248c53812fa03368f0d48c8b54a31e6af64a1560f",
+    "rows": 156
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k104.json",
+    "bytes": 93954,
+    "sha256": "7300eb11f5110e09a833f45b0453a0230a04f0344414158b9fa65d42a3475fa2",
+    "rows": 72
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k105.json",
+    "bytes": 178186,
+    "sha256": "086da4aa41d649dc7e726a2310bd30157de7dec0dfee2776cd5a1d9d045cb071",
+    "rows": 138
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k106.json",
+    "bytes": 37430,
+    "sha256": "576045340a5f799f8682c2807db16b5195d1ac49ae8abd9bb49b13e752a91db5",
+    "rows": 30
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k107.json",
+    "bytes": 180923,
+    "sha256": "b59b0b102326a2a424acf3b5ea4dc74ab17fd31dbfc411169a21254e579c5985",
+    "rows": 138
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k109.json",
+    "bytes": 141369,
+    "sha256": "7fb927bb6fb326398940f329c254af7064659cc44b143e1300566c4de94321a9",
+    "rows": 90
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k110.json",
+    "bytes": 140544,
+    "sha256": "61ee4362ebbd40a19f08703104d37a67a1905dccf6161c1f0b4e07a435090fe4",
+    "rows": 108
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k111.json",
+    "bytes": 304094,
+    "sha256": "cbc18de22c67e4ef50ecc5c2fa4dd0e777713a3324624ac708f0c463e16002bf",
+    "rows": 60
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k112.json",
+    "bytes": 463369,
+    "sha256": "f4c9bd61645ecf8bd324240df1c4d58a284bb8532b789af279a72c8c46044ff7",
+    "rows": 144
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k113.json",
+    "bytes": 326221,
+    "sha256": "bc6c5edab466f8741b9046f97c56ffea264502f5331a0faece84493d9672eff2",
+    "rows": 102
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k114.json",
+    "bytes": 46977,
+    "sha256": "0840abecedbb7647f42ff2917b399a37572c9e5561f145d68b074772a3116e43",
+    "rows": 36
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k115.json",
+    "bytes": 147744,
+    "sha256": "1b61a92846496d863ef373533f660da246d8de200439eed06c6a1ca85b4a402f",
+    "rows": 108
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k116.json",
+    "bytes": 167452,
+    "sha256": "b6a826d786e2c48381463d9b784b0bd582b9f4e207b14fb475a139d97eae8e8c",
+    "rows": 126
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k117.json",
+    "bytes": 125458,
+    "sha256": "8a8705703b8014749ffcc94f0881db73bc6324d65889c5f7b92dec868caac9e1",
+    "rows": 96
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k118.json",
+    "bytes": 292901,
+    "sha256": "b899b69a10a691785d505043d8dd2c50baee132141c54e3cac6ef722873c1b05",
+    "rows": 114
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k119.json",
+    "bytes": 53334,
+    "sha256": "4537c414ebfcf8593dbc6fa5c8695834d7110943285df74a1aef5316d422bfa4",
+    "rows": 42
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k120.json",
+    "bytes": 89782,
+    "sha256": "90cf3d18c73f923bdc7b09d5719ca934667a793c7101fa4696c5061f8d222f88",
+    "rows": 60
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k121.json",
+    "bytes": 130654,
+    "sha256": "2d2edbadbfeb0694a7491613f416c7720687818fa82412fb083bb94404b4be87",
+    "rows": 96
+  },
+  {
+    "path": "data\\reports\\follow-mirror-2026-10-06\\parts\\outcomes-k122.json",
+    "bytes": 77373,
+    "sha256": "9c9ad143fa88ae0f849419ffa21701af31a71135d87ca4e6b3a7d22ccff14c73",
+    "rows": 60
+  }
+]

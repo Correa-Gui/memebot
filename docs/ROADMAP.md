@@ -142,6 +142,11 @@ fixtures reais e 3/3 transações conferidas via RPC. A v0 continua restrita à 
 ## Fase 5 — Sinais (dias 12–21) → M4 **(condicional: só se o paper trading da v0 mostrar resultado — ver `docs/STRATEGY.md` §7)**
 
 Cada item só entra na estratégia se o backtest fora da amostra melhorar o PnL líquido.
+- [x] 2026-10-06 — Follow exploratório das tops de A em B com saídas proporcionais espelhadas,
+  atrasos 1/5/30 s, timeout 60 min, stop −50%, curve-math e rede amostrada; comparação pareada
+  com +40/−20/10 min. PnL conservador negativo nos três cenários; estratégia e pm2 inalterados.
+  Relatório: `data/reports/follow-mirror-exploratory-2026-10-06.md`.
+- [ ] Confirmar hipóteses de smart money em dados novos após 05/10/2026 18:37 UTC; B já foi usado.
 - [ ] Coleta de **rugs rotulados** (queda de TVL / inatividade, conforme a literatura) para treino futuro. *(Movido da Fase 2: não é bloqueante para curve-math/estado; só importa se chegarmos ao modelo de risco.)*
 - [x] `research/`: dataset de features aos N minutos de vida + rótulo (rug / sobreviveu / retorno futuro).
   *(2026-10-03, adiantado a pedido do usuário. `pnpm ml:dataset` (`apps/bot/src/ml/dataset.ts`, mesmo estado/features/
