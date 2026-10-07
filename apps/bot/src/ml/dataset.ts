@@ -71,6 +71,9 @@ export interface DatasetRow {
   netReturn: number;
   exitReason: string;
   holdSec: number;
+  entryCostLamports: bigint;
+  netPnlLamports: bigint;
+  exitTs: number;
 }
 
 type Timer =
@@ -341,6 +344,7 @@ export class DatasetBuilder {
     this.o.onRow({
       mint: l.mint, createdAtMs: l.createdAtMs, t: l.t, features: l.features, hitTp: reason === 'take_profit' ? 1 : 0, netReturn: ret, exitReason: reason,
       holdSec: (ts - l.entryTs) / 1000,
+      entryCostLamports: l.entryCost, netPnlLamports: (this.liquidation(l, token) ?? l.entryCost) - l.entryCost, exitTs: ts,
     });
   }
 

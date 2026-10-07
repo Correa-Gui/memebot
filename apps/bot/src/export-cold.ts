@@ -8,7 +8,8 @@ import { parseArgs } from 'node:util';
 type TablePlan = { table: string; timeColumn: string; ttlDays: number; exportBeforeDays: number; shardColumn: string | null };
 type ManifestEntry = { table: string; date: string; shard: string; rows: number; bytes: number; sha256: string; parquetRows: number; through: string; verifiedAt: string; path: string };
 const plans: TablePlan[] = [
-  { table: 'events_trade', timeColumn: 'received_at', ttlDays: 14, exportBeforeDays: 9, shardColumn: 'mint' },
+  // Exportar o dia UTC anterior: a linha mais antiga terá < 2 dias, antes do TTL de 3.
+  { table: 'events_trade', timeColumn: 'received_at', ttlDays: 3, exportBeforeDays: 1, shardColumn: 'mint' },
   { table: 'pumpswap_trade_extra', timeColumn: 'ts', ttlDays: 60, exportBeforeDays: 55, shardColumn: 'sig' },
   { table: 'ingest_gaps', timeColumn: 'detected_at', ttlDays: 60, exportBeforeDays: 55, shardColumn: null },
 ];

@@ -5,6 +5,14 @@ Os dias são estimativas para quem trabalha diariamente no projeto com o Claude 
 
 ## Marcos principais
 
+- [x] 2026-10-06 — Emergência de disco: inventário, remoção apenas dos shards autorizados (1,34 GB),
+  raw_b64 com TTL de 3 dias (migração 012 aplicada sem materialização em massa) e janela de exportação
+  antecipada para o dia UTC anterior. Recorder mantido parado. Relatório: `data/reports/disk-emergency-2026-10-06.md`.
+- [x] 2026-10-06 — Compactação do VHDX executada após autorização: TRIM + Optimize-VHD,
+  151,26 → 50,34 GiB; C: com 134,48 GiB livres. Containers restaurados e recorder mantido parado.
+- [ ] Operação de disco: mínimo proposto de 50 GiB livres para retomar; implementar alerta no
+  status/Telegram abaixo de 30 GiB e rotina diária de exportação.
+
 | Marco | Dia estimado | O que você tem |
 |---|---|---|
 | M1 — Dados em stream gravando (local) | **dia 2–3** | Eventos do Pump.fun chegando e salvos no ClickHouse local 24h, via pm2 |
